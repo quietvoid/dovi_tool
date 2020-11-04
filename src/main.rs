@@ -3,13 +3,10 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod dovi;
-use dovi::parser::{Format, Parser};
+use dovi::{demuxer::Demuxer, Format};
 
 #[derive(StructOpt, Debug)]
-#[structopt(
-    name = "hdr10plus_parser",
-    about = "Parses HDR10+ dynamic metadata in HEVC video files"
-)]
+#[structopt(name = "dovi_tool", about = "Stuff about Dolby Vision")]
 struct Opt {
     #[structopt(
         name = "input",
@@ -32,19 +29,18 @@ struct Opt {
     #[structopt(
         short = "o",
         long,
-        help = "Sets the output JSON file to use",
+        help = "BL output file location",
         parse(from_os_str)
     )]
-    output: Option<PathBuf>,
-
-    #[structopt(long, help = "Checks if input file contains dynamic metadata")]
-    verify: bool,
+    bl_out: Option<PathBuf>,
 
     #[structopt(
+        short = "o",
         long,
-        help = "Force only one metadata profile, avoiding mixing different profiles (fix for x265 segfault)"
+        help = "EL output file location",
+        parse(from_os_str)
     )]
-    force_single_profile: bool,
+    el_out: Option<PathBuf>,
 }
 
 fn main() -> std::io::Result<()> {
@@ -58,11 +54,19 @@ fn main() -> std::io::Result<()> {
         },
     };
 
-    let verify = opt.verify || opt.output.is_none();
-
     match input_format(&input) {
         Ok(format) => {
-            let parser = Parser::new(format, input, opt.output, verify, opt.force_single_profile);
+            let bl_out = match opt.bl_out {
+                Some(path) => path,
+                None => PathBuf::from("BL.hevc"),
+            };
+
+            let el_out = match opt.el_out {
+                Some(path) => path,
+                None => PathBuf::from("EL.hevc"),
+            };
+
+            let parser = Demuxer::new(format, input, bl_out, el_out);
             parser.process_file();
         }
         Err(msg) => println!("{}", msg),

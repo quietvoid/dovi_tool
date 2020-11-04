@@ -5,41 +5,22 @@ use std::path::PathBuf;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::io::Read;
 
-pub enum Format {
-    Raw,
-    RawStdin,
-    Matroska,
-}
+use super::Format;
 
-pub struct Parser {
+pub struct Demuxer {
     format: Format,
     input: PathBuf,
-    output: Option<PathBuf>,
-    verify: bool,
-    force_single_profile: bool,
+    bl_out: PathBuf,
+    el_out: PathBuf,
 }
 
-#[derive(Debug)]
-pub struct NalUnit {
-    offset: usize,
-    nal_type: u8,
-    size: usize,
-}
-
-impl Parser {
-    pub fn new(
-        format: Format,
-        input: PathBuf,
-        output: Option<PathBuf>,
-        verify: bool,
-        force_single_profile: bool,
-    ) -> Self {
+impl Demuxer {
+    pub fn new(format: Format, input: PathBuf, bl_out: PathBuf, el_out: PathBuf) -> Self {
         Self {
             format,
             input,
-            output,
-            verify,
-            force_single_profile,
+            bl_out,
+            el_out,
         }
     }
 
@@ -56,18 +37,14 @@ impl Parser {
             let file_meta = file.metadata();
             bytes_count = file_meta.unwrap().len() / 100_000_000;
 
-            if self.verify {
-                pb = ProgressBar::hidden();
-            } else {
-                pb = ProgressBar::new(bytes_count);
-                pb.set_style(
-                    ProgressStyle::default_bar()
-                        .template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
-                );
-            }
+            pb = ProgressBar::new(bytes_count);
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
+            );
         }
 
-        let result = match self.format {
+        match self.format {
             Format::Matroska => panic!("unsupported"),
             _ => self.parse_raw_hevc(Some(&pb)),
         };
@@ -87,24 +64,48 @@ impl Parser {
         let out_header: Vec<u8> = vec![0, 0, 0, 1];
         let el_nal_types = [62, 63];
 
-        let chunk_size = 1024 * 1024 * 1;
-        let mut read_chunk = [0; 1024 * 1024 * 1];
-        let mut chunk = Vec::with_capacity(chunk_size);
+        let chunk_size = 1024 * 1024 * 4;
 
+        let mut main_buf = [0; 1024 * 1024 * 4];
+        let mut sec_buf = [0; 256 * 256 * 2];
+
+        let mut chunk = Vec::with_capacity(chunk_size);
         let mut end: Vec<u8> = Vec::with_capacity(512 * 512);
 
-        let mut bl_writer =
-            BufWriter::new(File::create(PathBuf::from("BL.hevc")).expect("Can't create file"));
-        let mut el_writer =
-            BufWriter::new(File::create(PathBuf::from("EL.hevc")).expect("Can't create file"));
+        let mut bl_writer = BufWriter::new(File::create(&self.bl_out).expect("Can't create file"));
+        let mut el_writer = BufWriter::new(File::create(&self.el_out).expect("Can't create file"));
 
-        while let Ok(n) = reader.read(&mut read_chunk) {
-            if n == 0 {
+        while let Ok(n) = reader.read(&mut main_buf) {
+            let mut read_bytes = n;
+            if read_bytes == 0 {
                 break;
-            } else if n < chunk_size {
-                chunk.extend(&read_chunk[..n]);
+            }
+
+            if self.format == Format::RawStdin {
+                chunk.extend_from_slice(&main_buf[..read_bytes]);
+
+                loop {
+                    match reader.read(&mut sec_buf) {
+                        Ok(num) => {
+                            if num > 0 {
+                                read_bytes += num;
+
+                                chunk.extend_from_slice(&sec_buf[..num]);
+
+                                if read_bytes >= chunk_size {
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        Err(e) => panic!("{:?}", e),
+                    }
+                }
+            } else if read_bytes < chunk_size {
+                chunk.extend_from_slice(&main_buf[..read_bytes]);
             } else {
-                chunk.extend(&read_chunk);
+                chunk.extend_from_slice(&main_buf);
             }
 
             let mut offsets: Vec<usize> = chunk
@@ -113,7 +114,11 @@ impl Parser {
                 .filter_map(|(index, v)| if v == header { Some(index) } else { None })
                 .collect();
 
-            let last = if n < chunk_size {
+            if offsets.is_empty() {
+                continue;
+            }
+
+            let last = if read_bytes < chunk_size {
                 *offsets.last().unwrap()
             } else {
                 let last = offsets.pop().unwrap();
@@ -159,7 +164,7 @@ impl Parser {
                 }
             }
 
-            if end.len() > 0 {
+            if !end.is_empty() {
                 chunk = end.clone();
             } else {
                 chunk.clear();
