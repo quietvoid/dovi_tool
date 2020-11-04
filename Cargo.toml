@@ -1,0 +1,16 @@
+[package]
+name = "dovi_tool"
+version = "0.1.0"
+authors = ["quietvoid"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+structopt = "0.3.20"
+serde = "1.0.117"
+serde_json = "1.0.59"
+indicatif = "0.15.0"
+read-byte-slice = "0.1.2"
+regex = "1.4.1"
+ansi_term = "0.12.1"
+deku = "0.8.0"
