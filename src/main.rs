@@ -7,67 +7,47 @@ use dovi::{demuxer::Demuxer, Format};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "dovi_tool", about = "Stuff about Dolby Vision")]
-struct Opt {
-    #[structopt(
-        name = "input",
-        short = "i",
-        long,
-        help = "Sets the input file to use",
-        long,
-        conflicts_with = "stdin",
-        parse(from_os_str)
-    )]
-    input: Option<PathBuf>,
-
-    #[structopt(
-        help = "Uses stdin as input data",
-        conflicts_with = "input",
-        parse(from_os_str)
-    )]
-    stdin: Option<PathBuf>,
-
-    #[structopt(
-        long,
-        help = "BL output file location",
-        parse(from_os_str)
-    )]
-    bl_out: Option<PathBuf>,
-
-    #[structopt(
-        long,
-        help = "EL output file location",
-        parse(from_os_str)
-    )]
-    el_out: Option<PathBuf>,
+enum Opt {
+    Demux {
+        #[structopt(
+            name = "input",
+            short = "i",
+            long,
+            help = "Sets the input file to use",
+            long,
+            conflicts_with = "stdin",
+            parse(from_os_str)
+        )]
+        input: Option<PathBuf>,
+    
+        #[structopt(
+            help = "Uses stdin as input data",
+            conflicts_with = "input",
+            parse(from_os_str)
+        )]
+        stdin: Option<PathBuf>,
+    
+        #[structopt(
+            long,
+            help = "BL output file location",
+            parse(from_os_str)
+        )]
+        bl_out: Option<PathBuf>,
+    
+        #[structopt(
+            long,
+            help = "EL output file location",
+            parse(from_os_str)
+        )]
+        el_out: Option<PathBuf>,
+    }
 }
 
 fn main() -> std::io::Result<()> {
-    let opt = Opt::from_args();
-
-    let input = match opt.input {
-        Some(input) => input,
-        None => match opt.stdin {
-            Some(stdin) => stdin,
-            None => PathBuf::new(),
-        },
-    };
-
-    match input_format(&input) {
-        Ok(format) => {
-            let bl_out = match opt.bl_out {
-                Some(path) => path,
-                None => PathBuf::from("BL.hevc"),
-            };
-
-            let el_out = match opt.el_out {
-                Some(path) => path,
-                None => PathBuf::from("EL.hevc"),
-            };
-
-            let parser = Demuxer::new(format, input, bl_out, el_out);
-            parser.process_input();
+    match Opt::from_args() {
+        Opt::Demux { input, stdin, bl_out, el_out } => {
+            demux(input, stdin, bl_out, el_out);
         }
-        Err(msg) => println!("{}", msg),
     }
 
     Ok(())
@@ -94,5 +74,33 @@ fn input_format(input: &PathBuf) -> Result<Format, &str> {
         Err("Input file doesn't exist.")
     } else {
         Err("Invalid input file type.")
+    }
+}
+
+fn demux(input: Option<PathBuf>, stdin: Option<PathBuf>, bl_out: Option<PathBuf>, el_out: Option<PathBuf>) {
+    let input = match input {
+        Some(input) => input,
+        None => match stdin {
+            Some(stdin) => stdin,
+            None => PathBuf::new(),
+        },
+    };
+
+    match input_format(&input) {
+        Ok(format) => {
+            let bl_out = match bl_out {
+                Some(path) => path,
+                None => PathBuf::from("BL.hevc"),
+            };
+
+            let el_out = match el_out {
+                Some(path) => path,
+                None => PathBuf::from("EL.hevc"),
+            };
+
+            let parser = Demuxer::new(format, input, bl_out, el_out);
+            parser.process_input();
+        }
+        Err(msg) => println!("{}", msg),
     }
 }
