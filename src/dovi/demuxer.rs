@@ -24,7 +24,7 @@ impl Demuxer {
         }
     }
 
-    pub fn process_file(&self) {
+    pub fn process_input(&self) {
         let pb: ProgressBar;
         let bytes_count;
 
@@ -46,11 +46,13 @@ impl Demuxer {
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.parse_raw_hevc(Some(&pb)),
+            _ => self.demux_raw_hevc(Some(&pb)),
         };
+
+        pb.finish_and_clear();
     }
 
-    pub fn parse_raw_hevc(&self, pb: Option<&ProgressBar>) {
+    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>) {
         //BufReader & BufWriter
         let stdin = std::io::stdin();
         let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
@@ -72,8 +74,16 @@ impl Demuxer {
         let mut chunk = Vec::with_capacity(chunk_size);
         let mut end: Vec<u8> = Vec::with_capacity(512 * 512);
 
-        let mut bl_writer = BufWriter::new(File::create(&self.bl_out).expect("Can't create file"));
-        let mut el_writer = BufWriter::new(File::create(&self.el_out).expect("Can't create file"));
+        let mut bl_writer = BufWriter::with_capacity(
+            chunk_size * 2,
+            File::create(&self.bl_out).expect("Can't create file"),
+        );
+        let mut el_writer = BufWriter::with_capacity(
+            chunk_size * 2,
+            File::create(&self.el_out).expect("Can't create file"),
+        );
+
+        let mut consumed = 0;
 
         while let Ok(n) = reader.read(&mut main_buf) {
             let mut read_bytes = n;
@@ -171,6 +181,15 @@ impl Demuxer {
             }
 
             end.clear();
+
+            consumed += read_bytes;
+
+            if consumed >= 100_000_000 {
+                if let Some(pb) = pb {
+                    pb.inc(1);
+                    consumed = 0;
+                }
+            }
         }
 
         bl_writer.flush().unwrap();

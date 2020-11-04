@@ -27,7 +27,6 @@ struct Opt {
     stdin: Option<PathBuf>,
 
     #[structopt(
-        short = "o",
         long,
         help = "BL output file location",
         parse(from_os_str)
@@ -35,7 +34,6 @@ struct Opt {
     bl_out: Option<PathBuf>,
 
     #[structopt(
-        short = "o",
         long,
         help = "EL output file location",
         parse(from_os_str)
@@ -67,7 +65,7 @@ fn main() -> std::io::Result<()> {
             };
 
             let parser = Demuxer::new(format, input, bl_out, el_out);
-            parser.process_file();
+            parser.process_input();
         }
         Err(msg) => println!("{}", msg),
     }
