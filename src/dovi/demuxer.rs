@@ -92,23 +92,23 @@ impl Demuxer {
         let mut consumed = 0;
 
         while let Ok(n) = reader.read(&mut main_buf) {
-            let mut get_bytes = n;
-            if get_bytes == 0 {
+            let mut read_bytes = n;
+            if read_bytes == 0 {
                 break;
             }
 
             if self.format == Format::RawStdin {
-                chunk.extend_from_slice(&main_buf[..get_bytes]);
+                chunk.extend_from_slice(&main_buf[..read_bytes]);
 
                 loop {
                     match reader.read(&mut sec_buf) {
                         Ok(num) => {
                             if num > 0 {
-                                get_bytes += num;
+                                read_bytes += num;
 
                                 chunk.extend_from_slice(&sec_buf[..num]);
 
-                                if get_bytes >= chunk_size {
+                                if read_bytes >= chunk_size {
                                     break;
                                 }
                             } else {
@@ -118,8 +118,8 @@ impl Demuxer {
                         Err(e) => panic!("{:?}", e),
                     }
                 }
-            } else if get_bytes < chunk_size {
-                chunk.extend_from_slice(&main_buf[..get_bytes]);
+            } else if read_bytes < chunk_size {
+                chunk.extend_from_slice(&main_buf[..read_bytes]);
             } else {
                 chunk.extend_from_slice(&main_buf);
             }
@@ -134,7 +134,7 @@ impl Demuxer {
                 continue;
             }
 
-            let last = if get_bytes < chunk_size {
+            let last = if read_bytes < chunk_size {
                 *offsets.last().unwrap()
             } else {
                 let last = offsets.pop().unwrap();
@@ -197,7 +197,7 @@ impl Demuxer {
 
             end.clear();
 
-            consumed += get_bytes;
+            consumed += read_bytes;
 
             if consumed >= 100_000_000 {
                 if let Some(pb) = pb {
