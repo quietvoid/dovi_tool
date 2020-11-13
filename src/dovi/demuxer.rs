@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::io::Read;
 
+use super::rpu::parse_dovi_rpu;
 use super::Format;
 
 pub struct Demuxer {
@@ -83,26 +84,31 @@ impl Demuxer {
             File::create(&self.el_out).expect("Can't create file"),
         );
 
+        let mut rpu_writer = BufWriter::with_capacity(
+            chunk_size * 2,
+            File::create(PathBuf::from("RPU.bin")).expect("Can't create file"),
+        );
+
         let mut consumed = 0;
 
         while let Ok(n) = reader.read(&mut main_buf) {
-            let mut read_bytes = n;
-            if read_bytes == 0 {
+            let mut get_bytes = n;
+            if get_bytes == 0 {
                 break;
             }
 
             if self.format == Format::RawStdin {
-                chunk.extend_from_slice(&main_buf[..read_bytes]);
+                chunk.extend_from_slice(&main_buf[..get_bytes]);
 
                 loop {
                     match reader.read(&mut sec_buf) {
                         Ok(num) => {
                             if num > 0 {
-                                read_bytes += num;
+                                get_bytes += num;
 
                                 chunk.extend_from_slice(&sec_buf[..num]);
 
-                                if read_bytes >= chunk_size {
+                                if get_bytes >= chunk_size {
                                     break;
                                 }
                             } else {
@@ -112,8 +118,8 @@ impl Demuxer {
                         Err(e) => panic!("{:?}", e),
                     }
                 }
-            } else if read_bytes < chunk_size {
-                chunk.extend_from_slice(&main_buf[..read_bytes]);
+            } else if get_bytes < chunk_size {
+                chunk.extend_from_slice(&main_buf[..get_bytes]);
             } else {
                 chunk.extend_from_slice(&main_buf);
             }
@@ -128,7 +134,7 @@ impl Demuxer {
                 continue;
             }
 
-            let last = if read_bytes < chunk_size {
+            let last = if get_bytes < chunk_size {
                 *offsets.last().unwrap()
             } else {
                 let last = offsets.pop().unwrap();
@@ -164,6 +170,15 @@ impl Demuxer {
                         &chunk[offset + 3..offset + size]
                     };
 
+                    if nal_type == 62 {
+                        rpu_writer.write_all(&out_header).expect("Failed writing");
+                        rpu_writer.write_all(&data[2..]).expect("Failed writing");
+
+                        parse_dovi_rpu(&data[2..]);
+                        rpu_writer.flush().unwrap();
+                        std::process::exit(0);
+                    }
+
                     el_writer.write_all(&out_header).expect("Failed writing");
                     el_writer.write_all(&data).expect("Failed writing");
                 } else {
@@ -182,7 +197,7 @@ impl Demuxer {
 
             end.clear();
 
-            consumed += read_bytes;
+            consumed += get_bytes;
 
             if consumed >= 100_000_000 {
                 if let Some(pb) = pb {

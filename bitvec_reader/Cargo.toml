@@ -1,0 +1,10 @@
+[package]
+name = "bitvec_reader"
+version = "0.1.0"
+authors = ["quietvoid <39477805+quietvoid@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitvec = "0.19.4"

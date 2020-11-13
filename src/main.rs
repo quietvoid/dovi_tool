@@ -19,33 +19,30 @@ enum Opt {
             parse(from_os_str)
         )]
         input: Option<PathBuf>,
-    
+
         #[structopt(
             help = "Uses stdin as input data",
             conflicts_with = "input",
             parse(from_os_str)
         )]
         stdin: Option<PathBuf>,
-    
-        #[structopt(
-            long,
-            help = "BL output file location",
-            parse(from_os_str)
-        )]
+
+        #[structopt(long, help = "BL output file location", parse(from_os_str))]
         bl_out: Option<PathBuf>,
-    
-        #[structopt(
-            long,
-            help = "EL output file location",
-            parse(from_os_str)
-        )]
+
+        #[structopt(long, help = "EL output file location", parse(from_os_str))]
         el_out: Option<PathBuf>,
-    }
+    },
 }
 
 fn main() -> std::io::Result<()> {
     match Opt::from_args() {
-        Opt::Demux { input, stdin, bl_out, el_out } => {
+        Opt::Demux {
+            input,
+            stdin,
+            bl_out,
+            el_out,
+        } => {
             demux(input, stdin, bl_out, el_out);
         }
     }
@@ -77,7 +74,12 @@ fn input_format(input: &PathBuf) -> Result<Format, &str> {
     }
 }
 
-fn demux(input: Option<PathBuf>, stdin: Option<PathBuf>, bl_out: Option<PathBuf>, el_out: Option<PathBuf>) {
+fn demux(
+    input: Option<PathBuf>,
+    stdin: Option<PathBuf>,
+    bl_out: Option<PathBuf>,
+    el_out: Option<PathBuf>,
+) {
     let input = match input {
         Some(input) => input,
         None => match stdin {
