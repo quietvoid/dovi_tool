@@ -27,11 +27,11 @@ impl BitVecReader {
         val
     }
 
+    // bitstring.py implementation: https://github.com/scott-griffiths/bitstring/blob/master/bitstring.py#L1706
     pub fn get_ue(&mut self) -> u64 {
         let oldpos = self.offset;
         let mut pos = self.offset;
 
-        // bitstring.py implementation: https://github.com/scott-griffiths/bitstring/blob/master/bitstring.py#L1706
         loop {
             match self.bs.get(pos) {
                 Some(val) => if !val {
@@ -51,7 +51,7 @@ impl BitVecReader {
                 panic!("Out of bounds attempt");
             }
 
-            code_num += self.bs[pos + 1 ..= pos + leading_zeroes].load_be::<u64>();
+            code_num += self.bs[pos + 1 .. pos + leading_zeroes + 1].load_be::<u64>();
             pos += leading_zeroes + 1;
         } else {
             assert_eq!(code_num, 0);
@@ -61,5 +61,30 @@ impl BitVecReader {
         self.offset = pos;
 
         code_num
+    }
+
+    // bitstring.py implementation: https://github.com/scott-griffiths/bitstring/blob/master/bitstring.py#L1767
+    pub fn get_se(&mut self) -> i64 {
+        let code_num = self.get_ue();
+
+        let m = ((code_num + 1) as f64 / 2.0).floor() as u64;
+
+        if code_num % 2 == 0 {
+            -1 * m as i64
+        } else {
+            m as i64
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.bs.len()
+    }
+
+    pub fn remaining(&self) -> usize {
+        self.bs.len() - self.offset
+    }
+
+    pub fn pos(&self) -> usize {
+        self.offset
     }
 }
