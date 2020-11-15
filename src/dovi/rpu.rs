@@ -35,6 +35,7 @@ pub struct RpuNal {
     vdr_rpu_data: Option<VdrRpuData>,
     nlq_data: Option<NlqData>,
     vdr_dm_data: Option<VdrDmData>,
+    rpu_data_crc32: u32,
 }
 
 #[derive(Debug, Default)]
@@ -108,6 +109,27 @@ pub struct VdrDmData {
     source_max_pq: u16,
     source_diagonal: u16,
     num_ext_blocks: u64,
+    ext_metadata_blocks: Vec<ExtMetadataBlock>,
+}
+
+#[derive(Debug, Default)]
+pub struct ExtMetadataBlock {
+    ext_block_length: u64,
+    ext_block_level: u8,
+    min_pq: u16,
+    max_pq: u16,
+    avg_pq: u16,
+    target_max_pq: u16,
+    trim_slope: u16,
+    trim_offset: u16,
+    trim_power: u16,
+    trim_chroma_weight: u16,
+    trim_saturation_gain: u16,
+    ms_weight: i16,
+    active_area_left_offset: u16,
+    active_area_right_offset: u16,
+    active_area_top_offset: u16,
+    active_area_bottom_offset: u16,
 }
 
 pub fn parse_dovi_rpu(data: &[u8]) {
@@ -136,11 +158,8 @@ pub fn parse_dovi_rpu(data: &[u8]) {
     println!("{} {} {}", reader.pos(), reader.len(), reader.remaining());
 }
 
-
 pub fn rpu_data(reader: &mut BitVecReader) -> RpuNal {
-    let mut rpu_nal = RpuNal::default();
-
-    rpu_data_header(reader, &mut rpu_nal);
+    let mut rpu_nal = rpu_data_header(reader);
 
     if rpu_nal.rpu_type == 2 {
         if !rpu_nal.use_prev_vdr_rpu_flag {
@@ -152,10 +171,18 @@ pub fn rpu_data(reader: &mut BitVecReader) -> RpuNal {
         }
     }
 
+    while !reader.is_aligned() {
+        reader.get();
+    }
+
+    rpu_nal.rpu_data_crc32 = reader.get_n(32);
+
     rpu_nal
 }
 
-pub fn rpu_data_header(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
+pub fn rpu_data_header(reader: &mut BitVecReader) -> RpuNal {
+    let mut rpu_nal = RpuNal::default();
+
     rpu_nal.rpu_nal_prefix = reader.get_n(8);
 
     if rpu_nal.rpu_nal_prefix == 25 {
@@ -204,15 +231,14 @@ pub fn rpu_data_header(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
 
                     let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp] + 2) as usize;
 
-                    let mut vec = vec![0; pivot_idx_count];
-                    for pivot_idx in 0 .. pivot_idx_count {
-                        vec[pivot_idx] = reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
+                    rpu_nal.pred_pivot_value.push(vec![0; pivot_idx_count]);
+                    for pivot_idx in 0..pivot_idx_count {
+                        rpu_nal.pred_pivot_value[cmp][pivot_idx] =
+                            reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
                     }
-
-                    rpu_nal.pred_pivot_value.push(vec);
                 }
 
-                if rpu_nal.rpu_format & 0x700 == 0 {
+                if rpu_nal.rpu_format & 0x700 == 0 && !rpu_nal.disable_residual_flag {
                     rpu_nal.nlq_method_idc = reader.get_n(3);
                     rpu_nal.nlq_num_pivots_minus2 = 0;
                 }
@@ -223,8 +249,9 @@ pub fn rpu_data_header(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
         }
     }
 
-    assert_eq!(rpu_nal.bl_bit_depth_minus8, 2);
-    assert_eq!(rpu_nal.el_bit_depth_minus8, 2);
+    rpu_nal.validate();
+
+    rpu_nal
 }
 
 pub fn vdr_rpu_data_payload(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
@@ -255,14 +282,18 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
         let mut predictors = 0;
 
         data.mapping_idc.push(vec![0; pivot_idx_count]);
-        data.num_mapping_param_predictors.push(vec![0; pivot_idx_count]);
-        data.mapping_param_pred_flag.push(vec![false; pivot_idx_count]);
-        data.diff_pred_part_idx_mapping_minus1.push(vec![0; pivot_idx_count]);
+        data.num_mapping_param_predictors
+            .push(vec![0; pivot_idx_count]);
+        data.mapping_param_pred_flag
+            .push(vec![false; pivot_idx_count]);
+        data.diff_pred_part_idx_mapping_minus1
+            .push(vec![0; pivot_idx_count]);
 
         // rpu_data_mapping_param()
         data.poly_order_minus1.push(vec![0; pivot_idx_count]);
         data.linear_interp_flag.push(vec![false; pivot_idx_count]);
-        data.pred_linear_interp_value_int.push(vec![0; pivot_idx_count]);
+        data.pred_linear_interp_value_int
+            .push(vec![0; pivot_idx_count]);
         data.pred_linear_interp_value.push(vec![0; pivot_idx_count]);
         data.poly_coef_int.push(vec![0; pivot_idx_count]);
         data.poly_coef.push(vec![0; pivot_idx_count]);
@@ -273,19 +304,19 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
         data.mmr_coef_int.push(vec![vec![]; pivot_idx_count]);
         data.mmr_coef.push(vec![vec![]; pivot_idx_count]);
 
-        for pivot_idx in 0 .. pivot_idx_count {
+        for pivot_idx in 0..pivot_idx_count {
             data.mapping_idc[cmp][pivot_idx] = reader.get_ue();
-
-            // Incremented after mapping_idc if mapping_param_pred_flag is 0
-            if !data.mapping_param_pred_flag[cmp][pivot_idx] {
-                data.num_mapping_param_predictors[cmp][pivot_idx] = predictors;
-                predictors += 1;
-            }
 
             if data.num_mapping_param_predictors[cmp][pivot_idx] > 0 {
                 data.mapping_param_pred_flag[cmp][pivot_idx] = reader.get();
             } else {
                 data.mapping_param_pred_flag[cmp][pivot_idx] = false;
+            }
+
+            // Incremented after mapping_idc if mapping_param_pred_flag is 0
+            if !data.mapping_param_pred_flag[cmp][pivot_idx] {
+                data.num_mapping_param_predictors[cmp][pivot_idx] = predictors;
+                predictors += 1;
             }
 
             // == 0
@@ -301,36 +332,44 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
                     }
 
                     // Linear interpolation
-                    if data.poly_order_minus1[cmp][pivot_idx] == 0 && data.linear_interp_flag[cmp][pivot_idx] {
+                    if data.poly_order_minus1[cmp][pivot_idx] == 0
+                        && data.linear_interp_flag[cmp][pivot_idx]
+                    {
                         if rpu_nal.coefficient_data_type == 0 {
                             data.pred_linear_interp_value_int[cmp][pivot_idx] = reader.get_ue();
                         }
 
-                        data.pred_linear_interp_value[cmp][pivot_idx] = reader.get_n(coefficient_log2_denom_length);
+                        data.pred_linear_interp_value[cmp][pivot_idx] =
+                            reader.get_n(coefficient_log2_denom_length);
 
                         if pivot_idx as u64 == rpu_nal.num_pivots_minus_2[cmp] {
                             if rpu_nal.coefficient_data_type == 0 {
-                                data.pred_linear_interp_value_int[cmp][pivot_idx + 1] = reader.get_ue();
+                                data.pred_linear_interp_value_int[cmp][pivot_idx + 1] =
+                                    reader.get_ue();
                             }
 
                             data.pred_linear_interp_value[cmp][pivot_idx + 1] = reader.get_ue();
                         }
                     } else {
-                        for i in 0 ..= data.poly_order_minus1[cmp][pivot_idx] + 1 {
+                        for i in 0..=data.poly_order_minus1[cmp][pivot_idx] + 1 {
                             if rpu_nal.coefficient_data_type == 0 {
                                 data.poly_coef_int[cmp][pivot_idx] = reader.get_se();
                             }
 
-                            data.poly_coef[cmp][pivot_idx] = reader.get_n(coefficient_log2_denom_length);
+                            data.poly_coef[cmp][pivot_idx] =
+                                reader.get_n(coefficient_log2_denom_length);
                         }
                     }
-                } else if data.mapping_idc[cmp][pivot_idx] == 1 { // MAPPING_MMR
+                } else if data.mapping_idc[cmp][pivot_idx] == 1 {
+                    // MAPPING_MMR
                     data.mmr_order_minus1[cmp][pivot_idx] = reader.get_n(2);
 
                     assert!(data.mmr_order_minus1[cmp][pivot_idx] <= 2);
 
-                    data.mmr_coef[cmp][pivot_idx] = vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
-                    data.mmr_coef_int[cmp][pivot_idx] = vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
+                    data.mmr_coef[cmp][pivot_idx] =
+                        vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
+                    data.mmr_coef_int[cmp][pivot_idx] =
+                        vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
 
                     if rpu_nal.coefficient_data_type == 0 {
                         data.mmr_constant_int[cmp][pivot_idx] = reader.get_se();
@@ -338,13 +377,14 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
 
                     data.mmr_constant[cmp][pivot_idx] = reader.get_n(coefficient_log2_denom_length);
 
-                    for i in 1 ..= data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
-                        for j in 0 .. 7 as usize {
+                    for i in 1..=data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
+                        for j in 0..7 as usize {
                             if rpu_nal.coefficient_data_type == 0 {
                                 data.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se();
                             }
 
-                            data.mmr_coef[cmp][pivot_idx][i][j] = reader.get_n(coefficient_log2_denom_length);
+                            data.mmr_coef[cmp][pivot_idx][i][j] =
+                                reader.get_n(coefficient_log2_denom_length);
                         }
                     }
                 }
@@ -353,6 +393,8 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
             }
         }
     }
+
+    data.validate();
 
     data
 }
@@ -371,60 +413,62 @@ pub fn rpu_data_nlq(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) -> NlqD
         panic!("Invalid coefficient_data_type value!");
     };
 
-    for pivot_idx in 0 .. pivot_idx_count {
+    for pivot_idx in 0..pivot_idx_count {
         data.num_nlq_param_predictors.push(vec![0; num_cmps]);
         data.nlq_param_pred_flag.push(vec![false; num_cmps]);
         data.diff_pred_part_idx_nlq_minus1.push(vec![0; num_cmps]);
-    
+
         data.nlq_offset.push(vec![0; num_cmps]);
         data.vdr_in_max_int.push(vec![0; num_cmps]);
         data.vdr_in_max.push(vec![0; num_cmps]);
-    
+
         data.linear_deadzone_slope_int.push(vec![0; num_cmps]);
         data.linear_deadzone_slope.push(vec![0; num_cmps]);
         data.linear_deadzone_threshold_int.push(vec![0; num_cmps]);
         data.linear_deadzone_threshold.push(vec![0; num_cmps]);
-        
-    
+
         let mut predictors = 0;
-    
-        for cmp in 0 .. num_cmps {
+
+        for cmp in 0..num_cmps {
+            if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
+                data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get();
+            } else {
+                data.nlq_param_pred_flag[pivot_idx][cmp] = false;
+            }
+
             // Incremented if nlq_param_pred_flag is 0
             if !data.nlq_param_pred_flag[pivot_idx][cmp] {
                 data.num_nlq_param_predictors[pivot_idx][cmp] = predictors;
                 predictors += 1;
             }
 
-            if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
-                data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get();
-            } else {
-                data.nlq_param_pred_flag[pivot_idx][cmp] = false;
-            }
-    
             if !data.nlq_param_pred_flag[pivot_idx][cmp] {
                 // rpu_data_nlq_param
-    
-                data.nlq_offset[pivot_idx][cmp] = reader.get_n((rpu_nal.el_bit_depth_minus8 + 8) as usize);
-    
+
+                data.nlq_offset[pivot_idx][cmp] =
+                    reader.get_n((rpu_nal.el_bit_depth_minus8 + 8) as usize);
+
                 if rpu_nal.coefficient_data_type == 0 {
                     data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue();
                 }
-    
+
                 data.vdr_in_max[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
-    
+
                 // NLQ_LINEAR_DZ
                 if rpu_nal.nlq_method_idc == 0 {
                     if rpu_nal.coefficient_data_type == 0 {
                         data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue();
                     }
-    
-                    data.linear_deadzone_slope[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
-    
+
+                    data.linear_deadzone_slope[pivot_idx][cmp] =
+                        reader.get_n(coefficient_log2_denom_length);
+
                     if rpu_nal.coefficient_data_type == 0 {
                         data.linear_deadzone_threshold_int[pivot_idx][cmp] = reader.get_ue();
                     }
-    
-                    data.linear_deadzone_threshold[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
+
+                    data.linear_deadzone_threshold[pivot_idx][cmp] =
+                        reader.get_n(coefficient_log2_denom_length);
                 }
             } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
                 data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue();
@@ -438,11 +482,9 @@ pub fn rpu_data_nlq(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) -> NlqD
 pub fn vdr_dm_data_payload(reader: &mut BitVecReader) -> VdrDmData {
     let mut data = VdrDmData::default();
     data.affected_dm_metadata_id = reader.get_ue();
-
-    assert!(data.affected_dm_metadata_id <= 15);
-
     data.current_dm_metadata_id = reader.get_ue();
     data.scene_refresh_flag = reader.get_ue();
+
     data.ycc_to_rgb_coef0 = reader.get_n::<u16>(16) as i16;
     data.ycc_to_rgb_coef1 = reader.get_n::<u16>(16) as i16;
     data.ycc_to_rgb_coef2 = reader.get_n::<u16>(16) as i16;
@@ -455,6 +497,7 @@ pub fn vdr_dm_data_payload(reader: &mut BitVecReader) -> VdrDmData {
     data.ycc_to_rgb_offset0 = reader.get_n(32);
     data.ycc_to_rgb_offset1 = reader.get_n(32);
     data.ycc_to_rgb_offset2 = reader.get_n(32);
+
     data.rgb_to_lms_coef0 = reader.get_n::<u16>(16) as i16;
     data.rgb_to_lms_coef1 = reader.get_n::<u16>(16) as i16;
     data.rgb_to_lms_coef2 = reader.get_n::<u16>(16) as i16;
@@ -464,14 +507,12 @@ pub fn vdr_dm_data_payload(reader: &mut BitVecReader) -> VdrDmData {
     data.rgb_to_lms_coef6 = reader.get_n::<u16>(16) as i16;
     data.rgb_to_lms_coef7 = reader.get_n::<u16>(16) as i16;
     data.rgb_to_lms_coef8 = reader.get_n::<u16>(16) as i16;
+
     data.signal_eotf = reader.get_n(16);
     data.signal_eotf_param0 = reader.get_n(16);
     data.signal_eotf_param1 = reader.get_n(16);
     data.signal_eotf_param2 = reader.get_n(32);
     data.signal_bit_depth = reader.get_n(5);
-
-    assert!(data.signal_bit_depth >= 8 && data.signal_bit_depth <= 16);
-
     data.signal_color_space = reader.get_n(2);
     data.signal_chroma_format = reader.get_n(2);
     data.signal_full_range_flag = reader.get_n(2);
@@ -480,5 +521,89 @@ pub fn vdr_dm_data_payload(reader: &mut BitVecReader) -> VdrDmData {
     data.source_diagonal = reader.get_n(10);
     data.num_ext_blocks = reader.get_ue();
 
+    if data.num_ext_blocks > 0 {
+        while !reader.is_aligned() {
+            reader.get();
+        }
+
+        for i in 0..data.num_ext_blocks {
+            let mut ext_metadata_block = ExtMetadataBlock::default();
+
+            ext_metadata_block.ext_block_length = reader.get_ue();
+            ext_metadata_block.ext_block_level = reader.get_n(8);
+
+            let ext_block_len_bits = 8 * ext_metadata_block.ext_block_length;
+            let mut ext_block_use_bits = 0;
+
+            if ext_metadata_block.ext_block_level == 1 {
+                ext_metadata_block.min_pq = reader.get_n(12);
+                ext_metadata_block.max_pq = reader.get_n(12);
+                ext_metadata_block.avg_pq = reader.get_n(12);
+
+                ext_block_use_bits += 36;
+            }
+
+            if ext_metadata_block.ext_block_level == 2 {
+                ext_metadata_block.target_max_pq = reader.get_n(12);
+                ext_metadata_block.trim_slope = reader.get_n(12);
+                ext_metadata_block.trim_offset = reader.get_n(12);
+                ext_metadata_block.trim_power = reader.get_n(12);
+                ext_metadata_block.trim_chroma_weight = reader.get_n(12);
+                ext_metadata_block.trim_saturation_gain = reader.get_n(12);
+                ext_metadata_block.ms_weight = reader.get_n::<u16>(13) as i16;
+
+                ext_block_use_bits += 85;
+            }
+
+            if ext_metadata_block.ext_block_level == 5 {
+                ext_metadata_block.active_area_left_offset = reader.get_n(13);
+                ext_metadata_block.active_area_right_offset = reader.get_n(13);
+                ext_metadata_block.active_area_top_offset = reader.get_n(13);
+                ext_metadata_block.active_area_bottom_offset = reader.get_n(13);
+
+                ext_block_use_bits += 52;
+            }
+
+            while ext_block_use_bits < ext_block_len_bits {
+                reader.get();
+                ext_block_use_bits += 1;
+            }
+
+            data.ext_metadata_blocks.push(ext_metadata_block);
+        }
+    }
+
+    data.validate();
+
     data
+}
+
+impl RpuNal {
+    pub fn validate(&self) {
+        assert_eq!(self.rpu_nal_prefix, 25);
+        assert_eq!(self.vdr_rpu_profile, 1);
+        assert_eq!(self.vdr_rpu_level, 0);
+        assert_eq!(self.bl_bit_depth_minus8, 2);
+        assert_eq!(self.el_bit_depth_minus8, 2);
+        assert!(self.vdr_bit_depth_minus_8 <= 6);
+        assert_eq!(self.mapping_color_space, 0);
+        assert_eq!(self.mapping_chroma_format_idc, 0);
+        assert!(self.coefficient_log2_denom <= 23);
+
+        assert_eq!(self.nlq_method_idc, 0);
+        assert_eq!(self.nlq_num_pivots_minus2, 0);
+    }
+
+    pub fn write() {}
+}
+
+impl VdrRpuData {
+    pub fn validate(&self) {}
+}
+
+impl VdrDmData {
+    pub fn validate(&self) {
+        assert!(self.affected_dm_metadata_id <= 15);
+        assert!(self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16);
+    }
 }

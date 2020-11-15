@@ -76,6 +76,10 @@ impl BitVecReader {
         }
     }
 
+    pub fn is_aligned(&self) -> bool {
+        self.offset % 8 == 0
+    }
+
     pub fn len(&self) -> usize {
         self.bs.len()
     }
