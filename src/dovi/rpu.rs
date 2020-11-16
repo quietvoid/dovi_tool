@@ -146,7 +146,7 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     let mut rpu_nal = read_rpu_data(&mut reader, false);
     rpu_nal.to_81();
 
-    println!("{:#?}", rpu_nal);
+    //println!("{:#?}", rpu_nal);
 
     //println!("{:#?}", rpu_nal);
     //println!("{} {} {}", &reader.pos(), &reader.len(), &reader.remaining());
@@ -375,7 +375,8 @@ pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrR
                                     reader.get_ue();
                             }
 
-                            data.pred_linear_interp_value[cmp][pivot_idx + 1] = reader.get_ue();
+                            data.pred_linear_interp_value[cmp][pivot_idx + 1] =
+                                reader.get_n(coefficient_log2_denom_length);
                         }
                     } else {
                         for i in 0..=data.poly_order_minus1[cmp][pivot_idx] + 1 {
@@ -708,5 +709,6 @@ impl VdrDmData {
     pub fn validate(&self) {
         assert!(self.affected_dm_metadata_id <= 15);
         assert!(self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16);
+        assert_eq!(self.signal_eotf, 65535);
     }
 }
