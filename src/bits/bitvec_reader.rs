@@ -21,8 +21,8 @@ impl BitVecReader {
         *val
     }
 
-    pub fn get_n <T: BitMemory> (&mut self, n: usize) -> T {
-        let val = self.bs[self.offset .. self.offset + n].load_be::<T>();
+    pub fn get_n<T: BitMemory>(&mut self, n: usize) -> T {
+        let val = self.bs[self.offset..self.offset + n].load_be::<T>();
         self.offset += n;
 
         val
@@ -35,12 +35,14 @@ impl BitVecReader {
 
         loop {
             match self.bs.get(pos) {
-                Some(val) => if !val {
-                    pos += 1;
-                } else {
-                    break;
-                },
-                None => panic!("Out of bounds index: {}", pos)
+                Some(val) => {
+                    if !val {
+                        pos += 1;
+                    } else {
+                        break;
+                    }
+                }
+                None => panic!("Out of bounds index: {}", pos),
             }
         }
 
@@ -52,7 +54,7 @@ impl BitVecReader {
                 panic!("Out of bounds attempt");
             }
 
-            code_num += self.bs[pos + 1 .. pos + leading_zeroes + 1].load_be::<u64>();
+            code_num += self.bs[pos + 1..pos + leading_zeroes + 1].load_be::<u64>();
             pos += leading_zeroes + 1;
         } else {
             assert_eq!(code_num, 0);

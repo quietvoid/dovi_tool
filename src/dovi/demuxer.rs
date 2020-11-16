@@ -175,6 +175,9 @@ impl Demuxer {
 
                         rpu_writer.write_all(&out_header).expect("Failed writing");
                         rpu_writer.write_all(&data).expect("Failed writing");
+                        rpu_writer.flush();
+
+                        std::process::exit(0);
                     }
 
                     el_writer.write_all(&out_header).expect("Failed writing");

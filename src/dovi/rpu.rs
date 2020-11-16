@@ -1,6 +1,9 @@
 use bitvec::prelude::*;
 
-use super::{BitVecReader, BitVecWriter, clear_start_code_emulation_prevention_3_byte, add_start_code_emulation_prevention_3_byte};
+use super::{
+    add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
+    BitVecReader, BitVecWriter,
+};
 
 #[derive(Default, Debug)]
 pub struct RpuNal {
@@ -140,10 +143,13 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data);
 
     let mut reader = BitVecReader::new(bytes);
-    let rpu_nal = read_rpu_data(&mut reader, true);
+    let mut rpu_nal = read_rpu_data(&mut reader, false);
+    rpu_nal.to_81();
+
+    println!("{:#?}", rpu_nal);
 
     //println!("{:#?}", rpu_nal);
-    //println!("{} {} {}", reader.pos(), reader.len(), reader.remaining());
+    //println!("{} {} {}", &reader.pos(), &reader.len(), &reader.remaining());
 
     let mut writer = BitVecWriter::new();
     let rest = &reader.get_inner()[rpu_nal.header_end..];
@@ -167,12 +173,12 @@ pub fn read_rpu_data(reader: &mut BitVecReader, header_only: bool) -> RpuNal {
             if !rpu_nal.use_prev_vdr_rpu_flag {
                 vdr_rpu_data_payload(reader, &mut rpu_nal);
             }
-    
+
             if rpu_nal.vdr_dm_metadata_present_flag {
                 rpu_nal.vdr_dm_data = Some(vdr_dm_data_payload(reader));
             }
         }
-    
+
         while !reader.is_aligned() {
             reader.get();
         }
@@ -183,9 +189,9 @@ pub fn read_rpu_data(reader: &mut BitVecReader, header_only: bool) -> RpuNal {
     rpu_nal
 }
 
-pub fn write_rpu_data(rpu_nal: RpuNal, mut writer: &mut BitVecWriter){
+pub fn write_rpu_data(mut rpu_nal: RpuNal, mut writer: &mut BitVecWriter) {
     rpu_nal.write_header(&mut writer);
-    
+
     if rpu_nal.rpu_type == 2 {
         if !rpu_nal.use_prev_vdr_rpu_flag {
             rpu_nal.write_vdr_rpu_data(&mut writer);
@@ -615,18 +621,24 @@ impl RpuNal {
         assert_eq!(self.nlq_num_pivots_minus2, 0);
     }
 
-    pub fn write_header(&self, mut writer: &mut BitVecWriter) {
+    pub fn to_81(&mut self) {
+        // Change to RPU only (8.1)
+        self.el_spatial_resampling_filter_flag = false;
+        self.disable_residual_flag = true;
+    }
+
+    pub fn write_header(&mut self, writer: &mut BitVecWriter) {
         writer.write_n(&self.rpu_nal_prefix.to_be_bytes(), 8);
 
         if self.rpu_nal_prefix == 25 {
             writer.write_n(&self.rpu_type.to_be_bytes(), 6);
             writer.write_n(&self.rpu_format.to_be_bytes(), 11);
-    
+
             if self.rpu_type == 2 {
                 writer.write_n(&self.vdr_rpu_profile.to_be_bytes(), 4);
                 writer.write_n(&self.vdr_rpu_level.to_be_bytes(), 4);
                 writer.write(self.vdr_seq_info_present_flag);
-    
+
                 if self.vdr_seq_info_present_flag {
                     writer.write(self.chroma_resampling_explicit_filter_flag);
                     writer.write_n(&self.coefficient_data_type.to_be_bytes(), 2);
@@ -634,7 +646,7 @@ impl RpuNal {
                     if self.coefficient_data_type == 0 {
                         writer.write_ue(self.coefficient_log2_denom);
                     }
-                
+
                     writer.write_n(&self.vdr_rpu_normalized_idc.to_be_bytes(), 2);
                     writer.write(self.bl_video_full_range_flag);
 
@@ -665,7 +677,10 @@ impl RpuNal {
                         let pivot_idx_count = (self.num_pivots_minus_2[cmp] + 2) as usize;
 
                         for pivot_idx in 0..pivot_idx_count {
-                            writer.write_n(&self.pred_pivot_value[cmp][pivot_idx].to_be_bytes(), (self.bl_bit_depth_minus8 + 8) as usize);
+                            writer.write_n(
+                                &self.pred_pivot_value[cmp][pivot_idx].to_be_bytes(),
+                                (self.bl_bit_depth_minus8 + 8) as usize,
+                            );
                         }
                     }
 
@@ -680,13 +695,9 @@ impl RpuNal {
         }
     }
 
-    pub fn write_vdr_rpu_data(&self, mut writer: &mut BitVecWriter) {
+    pub fn write_vdr_rpu_data(&self, mut writer: &mut BitVecWriter) {}
 
-    }
-
-    pub fn write_vdr_dm_data(&self, mut writer: &mut BitVecWriter) {
-        
-    }
+    pub fn write_vdr_dm_data(&self, mut writer: &mut BitVecWriter) {}
 }
 
 impl VdrRpuData {

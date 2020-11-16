@@ -22,7 +22,7 @@ impl BitVecWriter {
     pub fn write_n(&mut self, v: &[u8], n: usize) {
         let slice = v.view_bits();
 
-        self.bs.extend_from_bitslice(&slice[slice.len() - n ..]);
+        self.bs.extend_from_bitslice(&slice[slice.len() - n..]);
 
         self.offset += n;
     }
@@ -35,18 +35,18 @@ impl BitVecWriter {
             let mut vec: BitVec<Msb0, u8> = BitVec::new();
             let mut tmp = v + 1;
             let mut leading_zeroes: i64 = -1;
-    
+
             while tmp > 0 {
                 tmp = tmp >> 1;
                 leading_zeroes += 1;
             }
-    
+
             let remaining = (v + 1 - (1 << leading_zeroes)).to_be_bytes();
-    
+
             for _ in 0..leading_zeroes {
                 vec.push(false);
             }
-    
+
             vec.push(true);
 
             self.bs.extend_from_bitslice(&vec);
