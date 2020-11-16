@@ -2,6 +2,9 @@ use regex::Regex;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+mod bits;
+use bits::{bitvec_reader, bitvec_writer};
+
 mod dovi;
 use dovi::{demuxer::Demuxer, Format};
 

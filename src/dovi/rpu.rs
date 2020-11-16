@@ -1,7 +1,10 @@
-use bitvec_reader::BitVecReader;
+use bitvec::prelude::*;
+
+use super::{BitVecReader, BitVecWriter, clear_start_code_emulation_prevention_3_byte, add_start_code_emulation_prevention_3_byte};
 
 #[derive(Default, Debug)]
 pub struct RpuNal {
+    header_end: usize,
     rpu_nal_prefix: u8,
     rpu_type: u8,
     rpu_format: u16,
@@ -132,52 +135,70 @@ pub struct ExtMetadataBlock {
     active_area_bottom_offset: u16,
 }
 
-pub fn parse_dovi_rpu(data: &[u8]) {
+pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     // Clear start code emulation prevention 3 byte
-    let bytes: Vec<u8> = data
-        .iter()
-        .enumerate()
-        .filter_map(|(index, value)| {
-            if index > 2
-                && index < data.len() - 2
-                && data[index - 2] == 0
-                && data[index - 1] == 0
-                && data[index] <= 3
-            {
-                None
-            } else {
-                Some(*value)
-            }
-        })
-        .collect::<Vec<u8>>();
+    let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data);
 
     let mut reader = BitVecReader::new(bytes);
-    let rpu_nal = rpu_data(&mut reader);
+    let rpu_nal = read_rpu_data(&mut reader, true);
 
-    println!("{:#?}", rpu_nal);
-    println!("{} {} {}", reader.pos(), reader.len(), reader.remaining());
+    //println!("{:#?}", rpu_nal);
+    //println!("{} {} {}", reader.pos(), reader.len(), reader.remaining());
+
+    let mut writer = BitVecWriter::new();
+    let rest = &reader.get_inner()[rpu_nal.header_end..];
+
+    write_rpu_data(rpu_nal, &mut writer);
+    let inner_w = writer.inner_mut();
+    inner_w.extend_from_bitslice(&rest);
+
+    let mut data_to_write = inner_w.as_slice().to_vec();
+    add_start_code_emulation_prevention_3_byte(&mut data_to_write);
+
+    data_to_write
 }
 
-pub fn rpu_data(reader: &mut BitVecReader) -> RpuNal {
+pub fn read_rpu_data(reader: &mut BitVecReader, header_only: bool) -> RpuNal {
     let mut rpu_nal = rpu_data_header(reader);
+    rpu_nal.header_end = reader.pos();
 
+    if !header_only {
+        if rpu_nal.rpu_type == 2 {
+            if !rpu_nal.use_prev_vdr_rpu_flag {
+                vdr_rpu_data_payload(reader, &mut rpu_nal);
+            }
+    
+            if rpu_nal.vdr_dm_metadata_present_flag {
+                rpu_nal.vdr_dm_data = Some(vdr_dm_data_payload(reader));
+            }
+        }
+    
+        while !reader.is_aligned() {
+            reader.get();
+        }
+
+        rpu_nal.rpu_data_crc32 = reader.get_n(32);
+    }
+
+    rpu_nal
+}
+
+pub fn write_rpu_data(rpu_nal: RpuNal, mut writer: &mut BitVecWriter){
+    rpu_nal.write_header(&mut writer);
+    
     if rpu_nal.rpu_type == 2 {
         if !rpu_nal.use_prev_vdr_rpu_flag {
-            vdr_rpu_data_payload(reader, &mut rpu_nal);
+            rpu_nal.write_vdr_rpu_data(&mut writer);
         }
 
         if rpu_nal.vdr_dm_metadata_present_flag {
-            rpu_nal.vdr_dm_data = Some(vdr_dm_data_payload(reader));
+            rpu_nal.write_vdr_dm_data(&mut writer);
         }
     }
 
-    while !reader.is_aligned() {
-        reader.get();
-    }
-
-    rpu_nal.rpu_data_crc32 = reader.get_n(32);
-
-    rpu_nal
+    //while !writer.is_aligned() {
+    //    writer.write(false);
+    //}
 }
 
 pub fn rpu_data_header(reader: &mut BitVecReader) -> RpuNal {
@@ -594,7 +615,78 @@ impl RpuNal {
         assert_eq!(self.nlq_num_pivots_minus2, 0);
     }
 
-    pub fn write() {}
+    pub fn write_header(&self, mut writer: &mut BitVecWriter) {
+        writer.write_n(&self.rpu_nal_prefix.to_be_bytes(), 8);
+
+        if self.rpu_nal_prefix == 25 {
+            writer.write_n(&self.rpu_type.to_be_bytes(), 6);
+            writer.write_n(&self.rpu_format.to_be_bytes(), 11);
+    
+            if self.rpu_type == 2 {
+                writer.write_n(&self.vdr_rpu_profile.to_be_bytes(), 4);
+                writer.write_n(&self.vdr_rpu_level.to_be_bytes(), 4);
+                writer.write(self.vdr_seq_info_present_flag);
+    
+                if self.vdr_seq_info_present_flag {
+                    writer.write(self.chroma_resampling_explicit_filter_flag);
+                    writer.write_n(&self.coefficient_data_type.to_be_bytes(), 2);
+
+                    if self.coefficient_data_type == 0 {
+                        writer.write_ue(self.coefficient_log2_denom);
+                    }
+                
+                    writer.write_n(&self.vdr_rpu_normalized_idc.to_be_bytes(), 2);
+                    writer.write(self.bl_video_full_range_flag);
+
+                    if self.rpu_format & 0x700 == 0 {
+                        writer.write_ue(self.bl_bit_depth_minus8);
+                        writer.write_ue(self.el_bit_depth_minus8);
+                        writer.write_ue(self.vdr_bit_depth_minus_8);
+                        writer.write(self.spatial_resampling_filter_flag);
+                        writer.write_n(&self.reserved_zero_3bits.to_be_bytes(), 3);
+                        writer.write(self.el_spatial_resampling_filter_flag);
+                        writer.write(self.disable_residual_flag);
+                    }
+                }
+
+                writer.write(self.vdr_dm_metadata_present_flag);
+                writer.write(self.use_prev_vdr_rpu_flag);
+
+                if self.use_prev_vdr_rpu_flag {
+                    writer.write_ue(self.prev_vdr_rpu_id);
+                } else {
+                    writer.write_ue(self.vdr_rpu_id);
+                    writer.write_ue(self.mapping_color_space);
+                    writer.write_ue(self.mapping_chroma_format_idc);
+
+                    for cmp in 0..3 {
+                        writer.write_ue(self.num_pivots_minus_2[cmp]);
+
+                        let pivot_idx_count = (self.num_pivots_minus_2[cmp] + 2) as usize;
+
+                        for pivot_idx in 0..pivot_idx_count {
+                            writer.write_n(&self.pred_pivot_value[cmp][pivot_idx].to_be_bytes(), (self.bl_bit_depth_minus8 + 8) as usize);
+                        }
+                    }
+
+                    if self.rpu_format & 0x700 == 0 && !self.disable_residual_flag {
+                        writer.write_n(&self.nlq_method_idc.to_be_bytes(), 3);
+                    }
+
+                    writer.write_ue(self.num_x_partitions_minus1);
+                    writer.write_ue(self.num_y_partitions_minus1);
+                }
+            }
+        }
+    }
+
+    pub fn write_vdr_rpu_data(&self, mut writer: &mut BitVecWriter) {
+
+    }
+
+    pub fn write_vdr_dm_data(&self, mut writer: &mut BitVecWriter) {
+        
+    }
 }
 
 impl VdrRpuData {

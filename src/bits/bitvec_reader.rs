@@ -1,5 +1,6 @@
 use bitvec::prelude::*;
 
+#[derive(Debug)]
 pub struct BitVecReader {
     bs: BitVec<Msb0, u8>,
     offset: usize,
@@ -90,5 +91,13 @@ impl BitVecReader {
 
     pub fn pos(&self) -> usize {
         self.offset
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.bs.as_slice()
+    }
+
+    pub fn get_inner(&self) -> &BitVec<Msb0, u8> {
+        &self.bs
     }
 }
