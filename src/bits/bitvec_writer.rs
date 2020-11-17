@@ -1,4 +1,4 @@
-use bitvec::{index::BitRegister, prelude::*};
+use bitvec::prelude::*;
 
 #[derive(Debug)]
 pub struct BitVecWriter {
@@ -37,7 +37,7 @@ impl BitVecWriter {
             let mut leading_zeroes: i64 = -1;
 
             while tmp > 0 {
-                tmp = tmp >> 1;
+                tmp >>= 1;
                 leading_zeroes += 1;
             }
 
