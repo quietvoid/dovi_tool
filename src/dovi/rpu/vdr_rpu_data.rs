@@ -1,5 +1,5 @@
-use super::{BitVecReader, BitVecWriter};
 use super::RpuNal;
+use super::{BitVecReader, BitVecWriter};
 
 #[derive(Debug, Default)]
 pub struct VdrRpuData {
@@ -87,7 +87,9 @@ impl VdrRpuData {
                 data.mapping_idc[cmp][pivot_idx] = reader.get_ue();
 
                 // Dolby pls. Guessing this is what they mean by "new parameters"
-                if pivot_idx > 0 && data.mapping_idc[cmp][pivot_idx] != data.mapping_idc[cmp][pivot_idx - 1] {
+                if pivot_idx > 0
+                    && data.mapping_idc[cmp][pivot_idx] != data.mapping_idc[cmp][pivot_idx - 1]
+                {
                     predictors += 1;
                     data.num_mapping_param_predictors[cmp][pivot_idx] = predictors;
                 } else {
@@ -133,10 +135,13 @@ impl VdrRpuData {
                                     reader.get_n(coefficient_log2_denom_length);
                             }
                         } else {
-                            let poly_coef_count = data.poly_order_minus1[cmp][pivot_idx] as usize + 1;
+                            let poly_coef_count =
+                                data.poly_order_minus1[cmp][pivot_idx] as usize + 1;
 
-                            data.poly_coef_int.push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
-                            data.poly_coef.push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
+                            data.poly_coef_int
+                                .push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
+                            data.poly_coef
+                                .push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
 
                             for i in 0..=poly_coef_count {
                                 if rpu_nal.coefficient_data_type == 0 {
@@ -200,79 +205,109 @@ impl VdrRpuData {
 
         // rpu_data_mapping_param
 
-        for (cmp_idx, mapping_idc) in self.mapping_idc.iter().enumerate() {
-            let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp_idx] + 1) as usize;
+        self.mapping_idc
+            .iter()
+            .enumerate()
+            .for_each(|(cmp_idx, mapping_idc)| {
+                let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp_idx] + 1) as usize;
 
-            for pivot_idx in 0..pivot_idx_count {
-                writer.write_ue(mapping_idc[pivot_idx]);
+                for pivot_idx in 0..pivot_idx_count {
+                    writer.write_ue(mapping_idc[pivot_idx]);
 
-                if self.num_mapping_param_predictors[cmp_idx][pivot_idx] > 0 {
-                    writer.write(self.mapping_param_pred_flag[cmp_idx][pivot_idx]);
-                }
-
-                // == 0
-                if !self.mapping_param_pred_flag[cmp_idx][pivot_idx] {
-                    // rpu_data_mapping_param()
-
-                    // MAPPING_POLYNOMIAL
-                    if mapping_idc[pivot_idx] == 0 {
-                        writer.write_ue(self.poly_order_minus1[cmp_idx][pivot_idx]);
-
-                        if self.poly_order_minus1[cmp_idx][pivot_idx] == 0 {
-                            writer.write(self.linear_interp_flag[cmp_idx][pivot_idx]);
-                        }
-
-                        // Linear interpolation
-                        if self.poly_order_minus1[cmp_idx][pivot_idx] == 0
-                            && self.linear_interp_flag[cmp_idx][pivot_idx]
-                        {
-                            if rpu_nal.coefficient_data_type == 0 {
-                                writer.write_ue(self.pred_linear_interp_value_int[cmp_idx][pivot_idx]);
-                            }
-
-                            writer.write_n(&self.pred_linear_interp_value[cmp_idx][pivot_idx].to_be_bytes(), coefficient_log2_denom_length);
-
-                            if pivot_idx as u64 == rpu_nal.num_pivots_minus_2[cmp_idx] {
-                                if rpu_nal.coefficient_data_type == 0 {
-                                    writer.write_ue(self.pred_linear_interp_value_int[cmp_idx][pivot_idx + 1]);
-                                }
-
-                                writer.write_n(&self.pred_linear_interp_value[cmp_idx][pivot_idx + 1].to_be_bytes(), coefficient_log2_denom_length);
-                            }
-                        } else {
-                            for i in 0..=self.poly_order_minus1[cmp_idx][pivot_idx] as usize + 1 {
-                                if rpu_nal.coefficient_data_type == 0 {
-                                    writer.write_se(self.poly_coef_int[cmp_idx][pivot_idx][i]);
-                                }
-
-                                writer.write_n(&self.poly_coef[cmp_idx][pivot_idx][i].to_be_bytes(), coefficient_log2_denom_length);
-                            }
-                        }
-                    } else if mapping_idc[pivot_idx] == 1 {
-                        // MAPPING_MMR
-                        writer.write_n(&self.mmr_order_minus1[cmp_idx][pivot_idx].to_be_bytes(), 2);
-
-                        if rpu_nal.coefficient_data_type == 0 {
-                            writer.write_se(self.mmr_constant_int[cmp_idx][pivot_idx]);
-                        }
-
-                        writer.write_n(&self.mmr_constant[cmp_idx][pivot_idx].to_be_bytes(), coefficient_log2_denom_length);
-
-                        for i in 1..=self.mmr_order_minus1[cmp_idx][pivot_idx] as usize + 1 {
-                            for j in 0..7 as usize {
-                                if rpu_nal.coefficient_data_type == 0 {
-                                    writer.write_se(self.mmr_coef_int[cmp_idx][pivot_idx][i][j]);
-                                }
-
-                                writer.write_n(&self.mmr_coef[cmp_idx][pivot_idx][i][j].to_be_bytes(), coefficient_log2_denom_length);
-                            }
-                        }
+                    if self.num_mapping_param_predictors[cmp_idx][pivot_idx] > 0 {
+                        writer.write(self.mapping_param_pred_flag[cmp_idx][pivot_idx]);
                     }
-                } else if self.num_mapping_param_predictors[cmp_idx][pivot_idx] > 1 {
-                    writer.write_ue(self.diff_pred_part_idx_mapping_minus1[cmp_idx][pivot_idx]);
+
+                    // == 0
+                    if !self.mapping_param_pred_flag[cmp_idx][pivot_idx] {
+                        // rpu_data_mapping_param()
+
+                        // MAPPING_POLYNOMIAL
+                        if mapping_idc[pivot_idx] == 0 {
+                            writer.write_ue(self.poly_order_minus1[cmp_idx][pivot_idx]);
+
+                            if self.poly_order_minus1[cmp_idx][pivot_idx] == 0 {
+                                writer.write(self.linear_interp_flag[cmp_idx][pivot_idx]);
+                            }
+
+                            // Linear interpolation
+                            if self.poly_order_minus1[cmp_idx][pivot_idx] == 0
+                                && self.linear_interp_flag[cmp_idx][pivot_idx]
+                            {
+                                if rpu_nal.coefficient_data_type == 0 {
+                                    writer.write_ue(
+                                        self.pred_linear_interp_value_int[cmp_idx][pivot_idx],
+                                    );
+                                }
+
+                                writer.write_n(
+                                    &self.pred_linear_interp_value[cmp_idx][pivot_idx]
+                                        .to_be_bytes(),
+                                    coefficient_log2_denom_length,
+                                );
+
+                                if pivot_idx as u64 == rpu_nal.num_pivots_minus_2[cmp_idx] {
+                                    if rpu_nal.coefficient_data_type == 0 {
+                                        writer.write_ue(
+                                            self.pred_linear_interp_value_int[cmp_idx]
+                                                [pivot_idx + 1],
+                                        );
+                                    }
+
+                                    writer.write_n(
+                                        &self.pred_linear_interp_value[cmp_idx][pivot_idx + 1]
+                                            .to_be_bytes(),
+                                        coefficient_log2_denom_length,
+                                    );
+                                }
+                            } else {
+                                for i in 0..=self.poly_order_minus1[cmp_idx][pivot_idx] as usize + 1
+                                {
+                                    if rpu_nal.coefficient_data_type == 0 {
+                                        writer.write_se(self.poly_coef_int[cmp_idx][pivot_idx][i]);
+                                    }
+
+                                    writer.write_n(
+                                        &self.poly_coef[cmp_idx][pivot_idx][i].to_be_bytes(),
+                                        coefficient_log2_denom_length,
+                                    );
+                                }
+                            }
+                        } else if mapping_idc[pivot_idx] == 1 {
+                            // MAPPING_MMR
+                            writer.write_n(
+                                &self.mmr_order_minus1[cmp_idx][pivot_idx].to_be_bytes(),
+                                2,
+                            );
+
+                            if rpu_nal.coefficient_data_type == 0 {
+                                writer.write_se(self.mmr_constant_int[cmp_idx][pivot_idx]);
+                            }
+
+                            writer.write_n(
+                                &self.mmr_constant[cmp_idx][pivot_idx].to_be_bytes(),
+                                coefficient_log2_denom_length,
+                            );
+
+                            for i in 1..=self.mmr_order_minus1[cmp_idx][pivot_idx] as usize + 1 {
+                                for j in 0..7 as usize {
+                                    if rpu_nal.coefficient_data_type == 0 {
+                                        writer
+                                            .write_se(self.mmr_coef_int[cmp_idx][pivot_idx][i][j]);
+                                    }
+
+                                    writer.write_n(
+                                        &self.mmr_coef[cmp_idx][pivot_idx][i][j].to_be_bytes(),
+                                        coefficient_log2_denom_length,
+                                    );
+                                }
+                            }
+                        }
+                    } else if self.num_mapping_param_predictors[cmp_idx][pivot_idx] > 1 {
+                        writer.write_ue(self.diff_pred_part_idx_mapping_minus1[cmp_idx][pivot_idx]);
+                    }
                 }
-            }
-        }
+            });
     }
 }
 
@@ -309,7 +344,10 @@ impl NlqData {
 
             for cmp in 0..num_cmps {
                 // Dolby pls. Guessing this is what they mean by "new parameters"
-                if cmp > 0 && data.nlq_param_pred_flag[pivot_idx][cmp] != data.nlq_param_pred_flag[pivot_idx][cmp - 1] {
+                if cmp > 0
+                    && data.nlq_param_pred_flag[pivot_idx][cmp]
+                        != data.nlq_param_pred_flag[pivot_idx][cmp - 1]
+                {
                     predictors += 1;
                     data.num_nlq_param_predictors[pivot_idx][cmp] = predictors;
                 } else {
@@ -384,13 +422,19 @@ impl NlqData {
                 if !self.nlq_param_pred_flag[pivot_idx][cmp] {
                     // rpu_data_nlq_param
 
-                    writer.write_n(&self.nlq_offset[pivot_idx][cmp].to_be_bytes(), (rpu_nal.el_bit_depth_minus8 + 8) as usize);
+                    writer.write_n(
+                        &self.nlq_offset[pivot_idx][cmp].to_be_bytes(),
+                        (rpu_nal.el_bit_depth_minus8 + 8) as usize,
+                    );
 
                     if rpu_nal.coefficient_data_type == 0 {
                         writer.write_ue(self.vdr_in_max_int[pivot_idx][cmp]);
                     }
 
-                    writer.write_n(&self.vdr_in_max[pivot_idx][cmp].to_be_bytes(), coefficient_log2_denom_length);
+                    writer.write_n(
+                        &self.vdr_in_max[pivot_idx][cmp].to_be_bytes(),
+                        coefficient_log2_denom_length,
+                    );
 
                     // NLQ_LINEAR_DZ
                     if rpu_nal.nlq_method_idc == 0 {
@@ -398,13 +442,19 @@ impl NlqData {
                             writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
                         }
 
-                        writer.write_n(&self.linear_deadzone_slope[pivot_idx][cmp].to_be_bytes(), coefficient_log2_denom_length);
+                        writer.write_n(
+                            &self.linear_deadzone_slope[pivot_idx][cmp].to_be_bytes(),
+                            coefficient_log2_denom_length,
+                        );
 
                         if rpu_nal.coefficient_data_type == 0 {
                             writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
                         }
 
-                        writer.write_n(&self.linear_deadzone_threshold[pivot_idx][cmp].to_be_bytes(), coefficient_log2_denom_length);
+                        writer.write_n(
+                            &self.linear_deadzone_threshold[pivot_idx][cmp].to_be_bytes(),
+                            coefficient_log2_denom_length,
+                        );
                     }
                 } else if self.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
                     writer.write_ue(self.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp]);

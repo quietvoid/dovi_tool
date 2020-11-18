@@ -1,9 +1,9 @@
 mod vdr_dm_data;
 mod vdr_rpu_data;
 
+use bitvec::prelude;
 use vdr_dm_data::VdrDmData;
 use vdr_rpu_data::{NlqData, VdrRpuData};
-use bitvec::prelude;
 
 use prelude::*;
 
@@ -56,27 +56,26 @@ pub struct RpuNal {
 pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     // Clear start code emulation prevention 3 byte
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data);
-    println!("{:?}", &bytes);
+    //println!("{:?}", &bytes);
 
     let mut reader = BitVecReader::new(bytes);
-    let mut rpu_nal = read_rpu_data(&mut reader, false);
+    let rpu_nal = read_rpu_data(&mut reader, false);
     //rpu_nal.convert_to_81();
 
-    //println!("{:#?}", rpu_nal);
-
-    //println!("{:#?}", rpu_nal);
-    //println!("{} {} {}", &reader.pos(), &reader.len(), &reader.remaining());
-
     let mut writer = BitVecWriter::new();
-    let rest = &reader.get_inner()[rpu_nal.header_end..];
 
+    // Write RPU data to writer
     write_rpu_data(rpu_nal, &mut writer);
-    let inner_w = writer.inner_mut();
-    //inner_w.extend_from_bitslice(&rest);
 
+    // Write whatever is left
+    let rest = &reader.get_inner()[reader.pos()..];
+    let inner_w = writer.inner_mut();
+    inner_w.extend_from_bitslice(&rest);
+
+    // Back to a u8 slice
     let mut data_to_write = inner_w.as_slice().to_vec();
-    //add_start_code_emulation_prevention_3_byte(&mut data_to_write);
-    println!("{:?}", data_to_write);
+    add_start_code_emulation_prevention_3_byte(&mut data_to_write);
+    //println!("{:?}", data_to_write);
 
     data_to_write
 }
@@ -118,8 +117,6 @@ pub fn write_rpu_data(mut rpu_nal: RpuNal, mut writer: &mut BitVecWriter) {
             rpu_nal.write_vdr_dm_data(&mut writer);
         }
     }
-
-    return;
 
     rpu_nal.remaining.iter().for_each(|b| writer.write(*b));
 

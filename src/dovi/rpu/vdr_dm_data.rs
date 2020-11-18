@@ -1,4 +1,4 @@
-use super::{BitVecReader, BitVecWriter, prelude::*};
+use super::{prelude::*, BitVecReader, BitVecWriter};
 
 #[derive(Debug, Default)]
 pub struct VdrDmData {
@@ -47,7 +47,7 @@ pub enum ExtMetadataBlock {
     Level1(ExtMetadataBlockLevel1),
     Level2(ExtMetadataBlockLevel2),
     Level5(ExtMetadataBlockLevel5),
-    Generic(GenericExtMetadataBlock)
+    Generic(GenericExtMetadataBlock),
 }
 
 #[derive(Debug, Default)]
@@ -161,31 +161,29 @@ impl VdrDmData {
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
 
-        writer.write_signed_n(self.ycc_to_rgb_coef0.into(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef0.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef1.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef2.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef3.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef4.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef5.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef6.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef7.to_be_bytes(), 16);
+        writer.write_n(&self.ycc_to_rgb_coef8.to_be_bytes(), 16);
 
-        return;
-        
-        writer.write_signed_n(self.ycc_to_rgb_coef1.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef2.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef3.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef4.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef5.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef6.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef7.into(), 16);
-        writer.write_signed_n(self.ycc_to_rgb_coef8.into(), 16);
         writer.write_n(&self.ycc_to_rgb_offset0.to_be_bytes(), 32);
         writer.write_n(&self.ycc_to_rgb_offset1.to_be_bytes(), 32);
         writer.write_n(&self.ycc_to_rgb_offset2.to_be_bytes(), 32);
 
-        writer.write_signed_n(self.rgb_to_lms_coef0.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef1.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef2.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef3.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef4.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef5.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef6.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef7.into(), 16);
-        writer.write_signed_n(self.rgb_to_lms_coef8.into(), 16);
+        writer.write_n(&self.rgb_to_lms_coef0.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef1.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef2.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef3.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef4.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef5.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef6.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef7.to_be_bytes(), 16);
+        writer.write_n(&self.rgb_to_lms_coef8.to_be_bytes(), 16);
 
         writer.write_n(&self.signal_eotf.to_be_bytes(), 16);
         writer.write_n(&self.signal_eotf_param0.to_be_bytes(), 16);
@@ -203,8 +201,7 @@ impl VdrDmData {
         writer.write_ue(self.num_ext_blocks);
 
         if self.num_ext_blocks > 0 {
-            self.remaining.iter()
-                .for_each(|b| writer.write(*b));
+            self.remaining.iter().for_each(|b| writer.write(*b));
 
             for ext_metadata_block in &self.ext_metadata_blocks {
                 ext_metadata_block.write(writer);
@@ -229,11 +226,11 @@ impl ExtMetadataBlock {
                 block.min_pq = reader.get_n(12);
                 block.max_pq = reader.get_n(12);
                 block.avg_pq = reader.get_n(12);
-    
+
                 ext_block_use_bits += 36;
 
                 ExtMetadataBlock::Level1(block)
-            },
+            }
             2 => {
                 let mut block = ExtMetadataBlockLevel2::default();
                 block.target_max_pq = reader.get_n(12);
@@ -243,24 +240,24 @@ impl ExtMetadataBlock {
                 block.trim_chroma_weight = reader.get_n(12);
                 block.trim_saturation_gain = reader.get_n(12);
                 block.ms_weight = reader.get_n::<u16>(13) as i16;
-    
+
                 ext_block_use_bits += 85;
 
                 ExtMetadataBlock::Level2(block)
-            },
+            }
             5 => {
                 let mut block = ExtMetadataBlockLevel5::default();
                 block.active_area_left_offset = reader.get_n(13);
                 block.active_area_right_offset = reader.get_n(13);
                 block.active_area_top_offset = reader.get_n(13);
                 block.active_area_bottom_offset = reader.get_n(13);
-    
+
                 ext_block_use_bits += 52;
 
                 ExtMetadataBlock::Level5(block)
-            },
+            }
             _ => {
-                let mut block = GenericExtMetadataBlock::default();
+                let block = GenericExtMetadataBlock::default();
                 ExtMetadataBlock::Generic(block)
             }
         };
@@ -288,6 +285,9 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Generic(b) => &b.block_info,
         };
 
+        writer.write_ue(block_info.ext_block_length);
+        writer.write_n(&block_info.ext_block_level.to_be_bytes(), 8);
+
         match self {
             ExtMetadataBlock::Level1(block) => {
                 writer.write_n(&block.min_pq.to_be_bytes(), 12);
@@ -302,7 +302,7 @@ impl ExtMetadataBlock {
                 writer.write_n(&block.trim_chroma_weight.to_be_bytes(), 12);
                 writer.write_n(&block.trim_saturation_gain.to_be_bytes(), 12);
 
-                writer.write_signed_n(block.ms_weight.into(), 13);
+                writer.write_n(&block.ms_weight.to_be_bytes(), 13);
             }
             ExtMetadataBlock::Level5(block) => {
                 writer.write_n(&block.active_area_left_offset.to_be_bytes(), 13);
@@ -313,7 +313,6 @@ impl ExtMetadataBlock {
             _ => (),
         }
 
-        block_info.remaining.iter()
-            .for_each(|b| writer.write(*b));
+        block_info.remaining.iter().for_each(|b| writer.write(*b));
     }
 }
