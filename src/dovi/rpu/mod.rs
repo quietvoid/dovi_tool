@@ -56,7 +56,6 @@ pub struct RpuNal {
 pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     // Clear start code emulation prevention 3 byte
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data);
-    //println!("{:?}", &bytes);
 
     let mut reader = BitVecReader::new(bytes);
     let rpu_nal = read_rpu_data(&mut reader, false);
@@ -75,7 +74,6 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     // Back to a u8 slice
     let mut data_to_write = inner_w.as_slice().to_vec();
     add_start_code_emulation_prevention_3_byte(&mut data_to_write);
-    //println!("{:?}", data_to_write);
 
     data_to_write
 }

@@ -171,10 +171,10 @@ impl Demuxer {
                     };
 
                     if nal_type == 62 {
-                        //let data = parse_dovi_rpu(&data[2..]);
+                        let data = parse_dovi_rpu(&data[2..]);
 
                         rpu_writer.write_all(&out_header).expect("Failed writing");
-                        rpu_writer.write_all(&data[2..]).expect("Failed writing");
+                        rpu_writer.write_all(&data).expect("Failed writing");
                         //rpu_writer.flush();
                         //std::process::exit(0);
                     }
