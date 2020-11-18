@@ -211,8 +211,10 @@ impl VdrRpuData {
             .for_each(|(cmp_idx, mapping_idc)| {
                 let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp_idx] + 1) as usize;
 
-                for pivot_idx in 0..pivot_idx_count {
-                    writer.write_ue(mapping_idc[pivot_idx]);
+                for (pivot_idx, mapping_idc_value) in
+                    mapping_idc.iter().enumerate().take(pivot_idx_count)
+                {
+                    writer.write_ue(*mapping_idc_value);
 
                     if self.num_mapping_param_predictors[cmp_idx][pivot_idx] > 0 {
                         writer.write(self.mapping_param_pred_flag[cmp_idx][pivot_idx]);

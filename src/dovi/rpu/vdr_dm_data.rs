@@ -263,7 +263,7 @@ impl ExtMetadataBlock {
         };
 
         while ext_block_use_bits < ext_block_len_bits {
-            &block_info.remaining.push(reader.get());
+            block_info.remaining.push(reader.get());
             ext_block_use_bits += 1;
         }
 

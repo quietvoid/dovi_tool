@@ -1,3 +1,4 @@
+mod tests;
 mod vdr_dm_data;
 mod vdr_rpu_data;
 
@@ -5,6 +6,7 @@ use bitvec::prelude;
 use vdr_dm_data::VdrDmData;
 use vdr_rpu_data::{NlqData, VdrRpuData};
 
+use crc32fast::Hasher;
 use prelude::*;
 
 use super::{
@@ -14,7 +16,6 @@ use super::{
 
 #[derive(Default, Debug)]
 pub struct RpuNal {
-    header_end: usize,
     rpu_nal_prefix: u8,
     rpu_type: u8,
     rpu_format: u16,
@@ -49,17 +50,21 @@ pub struct RpuNal {
     nlq_data: Option<NlqData>,
     vdr_dm_data: Option<VdrDmData>,
     remaining: BitVec<Msb0, u8>,
+    crc32_offset: usize,
     rpu_data_crc32: u32,
 }
 
 #[inline(always)]
 pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     // Clear start code emulation prevention 3 byte
-    let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data);
+    let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data[2..]);
 
     let mut reader = BitVecReader::new(bytes);
-    let rpu_nal = read_rpu_data(&mut reader, false);
+    let rpu_nal = read_rpu_data(&mut reader);
     //rpu_nal.convert_to_81();
+
+    // Doesn't work for now..
+    //rpu_nal.validate_crc32(&mut reader);
 
     let mut writer = BitVecWriter::new();
 
@@ -78,27 +83,25 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
     data_to_write
 }
 
-pub fn read_rpu_data(reader: &mut BitVecReader, header_only: bool) -> RpuNal {
+pub fn read_rpu_data(reader: &mut BitVecReader) -> RpuNal {
     let mut rpu_nal = rpu_data_header(reader);
-    rpu_nal.header_end = reader.pos();
 
-    if !header_only {
-        if rpu_nal.rpu_type == 2 {
-            if !rpu_nal.use_prev_vdr_rpu_flag {
-                VdrRpuData::vdr_rpu_data_payload(reader, &mut rpu_nal);
-            }
-
-            if rpu_nal.vdr_dm_metadata_present_flag {
-                rpu_nal.vdr_dm_data = Some(VdrDmData::vdr_dm_data_payload(reader));
-            }
+    if rpu_nal.rpu_type == 2 {
+        if !rpu_nal.use_prev_vdr_rpu_flag {
+            VdrRpuData::vdr_rpu_data_payload(reader, &mut rpu_nal);
         }
 
-        while !reader.is_aligned() {
-            rpu_nal.remaining.push(reader.get());
+        if rpu_nal.vdr_dm_metadata_present_flag {
+            rpu_nal.vdr_dm_data = Some(VdrDmData::vdr_dm_data_payload(reader));
         }
-
-        rpu_nal.rpu_data_crc32 = reader.get_n(32);
     }
+
+    while !reader.is_aligned() {
+        rpu_nal.remaining.push(reader.get());
+    }
+
+    rpu_nal.crc32_offset = reader.pos();
+    rpu_nal.rpu_data_crc32 = reader.get_n(32);
 
     rpu_nal
 }
@@ -190,13 +193,13 @@ pub fn rpu_data_header(reader: &mut BitVecReader) -> RpuNal {
         }
     }
 
-    rpu_nal.validate();
+    rpu_nal.validate_header();
 
     rpu_nal
 }
 
 impl RpuNal {
-    pub fn validate(&self) {
+    pub fn validate_header(&self) {
         assert_eq!(self.rpu_nal_prefix, 25);
         assert_eq!(self.vdr_rpu_profile, 1);
         assert_eq!(self.vdr_rpu_level, 0);
@@ -209,6 +212,16 @@ impl RpuNal {
 
         assert_eq!(self.nlq_method_idc, 0);
         assert_eq!(self.nlq_num_pivots_minus2, 0);
+    }
+
+    pub fn validate_crc32(&self, reader: &mut BitVecReader) {
+        let whole_data = reader.get_inner()[..self.crc32_offset].as_slice();
+        let mut hasher = Hasher::new();
+        hasher.update(whole_data);
+
+        let calculated_crc32 = hasher.finalize();
+
+        assert_eq!(calculated_crc32, self.rpu_data_crc32);
     }
 
     pub fn convert_to_81(&mut self) {

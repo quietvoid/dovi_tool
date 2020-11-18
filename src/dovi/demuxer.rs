@@ -171,7 +171,7 @@ impl Demuxer {
                     };
 
                     if nal_type == 62 {
-                        let data = parse_dovi_rpu(&data[2..]);
+                        let data = parse_dovi_rpu(&data);
 
                         rpu_writer.write_all(&out_header).expect("Failed writing");
                         rpu_writer.write_all(&data).expect("Failed writing");

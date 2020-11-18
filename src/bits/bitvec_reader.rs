@@ -77,7 +77,7 @@ impl BitVecReader {
         let m = ((code_num + 1) as f64 / 2.0).floor() as u64;
 
         if code_num % 2 == 0 {
-            -1 * m as i64
+            -(m as i64)
         } else {
             m as i64
         }
