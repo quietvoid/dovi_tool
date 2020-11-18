@@ -14,6 +14,7 @@ impl BitVecReader {
         }
     }
 
+    #[inline(always)]
     pub fn get(&mut self) -> bool {
         let val = self.bs.get(self.offset).unwrap();
         self.offset += 1;
@@ -21,6 +22,7 @@ impl BitVecReader {
         *val
     }
 
+    #[inline(always)]
     pub fn get_n<T: BitMemory>(&mut self, n: usize) -> T {
         let val = self.bs[self.offset..self.offset + n].load_be::<T>();
         self.offset += n;
@@ -29,6 +31,7 @@ impl BitVecReader {
     }
 
     // bitstring.py implementation: https://github.com/scott-griffiths/bitstring/blob/master/bitstring.py#L1706
+    #[inline(always)]
     pub fn get_ue(&mut self) -> u64 {
         let oldpos = self.offset;
         let mut pos = self.offset;
@@ -67,6 +70,7 @@ impl BitVecReader {
     }
 
     // bitstring.py implementation: https://github.com/scott-griffiths/bitstring/blob/master/bitstring.py#L1767
+    #[inline(always)]
     pub fn get_se(&mut self) -> i64 {
         let code_num = self.get_ue();
 
