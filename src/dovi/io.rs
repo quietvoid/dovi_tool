@@ -11,6 +11,7 @@ use super::Format;
 pub struct DoviReader {
     nal_header: Vec<u8>,
     out_nal_header: Vec<u8>,
+    mode: Option<u8>,
 }
 
 pub struct DoviWriter {
@@ -74,10 +75,11 @@ impl DoviWriter {
 }
 
 impl DoviReader {
-    pub fn new() -> DoviReader {
+    pub fn new(mode: Option<u8>) -> DoviReader {
         DoviReader {
             nal_header: vec![0, 0, 1],
             out_nal_header: vec![0, 0, 0, 1],
+            mode,
         }
     }
 
@@ -272,8 +274,8 @@ impl DoviReader {
                     if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
                         rpu_writer.write_all(&self.out_nal_header)?;
 
-                        if false {
-                            let modified_data = parse_dovi_rpu(&chunk[nalu.start..nalu.end]);
+                        if let Some(mode) = self.mode {
+                            let modified_data = parse_dovi_rpu(&chunk[nalu.start..nalu.end], mode);
 
                             rpu_writer.write_all(&modified_data)?;
                         } else {

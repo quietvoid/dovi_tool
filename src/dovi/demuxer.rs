@@ -23,21 +23,24 @@ impl Demuxer {
         }
     }
 
-    pub fn process_input(&self) {
+    pub fn process_input(&self, mode: Option<u8>) {
         let pb = super::initialize_progress_bar(&self.format, &self.input);
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.demux_raw_hevc(Some(&pb)),
+            _ => self.demux_raw_hevc(Some(&pb), mode),
         };
 
         pb.finish_and_clear();
     }
 
-    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>) {
-        let dovi_reader = DoviReader::new();
+    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, mode: Option<u8>) {
+        let dovi_reader = DoviReader::new(mode);
         let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None);
 
-        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer);
+        match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
+            Ok(_) => (),
+            Err(e) => panic!(e),
+        }
     }
 }

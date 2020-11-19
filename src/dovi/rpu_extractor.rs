@@ -20,19 +20,22 @@ impl RpuExtractor {
         }
     }
 
-    pub fn process_input(&self) {
+    pub fn process_input(&self, mode: Option<u8>) {
         let pb = super::initialize_progress_bar(&self.format, &self.input);
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.extract_rpu_from_el(Some(&pb)),
+            _ => self.extract_rpu_from_el(Some(&pb), mode),
         };
     }
 
-    pub fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>) {
-        let dovi_reader = DoviReader::new();
+    pub fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>, mode: Option<u8>) {
+        let dovi_reader = DoviReader::new(mode);
         let mut dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out));
 
-        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer);
+        match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
+            Ok(_) => (),
+            Err(e) => panic!(e),
+        }
     }
 }

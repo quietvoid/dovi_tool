@@ -55,13 +55,18 @@ pub struct RpuNal {
 }
 
 #[inline(always)]
-pub fn parse_dovi_rpu(data: &[u8]) -> Vec<u8> {
+pub fn parse_dovi_rpu(data: &[u8], mode: u8) -> Vec<u8> {
     // Clear start code emulation prevention 3 byte
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data[2..]);
 
     let mut reader = BitVecReader::new(bytes);
-    let rpu_nal = read_rpu_data(&mut reader);
-    //rpu_nal.convert_to_81();
+    let mut rpu_nal = read_rpu_data(&mut reader);
+
+    match mode {
+        1 => rpu_nal.convert_to_mel(),
+        2 => rpu_nal.convert_to_81(),
+        _ => (),
+    }
 
     // Doesn't work for now..
     //rpu_nal.validate_crc32(&mut reader);
@@ -223,6 +228,8 @@ impl RpuNal {
 
         assert_eq!(calculated_crc32, self.rpu_data_crc32);
     }
+
+    pub fn convert_to_mel(&mut self) {}
 
     pub fn convert_to_81(&mut self) {
         // Change to RPU only (8.1)

@@ -14,7 +14,8 @@ struct Opt {
         name = "mode",
         short = "m",
         long,
-        help = "Sets the mode for RPU processing"
+        help = "(WIP) Sets the mode for RPU processing. --help for more info",
+        long_help = "(WIP) Sets the mode for RPU processing.\nMode 1: FEL to MEL\nMode 2: Profile 8.1"
     )]
     mode: Option<u8>,
 
@@ -74,21 +75,23 @@ enum Command {
 }
 
 fn main() -> std::io::Result<()> {
-    match Opt::from_args().cmd {
+    let opt = Opt::from_args();
+
+    match opt.cmd {
         Command::Demux {
             input,
             stdin,
             bl_out,
             el_out,
         } => {
-            demux(input, stdin, bl_out, el_out);
+            demux(input, stdin, bl_out, el_out, opt.mode);
         }
         Command::ExtractRpu {
             input,
             stdin,
             rpu_out,
         } => {
-            extract_rpu(input, stdin, rpu_out);
+            extract_rpu(input, stdin, rpu_out, opt.mode);
         }
     }
 
@@ -124,6 +127,7 @@ fn demux(
     stdin: Option<PathBuf>,
     bl_out: Option<PathBuf>,
     el_out: Option<PathBuf>,
+    mode: Option<u8>,
 ) {
     let input = match input {
         Some(input) => input,
@@ -146,13 +150,18 @@ fn demux(
             };
 
             let demuxer = Demuxer::new(format, input, bl_out, el_out);
-            demuxer.process_input();
+            demuxer.process_input(mode);
         }
         Err(msg) => println!("{}", msg),
     }
 }
 
-fn extract_rpu(input: Option<PathBuf>, stdin: Option<PathBuf>, rpu_out: Option<PathBuf>) {
+fn extract_rpu(
+    input: Option<PathBuf>,
+    stdin: Option<PathBuf>,
+    rpu_out: Option<PathBuf>,
+    mode: Option<u8>,
+) {
     let input = match input {
         Some(input) => input,
         None => match stdin {
@@ -169,7 +178,7 @@ fn extract_rpu(input: Option<PathBuf>, stdin: Option<PathBuf>, rpu_out: Option<P
             };
 
             let parser = RpuExtractor::new(format, input, rpu_out);
-            parser.process_input();
+            parser.process_input(mode);
         }
         Err(msg) => println!("{}", msg),
     }

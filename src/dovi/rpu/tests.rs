@@ -12,7 +12,7 @@ fn fel_test() {
     let mut original_data = vec![0; metadata.len() as usize];
     f.read(&mut original_data).unwrap();
 
-    let parsed_data = parse_dovi_rpu(&original_data);
+    let parsed_data = parse_dovi_rpu(&original_data, 0);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 }
@@ -26,7 +26,7 @@ fn mel_test() {
     let mut original_data = vec![0; metadata.len() as usize];
     f.read(&mut original_data).unwrap();
 
-    let parsed_data = parse_dovi_rpu(&original_data);
+    let parsed_data = parse_dovi_rpu(&original_data, 0);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 }
