@@ -1,6 +1,7 @@
 use bitvec::prelude::*;
+use std::fmt;
 
-#[derive(Debug)]
+#[derive(Default)]
 pub struct BitVecReader {
     bs: BitVec<Msb0, u8>,
     offset: usize,
@@ -93,5 +94,16 @@ impl BitVecReader {
 
     pub fn get_inner(&self) -> &BitVec<Msb0, u8> {
         &self.bs
+    }
+}
+
+impl fmt::Debug for BitVecReader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "BitVecReader: {{offset: {}, len: {}}}",
+            self.offset,
+            self.bs.len()
+        )
     }
 }

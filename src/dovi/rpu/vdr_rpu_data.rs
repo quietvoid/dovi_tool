@@ -1,4 +1,4 @@
-use super::RpuNal;
+use super::RpuDataHeader;
 use super::{BitVecReader, BitVecWriter};
 
 #[derive(Debug, Default)]
@@ -38,22 +38,28 @@ const MEL_POLY_COEF_INT: &[i64] = &[0, 1, 0];
 const MEL_POLY_COEF: &[u64] = &[0, 0, 0];
 
 impl VdrRpuData {
-    pub fn vdr_rpu_data_payload(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
-        let vdr_rpu_data = VdrRpuData::rpu_data_mapping(reader, rpu_nal);
-        let nlq_data = NlqData::rpu_data_nlq(reader, rpu_nal);
+    pub fn vdr_rpu_data_payload(
+        reader: &mut BitVecReader,
+        header: &mut RpuDataHeader,
+    ) -> (Option<VdrRpuData>, Option<NlqData>) {
+        let vdr_rpu_data = VdrRpuData::rpu_data_mapping(reader, header);
 
-        rpu_nal.vdr_rpu_data = Some(vdr_rpu_data);
-        rpu_nal.nlq_data = Some(nlq_data);
+        if header.nlq_method_idc.is_some() {
+            let nlq_data = NlqData::rpu_data_nlq(reader, header);
+            (Some(vdr_rpu_data), Some(nlq_data))
+        } else {
+            (Some(vdr_rpu_data), None)
+        }
     }
 
-    pub fn rpu_data_mapping(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> VdrRpuData {
+    pub fn rpu_data_mapping(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> VdrRpuData {
         let num_cmps = 3;
 
         let mut data = VdrRpuData::default();
 
-        let coefficient_log2_denom_length = if rpu_nal.coefficient_data_type == 0 {
-            rpu_nal.coefficient_log2_denom as usize
-        } else if rpu_nal.coefficient_data_type == 1 {
+        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
+            header.coefficient_log2_denom as usize
+        } else if header.coefficient_data_type == 1 {
             32
         } else {
             panic!("Invalid coefficient_data_type value!");
@@ -62,7 +68,7 @@ impl VdrRpuData {
         // rpu_data_mapping_param
 
         for cmp in 0..num_cmps {
-            let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp] + 1) as usize;
+            let pivot_idx_count = (header.num_pivots_minus_2[cmp] + 1) as usize;
             let mut predictors = 0;
 
             data.mapping_idc.push(vec![0; pivot_idx_count]);
@@ -121,15 +127,15 @@ impl VdrRpuData {
                         if data.poly_order_minus1[cmp][pivot_idx] == 0
                             && data.linear_interp_flag[cmp][pivot_idx]
                         {
-                            if rpu_nal.coefficient_data_type == 0 {
+                            if header.coefficient_data_type == 0 {
                                 data.pred_linear_interp_value_int[cmp][pivot_idx] = reader.get_ue();
                             }
 
                             data.pred_linear_interp_value[cmp][pivot_idx] =
                                 reader.get_n(coefficient_log2_denom_length);
 
-                            if pivot_idx as u64 == rpu_nal.num_pivots_minus_2[cmp] {
-                                if rpu_nal.coefficient_data_type == 0 {
+                            if pivot_idx as u64 == header.num_pivots_minus_2[cmp] {
+                                if header.coefficient_data_type == 0 {
                                     data.pred_linear_interp_value_int[cmp][pivot_idx + 1] =
                                         reader.get_ue();
                                 }
@@ -147,7 +153,7 @@ impl VdrRpuData {
                                 .push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
 
                             for i in 0..=poly_coef_count {
-                                if rpu_nal.coefficient_data_type == 0 {
+                                if header.coefficient_data_type == 0 {
                                     data.poly_coef_int[cmp][pivot_idx][i] = reader.get_se();
                                 }
 
@@ -166,7 +172,7 @@ impl VdrRpuData {
                         data.mmr_coef_int[cmp][pivot_idx] =
                             vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
 
-                        if rpu_nal.coefficient_data_type == 0 {
+                        if header.coefficient_data_type == 0 {
                             data.mmr_constant_int[cmp][pivot_idx] = reader.get_se();
                         }
 
@@ -175,7 +181,7 @@ impl VdrRpuData {
 
                         for i in 1..=data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
                             for j in 0..7 as usize {
-                                if rpu_nal.coefficient_data_type == 0 {
+                                if header.coefficient_data_type == 0 {
                                     data.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se();
                                 }
 
@@ -199,113 +205,96 @@ impl VdrRpuData {
 
     pub fn convert_to_mel(&mut self) {
         // Cut off and set to 0
-        self.mapping_idc.iter_mut()
+        self.mapping_idc.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.mapping_param_pred_flag.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = false;
+        });
+
+        self.num_mapping_param_predictors.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.diff_pred_part_idx_mapping_minus1
+            .iter_mut()
             .for_each(|v| {
                 v.truncate(1);
                 v[0] = 0;
             });
 
-        self.mapping_param_pred_flag.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = false;
-            });
+        self.poly_order_minus1.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
-        self.num_mapping_param_predictors.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.linear_interp_flag.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = false;
+        });
 
-        self.diff_pred_part_idx_mapping_minus1.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
-        
-        self.poly_order_minus1.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.pred_linear_interp_value_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
-        self.linear_interp_flag.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = false;
-            });
-
-        self.pred_linear_interp_value_int.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
-
-        self.pred_linear_interp_value.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.pred_linear_interp_value.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
         self.poly_coef_int.truncate(3);
-        self.poly_coef_int.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v.iter_mut()
-                    .for_each(|v2| {
-                        v2.clear();
-                        v2.extend_from_slice(MEL_POLY_COEF_INT);
-                    });
+        self.poly_coef_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| {
+                v2.clear();
+                v2.extend_from_slice(MEL_POLY_COEF_INT);
             });
+        });
 
         self.poly_coef.truncate(3);
-        self.poly_coef.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v.iter_mut()
-                    .for_each(|v2| {
-                        v2.clear();
-                        v2.extend_from_slice(MEL_POLY_COEF);
-                    });
+        self.poly_coef.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| {
+                v2.clear();
+                v2.extend_from_slice(MEL_POLY_COEF);
             });
+        });
 
-        self.mmr_order_minus1.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.mmr_order_minus1.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
-        self.mmr_constant_int.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.mmr_constant_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
-        self.mmr_constant.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v[0] = 0;
-            });
+        self.mmr_constant.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
 
-        self.mmr_coef_int.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v.iter_mut()
-                    .for_each(|v2| v2.clear());
-            });
+        self.mmr_coef_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| v2.clear());
+        });
 
-        self.mmr_coef.iter_mut()
-            .for_each(|v| {
-                v.truncate(1);
-                v.iter_mut()
-                    .for_each(|v2| v2.clear());
-            });
+        self.mmr_coef.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| v2.clear());
+        });
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, rpu_nal: &RpuNal) {
-        let coefficient_log2_denom_length = if rpu_nal.coefficient_data_type == 0 {
-            rpu_nal.coefficient_log2_denom as usize
-        } else if rpu_nal.coefficient_data_type == 1 {
+    pub fn write(&self, writer: &mut BitVecWriter, header: &RpuDataHeader) {
+        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
+            header.coefficient_log2_denom as usize
+        } else if header.coefficient_data_type == 1 {
             32
         } else {
             panic!("Invalid coefficient_data_type value!");
@@ -317,7 +306,7 @@ impl VdrRpuData {
             .iter()
             .enumerate()
             .for_each(|(cmp_idx, mapping_idc)| {
-                let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp_idx] + 1) as usize;
+                let pivot_idx_count = (header.num_pivots_minus_2[cmp_idx] + 1) as usize;
 
                 for (pivot_idx, mapping_idc_value) in
                     mapping_idc.iter().enumerate().take(pivot_idx_count)
@@ -344,7 +333,7 @@ impl VdrRpuData {
                             if self.poly_order_minus1[cmp_idx][pivot_idx] == 0
                                 && self.linear_interp_flag[cmp_idx][pivot_idx]
                             {
-                                if rpu_nal.coefficient_data_type == 0 {
+                                if header.coefficient_data_type == 0 {
                                     writer.write_ue(
                                         self.pred_linear_interp_value_int[cmp_idx][pivot_idx],
                                     );
@@ -356,8 +345,8 @@ impl VdrRpuData {
                                     coefficient_log2_denom_length,
                                 );
 
-                                if pivot_idx as u64 == rpu_nal.num_pivots_minus_2[cmp_idx] {
-                                    if rpu_nal.coefficient_data_type == 0 {
+                                if pivot_idx as u64 == header.num_pivots_minus_2[cmp_idx] {
+                                    if header.coefficient_data_type == 0 {
                                         writer.write_ue(
                                             self.pred_linear_interp_value_int[cmp_idx]
                                                 [pivot_idx + 1],
@@ -373,7 +362,7 @@ impl VdrRpuData {
                             } else {
                                 for i in 0..=self.poly_order_minus1[cmp_idx][pivot_idx] as usize + 1
                                 {
-                                    if rpu_nal.coefficient_data_type == 0 {
+                                    if header.coefficient_data_type == 0 {
                                         writer.write_se(self.poly_coef_int[cmp_idx][pivot_idx][i]);
                                     }
 
@@ -390,7 +379,7 @@ impl VdrRpuData {
                                 2,
                             );
 
-                            if rpu_nal.coefficient_data_type == 0 {
+                            if header.coefficient_data_type == 0 {
                                 writer.write_se(self.mmr_constant_int[cmp_idx][pivot_idx]);
                             }
 
@@ -401,7 +390,7 @@ impl VdrRpuData {
 
                             for i in 1..=self.mmr_order_minus1[cmp_idx][pivot_idx] as usize + 1 {
                                 for j in 0..7 as usize {
-                                    if rpu_nal.coefficient_data_type == 0 {
+                                    if header.coefficient_data_type == 0 {
                                         writer
                                             .write_se(self.mmr_coef_int[cmp_idx][pivot_idx][i][j]);
                                     }
@@ -422,15 +411,19 @@ impl VdrRpuData {
 }
 
 impl NlqData {
-    pub fn rpu_data_nlq(reader: &mut BitVecReader, rpu_nal: &mut RpuNal) -> NlqData {
+    pub fn rpu_data_nlq(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> NlqData {
         let num_cmps = 3;
-        let pivot_idx_count = (rpu_nal.nlq_num_pivots_minus2 + 1) as usize;
+        let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
+            nlq_num_pivots_minus2 as usize + 1
+        } else {
+            panic!("Shouldn't be in NLQ if not profile 7!");
+        };
 
         let mut data = NlqData::default();
 
-        let coefficient_log2_denom_length = if rpu_nal.coefficient_data_type == 0 {
-            rpu_nal.coefficient_log2_denom as usize
-        } else if rpu_nal.coefficient_data_type == 1 {
+        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
+            header.coefficient_log2_denom as usize
+        } else if header.coefficient_data_type == 1 {
             32
         } else {
             panic!("Invalid coefficient_data_type value!");
@@ -474,29 +467,32 @@ impl NlqData {
                     // rpu_data_nlq_param
 
                     data.nlq_offset[pivot_idx][cmp] =
-                        reader.get_n((rpu_nal.el_bit_depth_minus8 + 8) as usize);
+                        reader.get_n((header.el_bit_depth_minus8 + 8) as usize);
 
-                    if rpu_nal.coefficient_data_type == 0 {
+                    if header.coefficient_data_type == 0 {
                         data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue();
                     }
 
                     data.vdr_in_max[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
 
                     // NLQ_LINEAR_DZ
-                    if rpu_nal.nlq_method_idc == 0 {
-                        if rpu_nal.coefficient_data_type == 0 {
-                            data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue();
+                    if let Some(nlq_method_idc) = header.nlq_method_idc {
+                        if nlq_method_idc == 0 {
+                            if header.coefficient_data_type == 0 {
+                                data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue();
+                            }
+
+                            data.linear_deadzone_slope[pivot_idx][cmp] =
+                                reader.get_n(coefficient_log2_denom_length);
+
+                            if header.coefficient_data_type == 0 {
+                                data.linear_deadzone_threshold_int[pivot_idx][cmp] =
+                                    reader.get_ue();
+                            }
+
+                            data.linear_deadzone_threshold[pivot_idx][cmp] =
+                                reader.get_n(coefficient_log2_denom_length);
                         }
-
-                        data.linear_deadzone_slope[pivot_idx][cmp] =
-                            reader.get_n(coefficient_log2_denom_length);
-
-                        if rpu_nal.coefficient_data_type == 0 {
-                            data.linear_deadzone_threshold_int[pivot_idx][cmp] = reader.get_ue();
-                        }
-
-                        data.linear_deadzone_threshold[pivot_idx][cmp] =
-                            reader.get_n(coefficient_log2_denom_length);
                     }
                 } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
                     data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue();
@@ -512,76 +508,68 @@ impl NlqData {
     pub fn validate(&self) {}
 
     pub fn convert_to_mel(&mut self) {
-
         self.num_nlq_param_predictors.truncate(1);
-        self.num_nlq_param_predictors.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.num_nlq_param_predictors.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.nlq_param_pred_flag.truncate(1);
-        self.nlq_param_pred_flag.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = false);
-            });
+        self.nlq_param_pred_flag.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = false);
+        });
 
         self.diff_pred_part_idx_nlq_minus1.truncate(1);
-        self.diff_pred_part_idx_nlq_minus1.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.diff_pred_part_idx_nlq_minus1.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.nlq_offset.truncate(1);
-        self.nlq_offset.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.nlq_offset.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         // Set to 1
         self.vdr_in_max_int.truncate(1);
-        self.vdr_in_max_int.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 1);
-            });
+        self.vdr_in_max_int.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 1);
+        });
 
         self.vdr_in_max.truncate(1);
-        self.vdr_in_max.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.vdr_in_max.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.linear_deadzone_slope_int.truncate(1);
-        self.linear_deadzone_slope_int.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.linear_deadzone_slope_int.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.linear_deadzone_slope.truncate(1);
-        self.linear_deadzone_slope.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.linear_deadzone_slope.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.linear_deadzone_threshold_int.truncate(1);
-        self.linear_deadzone_threshold_int.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.linear_deadzone_threshold_int.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
 
         self.linear_deadzone_threshold.truncate(1);
-        self.linear_deadzone_threshold.iter_mut()
-            .for_each(|v| {
-                v.iter_mut().for_each(|v2| *v2 = 0);
-            });
+        self.linear_deadzone_threshold.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|v2| *v2 = 0);
+        });
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, rpu_nal: &RpuNal) {
+    pub fn write(&self, writer: &mut BitVecWriter, header: &RpuDataHeader) {
         let num_cmps = 3;
-        let pivot_idx_count = (rpu_nal.nlq_num_pivots_minus2 + 1) as usize;
-
-        let coefficient_log2_denom_length = if rpu_nal.coefficient_data_type == 0 {
-            rpu_nal.coefficient_log2_denom as usize
-        } else if rpu_nal.coefficient_data_type == 1 {
+        let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
+            nlq_num_pivots_minus2 as usize + 1
+        } else {
+            panic!("Shouldn't be in NLQ if not profile 7!");
+        };
+        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
+            header.coefficient_log2_denom as usize
+        } else if header.coefficient_data_type == 1 {
             32
         } else {
             panic!("Invalid coefficient_data_type value!");
@@ -598,10 +586,10 @@ impl NlqData {
 
                     writer.write_n(
                         &self.nlq_offset[pivot_idx][cmp].to_be_bytes(),
-                        (rpu_nal.el_bit_depth_minus8 + 8) as usize,
+                        (header.el_bit_depth_minus8 + 8) as usize,
                     );
 
-                    if rpu_nal.coefficient_data_type == 0 {
+                    if header.coefficient_data_type == 0 {
                         writer.write_ue(self.vdr_in_max_int[pivot_idx][cmp]);
                     }
 
@@ -610,25 +598,27 @@ impl NlqData {
                         coefficient_log2_denom_length,
                     );
 
-                    // NLQ_LINEAR_DZ
-                    if rpu_nal.nlq_method_idc == 0 {
-                        if rpu_nal.coefficient_data_type == 0 {
-                            writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
+                    if let Some(nlq_method_idc) = header.nlq_method_idc {
+                        if nlq_method_idc == 0 {
+                            // NLQ_LINEAR_DZ
+                            if header.coefficient_data_type == 0 {
+                                writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
+                            }
+
+                            writer.write_n(
+                                &self.linear_deadzone_slope[pivot_idx][cmp].to_be_bytes(),
+                                coefficient_log2_denom_length,
+                            );
+
+                            if header.coefficient_data_type == 0 {
+                                writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
+                            }
+
+                            writer.write_n(
+                                &self.linear_deadzone_threshold[pivot_idx][cmp].to_be_bytes(),
+                                coefficient_log2_denom_length,
+                            );
                         }
-
-                        writer.write_n(
-                            &self.linear_deadzone_slope[pivot_idx][cmp].to_be_bytes(),
-                            coefficient_log2_denom_length,
-                        );
-
-                        if rpu_nal.coefficient_data_type == 0 {
-                            writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
-                        }
-
-                        writer.write_n(
-                            &self.linear_deadzone_threshold[pivot_idx][cmp].to_be_bytes(),
-                            coefficient_log2_denom_length,
-                        );
                     }
                 } else if self.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
                     writer.write_ue(self.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp]);

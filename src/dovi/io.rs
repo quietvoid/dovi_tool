@@ -254,7 +254,7 @@ impl DoviReader {
         &self,
         chunk: &[u8],
         dovi_writer: &mut DoviWriter,
-        nalus: &Vec<NalUnit>,
+        nalus: &[NalUnit],
     ) -> Result<(), std::io::Error> {
         for nalu in nalus {
             match nalu.chunk_type {
@@ -275,7 +275,8 @@ impl DoviReader {
                         rpu_writer.write_all(&self.out_nal_header)?;
 
                         if let Some(mode) = self.mode {
-                            let modified_data = parse_dovi_rpu(&chunk[nalu.start..nalu.end], mode);
+                            let mut dovi_rpu = parse_dovi_rpu(&chunk[nalu.start..nalu.end], mode);
+                            let modified_data = dovi_rpu.write_rpu_data();
 
                             rpu_writer.write_all(&modified_data)?;
                         } else {
