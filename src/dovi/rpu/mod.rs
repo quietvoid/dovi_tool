@@ -1,6 +1,6 @@
+mod tests;
 mod vdr_dm_data;
 mod vdr_rpu_data;
-mod tests;
 
 use bitvec::prelude;
 use vdr_dm_data::VdrDmData;

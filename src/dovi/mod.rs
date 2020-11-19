@@ -1,12 +1,12 @@
 pub mod demuxer;
-pub mod rpu_extractor;
 mod io;
+pub mod rpu_extractor;
 
 mod rpu;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::path::PathBuf;
-use indicatif::{ProgressBar, ProgressStyle};
 
 use super::bitvec_reader::BitVecReader;
 use super::bitvec_writer::BitVecWriter;
@@ -64,8 +64,7 @@ pub fn initialize_progress_bar(format: &Format, input: &PathBuf) -> ProgressBar 
 
         pb = ProgressBar::new(bytes_count);
         pb.set_style(
-            ProgressStyle::default_bar()
-                .template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
+            ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
         );
     }
 

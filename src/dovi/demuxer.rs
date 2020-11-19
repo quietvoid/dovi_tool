@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use indicatif::ProgressBar;
 
-use super::{Format, io};
+use super::{io, Format};
 
 use io::{DoviReader, DoviWriter};
 
@@ -24,7 +24,7 @@ impl Demuxer {
     }
 
     pub fn process_input(&self) {
-        let pb = super::initialize_progress_bar(&self.format, &self.input);        
+        let pb = super::initialize_progress_bar(&self.format, &self.input);
 
         match self.format {
             Format::Matroska => panic!("unsupported"),

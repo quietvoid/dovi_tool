@@ -6,8 +6,7 @@ mod bits;
 use bits::{bitvec_reader, bitvec_writer};
 
 mod dovi;
-use dovi::{demuxer::Demuxer, Format, rpu_extractor::RpuExtractor};
-
+use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};
 
 #[derive(StructOpt, Debug)]
 struct Opt {
@@ -15,7 +14,7 @@ struct Opt {
         name = "mode",
         short = "m",
         long,
-        help = "Sets the mode for RPU processing",
+        help = "Sets the mode for RPU processing"
     )]
     mode: Option<u8>,
 
@@ -83,14 +82,14 @@ fn main() -> std::io::Result<()> {
             el_out,
         } => {
             demux(input, stdin, bl_out, el_out);
-        },
+        }
         Command::ExtractRpu {
             input,
             stdin,
             rpu_out,
         } => {
             extract_rpu(input, stdin, rpu_out);
-        },
+        }
     }
 
     Ok(())
@@ -153,11 +152,7 @@ fn demux(
     }
 }
 
-fn extract_rpu(
-    input: Option<PathBuf>,
-    stdin: Option<PathBuf>,
-    rpu_out: Option<PathBuf>,
-) {
+fn extract_rpu(input: Option<PathBuf>, stdin: Option<PathBuf>, rpu_out: Option<PathBuf>) {
     let input = match input {
         Some(input) => input,
         None => match stdin {
