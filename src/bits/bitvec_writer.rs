@@ -29,6 +29,7 @@ impl BitVecWriter {
 
         self.offset += n;
     }
+
     #[inline(always)]
     pub fn write_ue(&mut self, v: u64) {
         if v == 0 {

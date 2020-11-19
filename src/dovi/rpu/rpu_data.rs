@@ -10,8 +10,6 @@ use vdr_rpu_data::{NlqData, VdrRpuData};
 use crc32fast::Hasher;
 use prelude::*;
 
-const MEL_PRED_PIVOT_VALUE: &[u64] = &[0, 1023];
-
 #[derive(Default, Debug)]
 pub struct DoviRpu {
     pub dovi_profile: u8,
@@ -77,33 +75,21 @@ impl DoviRpu {
     }
 
     pub fn convert_to_mel(&mut self) {
-        // Set pivots to 0
-        self.header
-            .num_pivots_minus_2
-            .iter_mut()
-            .for_each(|v| *v = 0);
-
-        // Set pivot values to [0, 1023]
-        self.header.pred_pivot_value.iter_mut().for_each(|v| {
-            v.clear();
-            v.extend_from_slice(&MEL_PRED_PIVOT_VALUE);
-        });
-
-        if let Some(ref mut vdr_rpu_data) = self.vdr_rpu_data {
-            vdr_rpu_data.convert_to_mel();
-        }
-
         if let Some(ref mut nlq_data) = self.nlq_data {
             nlq_data.convert_to_mel();
+        } else {
+            panic!("Not profile 7, cannot convert to MEL!");
         }
     }
 
     pub fn convert_to_81(&mut self) {
         let header = &mut self.header;
 
-        // Change to RPU only (8.1)
+        // Change to 8.1
         header.el_spatial_resampling_filter_flag = false;
         header.disable_residual_flag = true;
+
+        self.nlq_data = None;
     }
 
     pub fn write_rpu_data(&mut self) -> Vec<u8> {

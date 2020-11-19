@@ -93,7 +93,7 @@ impl RpuDataHeader {
                         }
                     }
 
-                    // Profile 5 or 8
+                    // Profile 7 only
                     if rpu_nal.rpu_format & 0x700 == 0 && !rpu_nal.disable_residual_flag {
                         rpu_nal.nlq_method_idc = Some(reader.get_n(3));
                         rpu_nal.nlq_num_pivots_minus2 = Some(0);

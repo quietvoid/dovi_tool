@@ -272,11 +272,11 @@ impl DoviReader {
                 }
                 ChunkType::RPUChunk => {
                     if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
-                        rpu_writer.write_all(&self.out_nal_header)?;
+                        //rpu_writer.write_all(&self.out_nal_header)?;
 
                         if let Some(mode) = self.mode {
                             let mut dovi_rpu = parse_dovi_rpu(&chunk[nalu.start..nalu.end], mode);
-                            let modified_data = dovi_rpu.write_rpu_data();
+                            let mut modified_data = dovi_rpu.write_rpu_data();
 
                             rpu_writer.write_all(&modified_data)?;
                         } else {
