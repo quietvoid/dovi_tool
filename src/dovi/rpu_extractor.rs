@@ -1,25 +1,22 @@
 use std::path::PathBuf;
 
 use indicatif::ProgressBar;
-
 use super::{Format, io};
 
 use io::{DoviReader, DoviWriter};
 
-pub struct Demuxer {
+pub struct RpuExtractor {
     format: Format,
     input: PathBuf,
-    bl_out: PathBuf,
-    el_out: PathBuf,
+    rpu_out: PathBuf,
 }
 
-impl Demuxer {
-    pub fn new(format: Format, input: PathBuf, bl_out: PathBuf, el_out: PathBuf) -> Self {
+impl RpuExtractor {
+    pub fn new(format: Format, input: PathBuf, rpu_out: PathBuf) -> Self {
         Self {
             format,
             input,
-            bl_out,
-            el_out,
+            rpu_out,
         }
     }
 
@@ -28,15 +25,13 @@ impl Demuxer {
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.demux_raw_hevc(Some(&pb)),
+            _ => self.extract_rpu_from_el(Some(&pb)),
         };
-
-        pb.finish_and_clear();
     }
 
-    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>) {
+    pub fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>) {
         let dovi_reader = DoviReader::new();
-        let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None);
+        let mut dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out));
 
         dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer);
     }
