@@ -222,6 +222,8 @@ impl ExtMetadataBlock {
 
         let mut ext_metadata_block = match block_info.ext_block_level {
             1 => {
+                assert_eq!(block_info.ext_block_length, 5);
+
                 let mut block = ExtMetadataBlockLevel1::default();
                 block.min_pq = reader.get_n(12);
                 block.max_pq = reader.get_n(12);
@@ -232,6 +234,8 @@ impl ExtMetadataBlock {
                 ExtMetadataBlock::Level1(block)
             }
             2 => {
+                assert_eq!(block_info.ext_block_length, 11);
+
                 let mut block = ExtMetadataBlockLevel2::default();
                 block.target_max_pq = reader.get_n(12);
                 block.trim_slope = reader.get_n(12);
@@ -246,6 +250,8 @@ impl ExtMetadataBlock {
                 ExtMetadataBlock::Level2(block)
             }
             5 => {
+                assert_eq!(block_info.ext_block_length, 7);
+
                 let mut block = ExtMetadataBlockLevel5::default();
                 block.active_area_left_offset = reader.get_n(13);
                 block.active_area_right_offset = reader.get_n(13);
