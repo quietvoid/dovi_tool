@@ -421,7 +421,7 @@ impl NlqData {
         self.nlq_offset.iter_mut().for_each(|v| {
             v.iter_mut().for_each(|v2| *v2 = 0);
         });
-        
+
         // Set to 1
         self.vdr_in_max_int.iter_mut().for_each(|v| {
             v.iter_mut().for_each(|v2| *v2 = 1);
