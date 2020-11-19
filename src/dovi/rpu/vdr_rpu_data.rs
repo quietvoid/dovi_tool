@@ -34,6 +34,9 @@ pub struct NlqData {
     linear_deadzone_threshold: Vec<Vec<u64>>,
 }
 
+const MEL_POLY_COEF_INT: &[i64] = &[0, 1, 0];
+const MEL_POLY_COEF: &[u64] = &[0, 0, 0];
+
 impl VdrRpuData {
     pub fn vdr_rpu_data_payload(reader: &mut BitVecReader, mut rpu_nal: &mut RpuNal) {
         let vdr_rpu_data = VdrRpuData::rpu_data_mapping(reader, rpu_nal);
@@ -193,6 +196,111 @@ impl VdrRpuData {
     }
 
     pub fn validate(&self) {}
+
+    pub fn convert_to_mel(&mut self) {
+        // Cut off and set to 0
+        self.mapping_idc.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.mapping_param_pred_flag.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = false;
+            });
+
+        self.num_mapping_param_predictors.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.diff_pred_part_idx_mapping_minus1.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+        
+        self.poly_order_minus1.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.linear_interp_flag.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = false;
+            });
+
+        self.pred_linear_interp_value_int.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.pred_linear_interp_value.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.poly_coef_int.truncate(3);
+        self.poly_coef_int.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v.iter_mut()
+                    .for_each(|v2| {
+                        v2.clear();
+                        v2.extend_from_slice(MEL_POLY_COEF_INT);
+                    });
+            });
+
+        self.poly_coef.truncate(3);
+        self.poly_coef.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v.iter_mut()
+                    .for_each(|v2| {
+                        v2.clear();
+                        v2.extend_from_slice(MEL_POLY_COEF);
+                    });
+            });
+
+        self.mmr_order_minus1.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.mmr_constant_int.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.mmr_constant.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.mmr_coef_int.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v.iter_mut()
+                    .for_each(|v2| v2.clear());
+            });
+
+        self.mmr_coef.iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v.iter_mut()
+                    .for_each(|v2| v2.clear());
+            });
+    }
 
     pub fn write(&self, writer: &mut BitVecWriter, rpu_nal: &RpuNal) {
         let coefficient_log2_denom_length = if rpu_nal.coefficient_data_type == 0 {
@@ -402,6 +510,70 @@ impl NlqData {
     }
 
     pub fn validate(&self) {}
+
+    pub fn convert_to_mel(&mut self) {
+
+        self.num_nlq_param_predictors.truncate(1);
+        self.num_nlq_param_predictors.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.nlq_param_pred_flag.truncate(1);
+        self.nlq_param_pred_flag.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = false);
+            });
+
+        self.diff_pred_part_idx_nlq_minus1.truncate(1);
+        self.diff_pred_part_idx_nlq_minus1.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.nlq_offset.truncate(1);
+        self.nlq_offset.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        // Set to 1
+        self.vdr_in_max_int.truncate(1);
+        self.vdr_in_max_int.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 1);
+            });
+
+        self.vdr_in_max.truncate(1);
+        self.vdr_in_max.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.linear_deadzone_slope_int.truncate(1);
+        self.linear_deadzone_slope_int.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.linear_deadzone_slope.truncate(1);
+        self.linear_deadzone_slope.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.linear_deadzone_threshold_int.truncate(1);
+        self.linear_deadzone_threshold_int.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+
+        self.linear_deadzone_threshold.truncate(1);
+        self.linear_deadzone_threshold.iter_mut()
+            .for_each(|v| {
+                v.iter_mut().for_each(|v2| *v2 = 0);
+            });
+    }
 
     pub fn write(&self, writer: &mut BitVecWriter, rpu_nal: &RpuNal) {
         let num_cmps = 3;

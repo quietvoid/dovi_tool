@@ -14,6 +14,8 @@ use super::{
     BitVecReader, BitVecWriter,
 };
 
+const MEL_PRED_PIVOT_VALUE: &[u64] = &[0, 1023];
+
 #[derive(Default, Debug)]
 pub struct RpuNal {
     rpu_nal_prefix: u8,
@@ -229,7 +231,24 @@ impl RpuNal {
         assert_eq!(calculated_crc32, self.rpu_data_crc32);
     }
 
-    pub fn convert_to_mel(&mut self) {}
+    pub fn convert_to_mel(&mut self) {
+        // Set pivots to 0
+        self.num_pivots_minus_2.iter_mut().for_each(|v| *v = 0);
+
+        // Set pivot values to [0, 1023]
+        self.pred_pivot_value.iter_mut().for_each(|v| {
+            v.clear();
+            v.extend_from_slice(&MEL_PRED_PIVOT_VALUE);
+        });
+
+        if let Some(ref mut vdr_rpu_data) = self.vdr_rpu_data {
+            vdr_rpu_data.convert_to_mel();
+        }
+
+        if let Some(ref mut nlq_data) = self.nlq_data {
+            nlq_data.convert_to_mel();
+        }
+    }
 
     pub fn convert_to_81(&mut self) {
         // Change to RPU only (8.1)
