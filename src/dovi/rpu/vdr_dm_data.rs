@@ -156,7 +156,7 @@ impl VdrDmData {
         assert_eq!(self.signal_eotf, 65535);
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter, mode: u8) {
         writer.write_ue(self.affected_dm_metadata_id);
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
@@ -201,7 +201,14 @@ impl VdrDmData {
         writer.write_ue(self.num_ext_blocks);
 
         if self.num_ext_blocks > 0 {
-            self.remaining.iter().for_each(|b| writer.write(*b));
+            // Try to keep it lossless
+            if mode == 0 {
+                self.remaining.iter().for_each(|b| writer.write(*b));
+            } else {
+                while !writer.is_aligned() {
+                    writer.write(false);
+                }
+            }
 
             for ext_metadata_block in &self.ext_metadata_blocks {
                 ext_metadata_block.write(writer);
@@ -319,6 +326,7 @@ impl ExtMetadataBlock {
             _ => (),
         }
 
+        // Either the whole generic block or alignment_zero_bit
         block_info.remaining.iter().for_each(|b| writer.write(*b));
     }
 }

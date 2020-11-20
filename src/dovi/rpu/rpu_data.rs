@@ -89,10 +89,26 @@ impl DoviRpu {
         header.el_spatial_resampling_filter_flag = false;
         header.disable_residual_flag = true;
 
+        header.nlq_method_idc = None;
+        header.nlq_num_pivots_minus2 = None;
+
+        header.num_x_partitions_minus1 = 0;
+        header.num_y_partitions_minus1 = 0;
+
         self.nlq_data = None;
     }
 
-    pub fn write_rpu_data(&mut self) -> Vec<u8> {
+    pub fn write_rpu_data(&mut self, mode: u8) -> Vec<u8> {
+        if self.dovi_profile == 7 {
+            match mode {
+                1 => self.convert_to_mel(),
+                2 => self.convert_to_81(),
+                _ => (),
+            }
+        } else if mode != 0 {
+            panic!("Can only change profile 7 RPU!");
+        }
+
         let reader = &self.reader;
         let mut writer = BitVecWriter::new();
 
@@ -105,7 +121,7 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data(&mut writer);
+                self.write_vdr_dm_data(&mut writer, mode);
             }
         }
 
@@ -136,9 +152,9 @@ impl DoviRpu {
         }
     }
 
-    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter) {
+    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter, mode: u8) {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer);
+            vdr_dm_data.write(writer, mode);
         }
     }
 }

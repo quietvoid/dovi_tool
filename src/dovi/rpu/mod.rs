@@ -14,17 +14,13 @@ use super::{
 };
 
 #[inline(always)]
-pub fn parse_dovi_rpu(data: &[u8], mode: u8) -> DoviRpu {
+pub fn parse_dovi_rpu(data: &[u8]) -> DoviRpu {
     // Clear start code emulation prevention 3 byte
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data[2..]);
 
     let mut dovi_rpu = DoviRpu::read_rpu_data(bytes);
 
-    match mode {
-        1 => dovi_rpu.convert_to_mel(),
-        2 => dovi_rpu.convert_to_81(),
-        _ => (),
-    }
+    dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
 
     // Doesn't work for now..
     //dovi_rpu.validate_crc32(&mut reader);

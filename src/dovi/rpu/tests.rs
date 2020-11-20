@@ -2,63 +2,124 @@ use std::fs::File;
 use std::{io::Read, path::PathBuf};
 
 use super::parse_dovi_rpu;
+use super::DoviRpu;
 
-#[test]
-fn fel_test() {
-    let input_file = PathBuf::from("./assets/fel_rpu.bin");
-    let mut f = File::open(input_file).unwrap();
+pub fn parse_file(input: PathBuf) -> (Vec<u8>, DoviRpu) {
+    let mut f = File::open(input).unwrap();
     let metadata = f.metadata().unwrap();
 
     let mut original_data = vec![0; metadata.len() as usize];
-    f.read(&mut original_data).unwrap();
+    f.read_exact(&mut original_data).unwrap();
 
-    let mut dovi_rpu = parse_dovi_rpu(&original_data, 0);
-    let parsed_data = dovi_rpu.write_rpu_data();
+    let dovi_rpu = parse_dovi_rpu(&original_data);
+
+    (original_data, dovi_rpu)
+}
+
+#[test]
+fn profile5() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/profile5.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 }
 
 #[test]
-fn mel_test() {
-    let input_file = PathBuf::from("./assets/mel_rpu.bin");
-    let mut f = File::open(input_file).unwrap();
-    let metadata = f.metadata().unwrap();
-
-    let mut original_data = vec![0; metadata.len() as usize];
-    f.read(&mut original_data).unwrap();
-
-    let mut dovi_rpu = parse_dovi_rpu(&original_data, 0);
-    let parsed_data = dovi_rpu.write_rpu_data();
+fn profile8() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/profile8.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 }
 
 #[test]
-fn fel_orig_test() {
-    let input_file = PathBuf::from("./assets/fel_orig.bin");
-    let mut f = File::open(input_file).unwrap();
-    let metadata = f.metadata().unwrap();
-
-    let mut original_data = vec![0; metadata.len() as usize];
-    f.read(&mut original_data).unwrap();
-
-    let mut dovi_rpu = parse_dovi_rpu(&original_data, 0);
-    let parsed_data = dovi_rpu.write_rpu_data();
+fn fel() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/fel_rpu.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 }
 
 #[test]
-fn fel_to_mel_test() {
-    let input_file = PathBuf::from("./assets/fel_to_mel1.bin");
-    let mut f = File::open(input_file).unwrap();
-    let metadata = f.metadata().unwrap();
-
-    let mut original_data = vec![0; metadata.len() as usize];
-    f.read(&mut original_data).unwrap();
-
-    let mut dovi_rpu = parse_dovi_rpu(&original_data, 0);
-    let parsed_data = dovi_rpu.write_rpu_data();
+fn mel() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/mel_rpu.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
+}
+
+#[test]
+fn fel_conversions() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/fel_orig.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let mut parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], parsed_data.as_slice());
+
+    // FEL to MEL
+    let (mel_data, mel_rpu) = parse_file(PathBuf::from("./assets/fel_to_mel.bin"));
+    assert_eq!(mel_rpu.dovi_profile, 7);
+
+    parsed_data = dovi_rpu.write_rpu_data(1);
+    assert_eq!(&mel_data[2..], parsed_data.as_slice());
+
+    // FEL to 8.1
+    let (p81_data, p81_rpu) = parse_file(PathBuf::from("./assets/fel_to_81.bin"));
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    parsed_data = dovi_rpu.write_rpu_data(2);
+    assert_eq!(&p81_data[2..], parsed_data.as_slice());
+}
+
+#[test]
+fn fel_to_mel() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/fel_to_mel.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], parsed_data.as_slice());
+}
+
+#[test]
+fn fel_to_profile8() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/fel_to_81.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], parsed_data.as_slice());
+}
+
+#[test]
+fn mel_conversions() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/mel_orig.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let mut parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], parsed_data.as_slice());
+
+    // FEL to MEL
+    let (mel_data, mel_rpu) = parse_file(PathBuf::from("./assets/mel_to_mel.bin"));
+    assert_eq!(mel_rpu.dovi_profile, 7);
+
+    parsed_data = dovi_rpu.write_rpu_data(1);
+    assert_eq!(&mel_data[2..], parsed_data.as_slice());
+
+    // FEL to 8.1
+    let (p81_data, p81_rpu) = parse_file(PathBuf::from("./assets/mel_to_81.bin"));
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    parsed_data = dovi_rpu.write_rpu_data(2);
+    assert_eq!(&p81_data[2..], parsed_data.as_slice());
 }

@@ -275,10 +275,11 @@ impl DoviReader {
                         rpu_writer.write_all(&self.out_nal_header)?;
 
                         if let Some(mode) = self.mode {
-                            let mut dovi_rpu = parse_dovi_rpu(&chunk[nalu.start..nalu.end], mode);
-                            let mut modified_data = dovi_rpu.write_rpu_data();
+                            let mut dovi_rpu = parse_dovi_rpu(&chunk[nalu.start..nalu.end]);
+                            let modified_data = dovi_rpu.write_rpu_data(mode);
 
                             rpu_writer.write_all(&modified_data)?;
+                            rpu_writer.flush()?;
                         } else {
                             rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
                         }

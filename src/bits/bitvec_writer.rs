@@ -65,6 +65,10 @@ impl BitVecWriter {
         self.write_ue(signed_to_unsigned(v));
     }
 
+    pub fn is_aligned(&self) -> bool {
+        self.offset % 8 == 0
+    }
+
     pub fn inner_mut(&mut self) -> &mut BitVec<Msb0, u8> {
         &mut self.bs
     }
