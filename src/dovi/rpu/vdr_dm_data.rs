@@ -46,6 +46,7 @@ pub struct VdrDmData {
 pub enum ExtMetadataBlock {
     Level1(ExtMetadataBlockLevel1),
     Level2(ExtMetadataBlockLevel2),
+    Level4(ExtMetadataBlockLevel4),
     Level5(ExtMetadataBlockLevel5),
     Generic(GenericExtMetadataBlock),
 }
@@ -75,6 +76,13 @@ pub struct ExtMetadataBlockLevel2 {
     trim_chroma_weight: u16,
     trim_saturation_gain: u16,
     ms_weight: i16,
+}
+
+#[derive(Debug, Default)]
+pub struct ExtMetadataBlockLevel4 {
+    block_info: BlockInfo,
+    tf_pq_mean: u16,
+    tf_pq_stdev: u16,
 }
 
 #[derive(Debug, Default)]
@@ -256,6 +264,17 @@ impl ExtMetadataBlock {
 
                 ExtMetadataBlock::Level2(block)
             }
+            4 => {
+                assert_eq!(block_info.ext_block_length, 3);
+
+                let mut block = ExtMetadataBlockLevel4::default();
+                block.tf_pq_mean = reader.get_n(12);
+                block.tf_pq_stdev = reader.get_n(12);
+
+                ext_block_use_bits += 24;
+
+                ExtMetadataBlock::Level4(block)
+            }
             5 => {
                 assert_eq!(block_info.ext_block_length, 7);
 
@@ -283,6 +302,7 @@ impl ExtMetadataBlock {
         match ext_metadata_block {
             ExtMetadataBlock::Level1(ref mut b) => b.block_info = block_info,
             ExtMetadataBlock::Level2(ref mut b) => b.block_info = block_info,
+            ExtMetadataBlock::Level4(ref mut b) => b.block_info = block_info,
             ExtMetadataBlock::Level5(ref mut b) => b.block_info = block_info,
             ExtMetadataBlock::Generic(ref mut b) => b.block_info = block_info,
         }
@@ -294,6 +314,7 @@ impl ExtMetadataBlock {
         let block_info = match self {
             ExtMetadataBlock::Level1(b) => &b.block_info,
             ExtMetadataBlock::Level2(b) => &b.block_info,
+            ExtMetadataBlock::Level4(b) => &b.block_info,
             ExtMetadataBlock::Level5(b) => &b.block_info,
             ExtMetadataBlock::Generic(b) => &b.block_info,
         };
@@ -316,6 +337,10 @@ impl ExtMetadataBlock {
                 writer.write_n(&block.trim_saturation_gain.to_be_bytes(), 12);
 
                 writer.write_n(&block.ms_weight.to_be_bytes(), 13);
+            }
+            ExtMetadataBlock::Level4(block) => {
+                writer.write_n(&block.tf_pq_mean.to_be_bytes(), 12);
+                writer.write_n(&block.tf_pq_stdev.to_be_bytes(), 12);
             }
             ExtMetadataBlock::Level5(block) => {
                 writer.write_n(&block.active_area_left_offset.to_be_bytes(), 13);

@@ -109,14 +109,14 @@ fn mel_conversions() {
 
     assert_eq!(&original_data[2..], parsed_data.as_slice());
 
-    // FEL to MEL
+    // MEL to MEL
     let (mel_data, mel_rpu) = parse_file(PathBuf::from("./assets/mel_to_mel.bin"));
     assert_eq!(mel_rpu.dovi_profile, 7);
 
     parsed_data = dovi_rpu.write_rpu_data(1);
     assert_eq!(&mel_data[2..], parsed_data.as_slice());
 
-    // FEL to 8.1
+    // MEL to 8.1
     let (p81_data, p81_rpu) = parse_file(PathBuf::from("./assets/mel_to_81.bin"));
     assert_eq!(p81_rpu.dovi_profile, 8);
 
