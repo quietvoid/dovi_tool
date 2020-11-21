@@ -18,12 +18,13 @@ pub fn parse_dovi_rpu(data: &[u8]) -> DoviRpu {
     // Clear start code emulation prevention 3 byte
     let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(&data[2..]);
 
+    let received_crc32 = DoviRpu::compute_crc32(&bytes[1..bytes.len() - 5]);
+
     let mut dovi_rpu = DoviRpu::read_rpu_data(bytes);
 
-    dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
+    assert_eq!(received_crc32, dovi_rpu.rpu_data_crc32);
 
-    // Doesn't work for now..
-    //dovi_rpu.validate_crc32(&mut reader);
+    dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
 
     dovi_rpu
 }

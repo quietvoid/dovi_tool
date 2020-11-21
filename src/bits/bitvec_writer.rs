@@ -72,4 +72,8 @@ impl BitVecWriter {
     pub fn inner_mut(&mut self) -> &mut BitVec<Msb0, u8> {
         &mut self.bs
     }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.bs.as_slice()
+    }
 }

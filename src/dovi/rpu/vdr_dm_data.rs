@@ -103,7 +103,6 @@ pub struct ExtMetadataBlockLevel5 {
     active_area_bottom_offset: u16,
 }
 
-
 #[derive(Debug, Default)]
 pub struct ExtMetadataBlockLevel6 {
     block_info: BlockInfo,
@@ -287,7 +286,7 @@ impl ExtMetadataBlock {
                 block.avg_pq_offset = reader.get_n(12);
 
                 ext_block_use_bits += 36;
-                
+
                 ExtMetadataBlock::Level3(block)
             }
             4 => {
@@ -322,9 +321,9 @@ impl ExtMetadataBlock {
                 block.min_display_mastering_luminance = reader.get_n(16);
                 block.max_content_light_level = reader.get_n(16);
                 block.max_frame_average_light_level = reader.get_n(16);
-                
+
                 ext_block_use_bits += 64;
-                
+
                 ExtMetadataBlock::Level6(block)
             }
             _ => {

@@ -1,13 +1,12 @@
 use super::{
-    add_start_code_emulation_prevention_3_byte, rpu_data_header, vdr_dm_data,
-    vdr_rpu_data, BitVecReader, BitVecWriter,
+    add_start_code_emulation_prevention_3_byte, rpu_data_header, vdr_dm_data, vdr_rpu_data,
+    BitVecReader, BitVecWriter,
 };
 
+use crc::{Crc, CRC_32_MPEG_2};
 use rpu_data_header::RpuDataHeader;
 use vdr_dm_data::VdrDmData;
 use vdr_rpu_data::{NlqData, VdrRpuData};
-
-use crc32fast::Hasher;
 
 #[derive(Default, Debug)]
 pub struct DoviRpu {
@@ -59,19 +58,7 @@ impl DoviRpu {
             dovi_rpu.rpu_data_crc32 = reader.get_n(32);
         }
 
-        //DoviRpu::validate_crc32(reader, dovi_rpu.rpu_data_crc32);
-
         dovi_rpu
-    }
-
-    pub fn validate_crc32(&self, reader: &mut BitVecReader) {
-        let whole_data = reader.get_inner()[..self.crc32_offset].as_slice();
-        let mut hasher = Hasher::new();
-        hasher.update(whole_data);
-
-        let calculated_crc32 = hasher.finalize();
-
-        assert_eq!(calculated_crc32, self.rpu_data_crc32);
     }
 
     pub fn convert_to_mel(&mut self) {
@@ -129,8 +116,10 @@ impl DoviRpu {
             writer.write(false);
         }
 
+        let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
+
         // Write crc32
-        writer.write_n(&self.rpu_data_crc32.to_be_bytes(), 32);
+        writer.write_n(&computed_crc32.to_be_bytes(), 32);
 
         // Write whatever is left
         let rest = &reader.get_inner()[reader.pos()..];
@@ -158,5 +147,13 @@ impl DoviRpu {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
             vdr_dm_data.write(writer);
         }
+    }
+
+    pub fn compute_crc32(data: &[u8]) -> u32 {
+        let crc = Crc::<u32>::new(&CRC_32_MPEG_2);
+        let mut digest = crc.digest();
+        digest.update(&data);
+
+        digest.finalize()
     }
 }

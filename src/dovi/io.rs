@@ -279,6 +279,7 @@ impl DoviReader {
                             let modified_data = dovi_rpu.write_rpu_data(mode);
 
                             rpu_writer.write_all(&modified_data)?;
+                            rpu_writer.flush()?;
                         } else {
                             rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
                         }
