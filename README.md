@@ -1,5 +1,8 @@
 ### Options
-`--mode`, `-m` Sets the mode for RPU processing. `--help` for more info
+* `-m`, `--mode` Sets the mode for RPU processing.
+  * `0` - Parses the RPU, rewrites it untouched.
+  * `1` - Converts the RPU to be MEL compatible.
+  * `2` - Converts the RPU to be profile 8.1 compatible.
 
 ### Commands
 
@@ -9,6 +12,7 @@ Demuxes single track dual layer Dolby Vision into Base layer and Enhancement lay
 
 * `dovi_tool demux file.hevc`
 * `ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool demux -`
+* Convert RPU to 8.1: `dovi_tool -m 2 demux file.hevc`
 
 #### extract-rpu
 Extracts Dolby Vision RPU from an HEVC encoded file.
