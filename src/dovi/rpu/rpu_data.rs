@@ -1,5 +1,5 @@
 use super::{
-    add_start_code_emulation_prevention_3_byte, prelude, rpu_data_header, vdr_dm_data,
+    add_start_code_emulation_prevention_3_byte, rpu_data_header, vdr_dm_data,
     vdr_rpu_data, BitVecReader, BitVecWriter,
 };
 
@@ -8,7 +8,6 @@ use vdr_dm_data::VdrDmData;
 use vdr_rpu_data::{NlqData, VdrRpuData};
 
 use crc32fast::Hasher;
-use prelude::*;
 
 #[derive(Default, Debug)]
 pub struct DoviRpu {
@@ -18,7 +17,6 @@ pub struct DoviRpu {
     pub vdr_rpu_data: Option<VdrRpuData>,
     pub nlq_data: Option<NlqData>,
     pub vdr_dm_data: Option<VdrDmData>,
-    pub remaining: BitVec<Msb0, u8>,
     pub crc32_offset: usize,
     pub rpu_data_crc32: u32,
 }
@@ -52,14 +50,16 @@ impl DoviRpu {
             if dovi_rpu.header.vdr_dm_metadata_present_flag {
                 dovi_rpu.vdr_dm_data = Some(VdrDmData::vdr_dm_data_payload(reader));
             }
+
+            while !reader.is_aligned() {
+                assert_eq!(reader.get(), false);
+            }
+
+            dovi_rpu.crc32_offset = reader.pos();
+            dovi_rpu.rpu_data_crc32 = reader.get_n(32);
         }
 
-        while !reader.is_aligned() {
-            dovi_rpu.remaining.push(reader.get());
-        }
-
-        dovi_rpu.crc32_offset = reader.pos();
-        dovi_rpu.rpu_data_crc32 = reader.get_n(32);
+        //DoviRpu::validate_crc32(reader, dovi_rpu.rpu_data_crc32);
 
         dovi_rpu
     }
@@ -121,11 +121,13 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data(&mut writer, mode);
+                self.write_vdr_dm_data(&mut writer);
             }
         }
 
-        self.remaining.iter().for_each(|b| writer.write(*b));
+        while !writer.is_aligned() {
+            writer.write(false);
+        }
 
         // Write crc32
         writer.write_n(&self.rpu_data_crc32.to_be_bytes(), 32);
@@ -152,9 +154,9 @@ impl DoviRpu {
         }
     }
 
-    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter, mode: u8) {
+    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter) {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer, mode);
+            vdr_dm_data.write(writer);
         }
     }
 }

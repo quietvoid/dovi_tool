@@ -12,7 +12,7 @@ Demuxes single track dual layer Dolby Vision into Base layer and Enhancement lay
 
 #### extract-rpu
 Extracts Dolby Vision RPU from an HEVC encoded file.
-Supports profile 5, profile 7 and profile 8.  
+Supports profiles 5, 7, and 8.  
 Input can be piped.
 
 * `dovi_tool extract-rpu video.hevc`

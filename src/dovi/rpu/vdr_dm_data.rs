@@ -39,7 +39,6 @@ pub struct VdrDmData {
     source_diagonal: u16,
     num_ext_blocks: u64,
     ext_metadata_blocks: Vec<ExtMetadataBlock>,
-    remaining: BitVec<Msb0, u8>,
 }
 
 #[derive(Debug)]
@@ -144,7 +143,7 @@ impl VdrDmData {
 
         if data.num_ext_blocks > 0 {
             while !reader.is_aligned() {
-                data.remaining.push(reader.get());
+                assert_eq!(reader.get(), false);
             }
 
             for _ in 0..data.num_ext_blocks {
@@ -164,7 +163,7 @@ impl VdrDmData {
         assert_eq!(self.signal_eotf, 65535);
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, mode: u8) {
+    pub fn write(&self, writer: &mut BitVecWriter) {
         writer.write_ue(self.affected_dm_metadata_id);
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
@@ -209,13 +208,8 @@ impl VdrDmData {
         writer.write_ue(self.num_ext_blocks);
 
         if self.num_ext_blocks > 0 {
-            // Try to keep it lossless
-            if mode == 0 {
-                self.remaining.iter().for_each(|b| writer.write(*b));
-            } else {
-                while !writer.is_aligned() {
-                    writer.write(false);
-                }
+            while !writer.is_aligned() {
+                writer.write(false);
             }
 
             for ext_metadata_block in &self.ext_metadata_blocks {
@@ -348,10 +342,19 @@ impl ExtMetadataBlock {
                 writer.write_n(&block.active_area_top_offset.to_be_bytes(), 13);
                 writer.write_n(&block.active_area_bottom_offset.to_be_bytes(), 13);
             }
-            _ => (),
+            ExtMetadataBlock::Generic(_) => {
+                // Copy the data
+                block_info.remaining.iter().for_each(|b| writer.write(*b));
+            }
         }
 
-        // Either the whole generic block or alignment_zero_bit
-        block_info.remaining.iter().for_each(|b| writer.write(*b));
+        // Write zero bytes until aligned
+        match self {
+            ExtMetadataBlock::Generic(_) => (),
+            _ => block_info
+                .remaining
+                .iter()
+                .for_each(|_| writer.write(false)),
+        }
     }
 }
