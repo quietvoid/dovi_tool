@@ -2,51 +2,96 @@ use regex::Regex;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+mod bits;
+use bits::{bitvec_reader, bitvec_writer};
+
 mod dovi;
-use dovi::{demuxer::Demuxer, Format};
+use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};
+
+#[derive(StructOpt, Debug)]
+struct Opt {
+    #[structopt(
+        name = "mode",
+        short = "m",
+        long,
+        help = "(WIP) Sets the mode for RPU processing. --help for more info",
+        long_help = "(WIP) Sets the mode for RPU processing.\nMode 1: FEL to MEL\nMode 2: Profile 8.1"
+    )]
+    mode: Option<u8>,
+
+    #[structopt(subcommand)]
+    cmd: Command,
+}
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "dovi_tool", about = "Stuff about Dolby Vision")]
-enum Opt {
+enum Command {
     Demux {
         #[structopt(
             name = "input",
             short = "i",
             long,
             help = "Sets the input file to use",
-            long,
             conflicts_with = "stdin",
             parse(from_os_str)
         )]
         input: Option<PathBuf>,
-    
+
         #[structopt(
             help = "Uses stdin as input data",
             conflicts_with = "input",
             parse(from_os_str)
         )]
         stdin: Option<PathBuf>,
-    
-        #[structopt(
-            long,
-            help = "BL output file location",
-            parse(from_os_str)
-        )]
+
+        #[structopt(long, help = "BL output file location", parse(from_os_str))]
         bl_out: Option<PathBuf>,
-    
+
+        #[structopt(long, help = "EL output file location", parse(from_os_str))]
+        el_out: Option<PathBuf>,
+    },
+
+    ExtractRpu {
         #[structopt(
+            name = "input",
+            short = "i",
             long,
-            help = "EL output file location",
+            help = "Sets the input file to use",
+            conflicts_with = "stdin",
             parse(from_os_str)
         )]
-        el_out: Option<PathBuf>,
-    }
+        input: Option<PathBuf>,
+
+        #[structopt(
+            help = "Uses stdin as input data",
+            conflicts_with = "input",
+            parse(from_os_str)
+        )]
+        stdin: Option<PathBuf>,
+
+        #[structopt(long, help = "RPU output file location", parse(from_os_str))]
+        rpu_out: Option<PathBuf>,
+    },
 }
 
 fn main() -> std::io::Result<()> {
-    match Opt::from_args() {
-        Opt::Demux { input, stdin, bl_out, el_out } => {
-            demux(input, stdin, bl_out, el_out);
+    let opt = Opt::from_args();
+
+    match opt.cmd {
+        Command::Demux {
+            input,
+            stdin,
+            bl_out,
+            el_out,
+        } => {
+            demux(input, stdin, bl_out, el_out, opt.mode);
+        }
+        Command::ExtractRpu {
+            input,
+            stdin,
+            rpu_out,
+        } => {
+            extract_rpu(input, stdin, rpu_out, opt.mode);
         }
     }
 
@@ -77,7 +122,13 @@ fn input_format(input: &PathBuf) -> Result<Format, &str> {
     }
 }
 
-fn demux(input: Option<PathBuf>, stdin: Option<PathBuf>, bl_out: Option<PathBuf>, el_out: Option<PathBuf>) {
+fn demux(
+    input: Option<PathBuf>,
+    stdin: Option<PathBuf>,
+    bl_out: Option<PathBuf>,
+    el_out: Option<PathBuf>,
+    mode: Option<u8>,
+) {
     let input = match input {
         Some(input) => input,
         None => match stdin {
@@ -98,8 +149,36 @@ fn demux(input: Option<PathBuf>, stdin: Option<PathBuf>, bl_out: Option<PathBuf>
                 None => PathBuf::from("EL.hevc"),
             };
 
-            let parser = Demuxer::new(format, input, bl_out, el_out);
-            parser.process_input();
+            let demuxer = Demuxer::new(format, input, bl_out, el_out);
+            demuxer.process_input(mode);
+        }
+        Err(msg) => println!("{}", msg),
+    }
+}
+
+fn extract_rpu(
+    input: Option<PathBuf>,
+    stdin: Option<PathBuf>,
+    rpu_out: Option<PathBuf>,
+    mode: Option<u8>,
+) {
+    let input = match input {
+        Some(input) => input,
+        None => match stdin {
+            Some(stdin) => stdin,
+            None => PathBuf::new(),
+        },
+    };
+
+    match input_format(&input) {
+        Ok(format) => {
+            let rpu_out = match rpu_out {
+                Some(path) => path,
+                None => PathBuf::from("RPU.bin"),
+            };
+
+            let parser = RpuExtractor::new(format, input, rpu_out);
+            parser.process_input(mode);
         }
         Err(msg) => println!("{}", msg),
     }
