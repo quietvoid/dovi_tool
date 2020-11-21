@@ -23,7 +23,7 @@ fn profile5() {
     assert_eq!(dovi_rpu.dovi_profile, 5);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -33,7 +33,7 @@ fn profile8() {
     assert_eq!(dovi_rpu.dovi_profile, 8);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn fel() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn mel() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -63,21 +63,21 @@ fn fel_conversions() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let mut parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 
     // FEL to MEL
     let (mel_data, mel_rpu) = parse_file(PathBuf::from("./assets/fel_to_mel.bin"));
     assert_eq!(mel_rpu.dovi_profile, 7);
 
     parsed_data = dovi_rpu.write_rpu_data(1);
-    assert_eq!(&mel_data[2..], parsed_data.as_slice());
+    assert_eq!(&mel_data[2..], &parsed_data[2..]);
 
     // FEL to 8.1
     let (p81_data, p81_rpu) = parse_file(PathBuf::from("./assets/fel_to_81.bin"));
     assert_eq!(p81_rpu.dovi_profile, 8);
 
     parsed_data = dovi_rpu.write_rpu_data(2);
-    assert_eq!(&p81_data[2..], parsed_data.as_slice());
+    assert_eq!(&p81_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn fel_to_mel() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn fel_to_profile8() {
     assert_eq!(dovi_rpu.dovi_profile, 8);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -107,21 +107,21 @@ fn mel_conversions() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let mut parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 
     // MEL to MEL
     let (mel_data, mel_rpu) = parse_file(PathBuf::from("./assets/mel_to_mel.bin"));
     assert_eq!(mel_rpu.dovi_profile, 7);
 
     parsed_data = dovi_rpu.write_rpu_data(1);
-    assert_eq!(&mel_data[2..], parsed_data.as_slice());
+    assert_eq!(&mel_data[2..], &parsed_data[2..]);
 
     // MEL to 8.1
     let (p81_data, p81_rpu) = parse_file(PathBuf::from("./assets/mel_to_81.bin"));
     assert_eq!(p81_rpu.dovi_profile, 8);
 
     parsed_data = dovi_rpu.write_rpu_data(2);
-    assert_eq!(&p81_data[2..], parsed_data.as_slice());
+    assert_eq!(&p81_data[2..], &parsed_data[2..]);
 }
 
 #[test]
@@ -131,5 +131,5 @@ fn data_before_crc32() {
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
-    assert_eq!(&original_data[2..], parsed_data.as_slice());
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
 }

@@ -271,21 +271,32 @@ impl DoviReader {
                 ChunkType::RPUChunk => {
                     if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
                         rpu_writer.write_all(&self.out_nal_header)?;
-
-                        if let Some(mode) = self.mode {
-                            match parse_dovi_rpu(&chunk[nalu.start..nalu.end]) {
-                                Ok(mut dovi_rpu) => {
-                                    let modified_data = dovi_rpu.write_rpu_data(mode);
-
-                                    rpu_writer.write_all(&modified_data)?;
-                                }
-                                Err(e) => panic!("{}", Red.paint(e)),
-                            }
-                        } else {
-                            rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
-                        }
                     } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&self.out_nal_header)?;
+                    }
+
+                    // No mode: Copy
+                    // Mode 0: Parse, untouched
+                    // Mode 1: to MEL
+                    // Mode 2: to 8.1
+                    if let Some(mode) = self.mode {
+                        match parse_dovi_rpu(&chunk[nalu.start..nalu.end]) {
+                            Ok(mut dovi_rpu) => {
+                                let modified_data = dovi_rpu.write_rpu_data(mode);
+
+                                if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+                                    // RPU for x265, remove 0x7C01
+                                    rpu_writer.write_all(&modified_data[2..])?;
+                                } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                                    el_writer.write_all(&modified_data)?;
+                                }
+                            }
+                            Err(e) => panic!("{}", Red.paint(e)),
+                        }
+                    } else if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+                        // RPU for x265, remove 0x7C01
+                        rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
+                    } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&chunk[nalu.start..nalu.end])?;
                     }
                 }

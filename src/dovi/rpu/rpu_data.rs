@@ -135,6 +135,10 @@ impl DoviRpu {
         let mut data_to_write = writer.as_slice().to_vec();
         add_start_code_emulation_prevention_3_byte(&mut data_to_write);
 
+        // Put back NAL unit type
+        data_to_write.insert(0, 0x01);
+        data_to_write.insert(0, 0x7C);
+
         data_to_write
     }
 
