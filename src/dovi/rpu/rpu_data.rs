@@ -29,6 +29,7 @@ impl DoviRpu {
         }
     }
 
+    #[inline(always)]
     pub fn read_rpu_data(bytes: Vec<u8>) -> DoviRpu {
         let mut dovi_rpu = DoviRpu::new(bytes);
         let reader = &mut dovi_rpu.reader;
@@ -95,6 +96,7 @@ impl DoviRpu {
         self.nlq_data = None;
     }
 
+    #[inline(always)]
     pub fn write_rpu_data(&mut self, mode: u8) -> Vec<u8> {
         if self.dovi_profile == 7 {
             match mode {
@@ -152,6 +154,7 @@ impl DoviRpu {
         }
     }
 
+    #[inline(always)]
     pub fn compute_crc32(data: &[u8]) -> u32 {
         let crc = Crc::<u32>::new(&CRC_32_MPEG_2);
         let mut digest = crc.digest();

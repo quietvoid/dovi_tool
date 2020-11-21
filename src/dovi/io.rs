@@ -13,6 +13,7 @@ pub struct DoviReader {
     nal_header: Vec<u8>,
     out_nal_header: Vec<u8>,
     mode: Option<u8>,
+    nalus: Vec<NalUnit>,
 }
 
 pub struct DoviWriter {
@@ -81,11 +82,12 @@ impl DoviReader {
             nal_header: vec![0, 0, 1],
             out_nal_header: vec![0, 0, 0, 1],
             mode,
+            nalus: Vec::with_capacity(2048),
         }
     }
 
     pub fn read_write_from_io(
-        &self,
+        &mut self,
         format: &Format,
         input: &PathBuf,
         pb: Option<&ProgressBar>,
@@ -164,22 +166,21 @@ impl DoviReader {
             } else {
                 let last = offsets.pop().unwrap();
 
-                end.extend(&chunk[last..]);
+                end.clear();
+                end.extend_from_slice(&chunk[last..]);
 
                 last
             };
 
-            let nalus = self.parse_offsets(&chunk, &offsets, last);
+            self.nalus.clear();
+            self.parse_offsets(&chunk, &offsets, last);
+            self.write_nalus(&chunk, dovi_writer, &self.nalus)?;
 
-            self.write_nalus(&chunk, dovi_writer, &nalus)?;
+            chunk.clear();
 
             if !end.is_empty() {
-                chunk = end.clone();
-            } else {
-                chunk.clear();
+                chunk.extend_from_slice(&end);
             }
-
-            end.clear();
 
             consumed += read_bytes;
 
@@ -206,9 +207,7 @@ impl DoviReader {
         Ok(())
     }
 
-    pub fn parse_offsets(&self, chunk: &[u8], offsets: &[usize], last: usize) -> Vec<NalUnit> {
-        let mut nalus: Vec<NalUnit> = Vec::new();
-
+    pub fn parse_offsets(&mut self, chunk: &[u8], offsets: &[usize], last: usize) {
         let count = offsets.len();
         for (index, offset) in offsets.iter().enumerate() {
             let size = if offset == &last {
@@ -241,14 +240,12 @@ impl DoviReader {
 
             let end = offset + size;
 
-            nalus.push(NalUnit {
+            self.nalus.push(NalUnit {
                 chunk_type,
                 start,
                 end,
             });
         }
-
-        nalus
     }
 
     pub fn write_nalus(
