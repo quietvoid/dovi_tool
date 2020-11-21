@@ -14,8 +14,8 @@ struct Opt {
         name = "mode",
         short = "m",
         long,
-        help = "(WIP) Sets the mode for RPU processing. --help for more info",
-        long_help = "(WIP) Sets the mode for RPU processing.\nMode 1: FEL to MEL\nMode 2: Profile 8.1"
+        help = "Sets the mode for RPU processing. --help for more info",
+        long_help = "Sets the mode for RPU processing.\nMode 1: Converts the RPU to be MEL compatible\nMode 2: Converts the RPU to be profile 8.1 compatible"
     )]
     mode: Option<u8>,
 

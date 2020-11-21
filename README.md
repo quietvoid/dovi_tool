@@ -1,5 +1,6 @@
 ### Options
 * `-m`, `--mode` Sets the mode for RPU processing.
+  * Default (no mode) - Copies the RPU untouched.
   * `0` - Parses the RPU, rewrites it untouched.
   * `1` - Converts the RPU to be MEL compatible.
   * `2` - Converts the RPU to be profile 8.1 compatible.
