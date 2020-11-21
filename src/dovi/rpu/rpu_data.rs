@@ -3,6 +3,7 @@ use super::{
     BitVecReader, BitVecWriter,
 };
 
+use super::prelude::*;
 use crc::{Crc, CRC_32_MPEG_2};
 use rpu_data_header::RpuDataHeader;
 use vdr_dm_data::VdrDmData;
@@ -16,7 +17,7 @@ pub struct DoviRpu {
     pub vdr_rpu_data: Option<VdrRpuData>,
     pub nlq_data: Option<NlqData>,
     pub vdr_dm_data: Option<VdrDmData>,
-    pub crc32_offset: usize,
+    pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,
 }
 
@@ -51,11 +52,20 @@ impl DoviRpu {
             }
 
             while !reader.is_aligned() {
-                assert_eq!(reader.get(), false);
+                dovi_rpu.remaining.push(reader.get());
             }
 
-            dovi_rpu.crc32_offset = reader.pos();
+            // CRC32 is at the end, apparently sometimes there is more unknown data
+            if reader.available() != 40 {
+                while reader.available() != 40 {
+                    dovi_rpu.remaining.push(reader.get());
+                }
+            }
+
             dovi_rpu.rpu_data_crc32 = reader.get_n(32);
+
+            let last_byte: u8 = reader.get_n(8);
+            assert_eq!(last_byte, 0x80);
         }
 
         dovi_rpu
@@ -96,7 +106,6 @@ impl DoviRpu {
             panic!("Can only change profile 7 RPU!");
         }
 
-        let reader = &self.reader;
         let mut writer = BitVecWriter::new();
 
         let header = &self.header;
@@ -112,22 +121,16 @@ impl DoviRpu {
             }
         }
 
-        while !writer.is_aligned() {
-            writer.write(false);
-        }
+        self.remaining.iter().for_each(|b| writer.write(*b));
 
         let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
 
         // Write crc32
         writer.write_n(&computed_crc32.to_be_bytes(), 32);
-
-        // Write whatever is left
-        let rest = &reader.get_inner()[reader.pos()..];
-        let inner_w = writer.inner_mut();
-        inner_w.extend_from_bitslice(&rest);
+        writer.write_n(&[0x80], 8);
 
         // Back to a u8 slice
-        let mut data_to_write = inner_w.as_slice().to_vec();
+        let mut data_to_write = writer.as_slice().to_vec();
         add_start_code_emulation_prevention_3_byte(&mut data_to_write);
 
         data_to_write

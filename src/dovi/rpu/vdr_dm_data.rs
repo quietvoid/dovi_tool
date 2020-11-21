@@ -49,7 +49,7 @@ pub enum ExtMetadataBlock {
     Level4(ExtMetadataBlockLevel4),
     Level5(ExtMetadataBlockLevel5),
     Level6(ExtMetadataBlockLevel6),
-    Generic(GenericExtMetadataBlock),
+    Reserved(ReservedExtMetadataBlock),
 }
 
 #[derive(Debug, Default)]
@@ -113,7 +113,7 @@ pub struct ExtMetadataBlockLevel6 {
 }
 
 #[derive(Debug, Default)]
-pub struct GenericExtMetadataBlock {
+pub struct ReservedExtMetadataBlock {
     block_info: BlockInfo,
 }
 
@@ -327,8 +327,8 @@ impl ExtMetadataBlock {
                 ExtMetadataBlock::Level6(block)
             }
             _ => {
-                let block = GenericExtMetadataBlock::default();
-                ExtMetadataBlock::Generic(block)
+                let block = ReservedExtMetadataBlock::default();
+                ExtMetadataBlock::Reserved(block)
             }
         };
 
@@ -344,7 +344,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level4(ref mut b) => b.block_info = block_info,
             ExtMetadataBlock::Level5(ref mut b) => b.block_info = block_info,
             ExtMetadataBlock::Level6(ref mut b) => b.block_info = block_info,
-            ExtMetadataBlock::Generic(ref mut b) => b.block_info = block_info,
+            ExtMetadataBlock::Reserved(ref mut b) => b.block_info = block_info,
         }
 
         ext_metadata_block
@@ -358,7 +358,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level4(b) => &b.block_info,
             ExtMetadataBlock::Level5(b) => &b.block_info,
             ExtMetadataBlock::Level6(b) => &b.block_info,
-            ExtMetadataBlock::Generic(b) => &b.block_info,
+            ExtMetadataBlock::Reserved(b) => &b.block_info,
         };
 
         writer.write_ue(block_info.ext_block_length);
@@ -401,7 +401,7 @@ impl ExtMetadataBlock {
                 writer.write_n(&block.max_content_light_level.to_be_bytes(), 16);
                 writer.write_n(&block.max_frame_average_light_level.to_be_bytes(), 16);
             }
-            ExtMetadataBlock::Generic(_) => {
+            ExtMetadataBlock::Reserved(_) => {
                 // Copy the data
                 block_info.remaining.iter().for_each(|b| writer.write(*b));
             }
@@ -409,7 +409,7 @@ impl ExtMetadataBlock {
 
         // Write zero bytes until aligned
         match self {
-            ExtMetadataBlock::Generic(_) => (),
+            ExtMetadataBlock::Reserved(_) => (),
             _ => block_info
                 .remaining
                 .iter()

@@ -123,3 +123,13 @@ fn mel_conversions() {
     parsed_data = dovi_rpu.write_rpu_data(2);
     assert_eq!(&p81_data[2..], parsed_data.as_slice());
 }
+
+#[test]
+fn data_before_crc32() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/data_before_crc32.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], parsed_data.as_slice());
+}

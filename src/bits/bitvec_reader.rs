@@ -88,12 +88,8 @@ impl BitVecReader {
         self.offset % 8 == 0
     }
 
-    pub fn pos(&self) -> usize {
-        self.offset
-    }
-
-    pub fn get_inner(&self) -> &BitVec<Msb0, u8> {
-        &self.bs
+    pub fn available(&self) -> usize {
+        self.bs.len() - self.offset
     }
 }
 
