@@ -11,7 +11,7 @@ pub fn parse_file(input: PathBuf) -> (Vec<u8>, DoviRpu) {
     let mut original_data = vec![0; metadata.len() as usize];
     f.read_exact(&mut original_data).unwrap();
 
-    let dovi_rpu = parse_dovi_rpu(&original_data);
+    let dovi_rpu = parse_dovi_rpu(&original_data).unwrap();
 
     (original_data, dovi_rpu)
 }

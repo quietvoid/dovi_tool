@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
+use ansi_term::Colour::Yellow;
 use indicatif::ProgressBar;
 use std::io::Read;
 
@@ -275,11 +276,14 @@ impl DoviReader {
                         rpu_writer.write_all(&self.out_nal_header)?;
 
                         if let Some(mode) = self.mode {
-                            let mut dovi_rpu = parse_dovi_rpu(&chunk[nalu.start..nalu.end]);
-                            let modified_data = dovi_rpu.write_rpu_data(mode);
+                            match parse_dovi_rpu(&chunk[nalu.start..nalu.end]) {
+                                Ok(mut dovi_rpu) => {
+                                    let modified_data = dovi_rpu.write_rpu_data(mode);
 
-                            rpu_writer.write_all(&modified_data)?;
-                            rpu_writer.flush()?;
+                                    rpu_writer.write_all(&modified_data)?;
+                                }
+                                Err(e) => panic!(e),
+                            }
                         } else {
                             rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
                         }
