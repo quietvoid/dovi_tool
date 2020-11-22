@@ -40,10 +40,10 @@ impl DoviWriter {
         el_out: Option<&PathBuf>,
         rpu_out: Option<&PathBuf>,
     ) -> DoviWriter {
-        let chunk_size = 1024 * 1024 * 4;
+        let chunk_size = 100_000;
         let bl_writer = if let Some(bl_out) = bl_out {
             Some(BufWriter::with_capacity(
-                chunk_size * 2,
+                chunk_size,
                 File::create(bl_out).expect("Can't create file"),
             ))
         } else {
@@ -52,7 +52,7 @@ impl DoviWriter {
 
         let el_writer = if let Some(el_out) = el_out {
             Some(BufWriter::with_capacity(
-                chunk_size * 2,
+                chunk_size,
                 File::create(el_out).expect("Can't create file"),
             ))
         } else {
@@ -61,7 +61,7 @@ impl DoviWriter {
 
         let rpu_writer = if let Some(rpu_out) = rpu_out {
             Some(BufWriter::with_capacity(
-                chunk_size * 2,
+                chunk_size,
                 File::create(rpu_out).expect("Can't create file"),
             ))
         } else {
@@ -99,16 +99,16 @@ impl DoviReader {
 
         if let Format::Raw = format {
             let file = File::open(input)?;
-            reader = Box::new(BufReader::with_capacity(1024 * 1024 * 4, file));
+            reader = Box::new(BufReader::with_capacity(100_000, file));
         }
 
-        let chunk_size = 1024 * 1024 * 4;
+        let chunk_size = 100_000;
 
-        let mut main_buf = [0; 1024 * 1024 * 4];
-        let mut sec_buf = [0; 256 * 256 * 2];
+        let mut main_buf = vec![0; 100_000];
+        let mut sec_buf = vec![0; 50_000];
 
         let mut chunk = Vec::with_capacity(chunk_size);
-        let mut end: Vec<u8> = Vec::with_capacity(512 * 512);
+        let mut end: Vec<u8> = Vec::with_capacity(10_000);
 
         let mut consumed = 0;
 
