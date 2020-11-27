@@ -1,4 +1,4 @@
-## dovi_tool ![Tests](https://github.com/quietvoid/dovi_tool/workflows/Tests/badge.svg) ![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)
+## dovi_tool [![Tests](https://github.com/quietvoid/dovi_tool/workflows/Tests/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3ATests) [![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3AArtifacts)
 ### Options
 * `-m`, `--mode` Sets the mode for RPU processing.
   * Default (no mode) - Copies the RPU untouched.
