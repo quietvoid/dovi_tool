@@ -19,6 +19,7 @@ pub struct DoviRpu {
     pub vdr_dm_data: Option<VdrDmData>,
     pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,
+    pub last_byte: u8,
 }
 
 impl DoviRpu {
@@ -30,8 +31,10 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    pub fn read_rpu_data(bytes: Vec<u8>) -> DoviRpu {
+    pub fn read_rpu_data(bytes: Vec<u8>, end_byte: u8) -> DoviRpu {
         let mut dovi_rpu = DoviRpu::new(bytes);
+        dovi_rpu.last_byte = end_byte;
+
         let reader = &mut dovi_rpu.reader;
         dovi_rpu.header = RpuDataHeader::rpu_data_header(reader);
 
@@ -56,9 +59,16 @@ impl DoviRpu {
                 dovi_rpu.remaining.push(reader.get());
             }
 
+            // EOF case
+            let final_len = if end_byte == 0 {
+                48
+            } else {
+                40
+            };
+
             // CRC32 is at the end, apparently sometimes there is more unknown data
-            if reader.available() != 40 {
-                while reader.available() != 40 {
+            if reader.available() != final_len {
+                while reader.available() != final_len {
                     dovi_rpu.remaining.push(reader.get());
                 }
             }
@@ -135,6 +145,10 @@ impl DoviRpu {
         // Write crc32
         writer.write_n(&computed_crc32.to_be_bytes(), 32);
         writer.write_n(&[0x80], 8);
+
+        if self.last_byte != 0x80 {
+            writer.write_n(&[self.last_byte], 8);
+        }
 
         // Back to a u8 slice
         let mut data_to_write = writer.as_slice().to_vec();

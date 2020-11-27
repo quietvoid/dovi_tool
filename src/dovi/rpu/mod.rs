@@ -29,7 +29,7 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Result<DoviRpu, String> {
         return Err(format!("Invalid RPU\n{:?}", &bytes));
     }
 
-    let mut dovi_rpu = DoviRpu::read_rpu_data(bytes);
+    let mut dovi_rpu = DoviRpu::read_rpu_data(bytes, last_byte);
     assert_eq!(received_crc32, dovi_rpu.rpu_data_crc32);
 
     dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
