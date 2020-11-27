@@ -1,3 +1,4 @@
+## dovi_tool ![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)
 ### Options
 * `-m`, `--mode` Sets the mode for RPU processing.
   * Default (no mode) - Copies the RPU untouched.
@@ -23,4 +24,5 @@ Input can be piped.
 * `dovi_tool extract-rpu video.hevc`
 * FEL to MEL example: `dovi_tool -m 1 extract-rpu video.hevc`
 
+Build artifacts can be found in the Github Actions.  
 More features may or may not be added in the future.
