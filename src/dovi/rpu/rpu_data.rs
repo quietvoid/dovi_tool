@@ -127,6 +127,11 @@ impl DoviRpu {
 
         let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
 
+        // Validate the parsed crc32 is the same
+        if mode == 0 {
+            assert_eq!(self.rpu_data_crc32, computed_crc32);
+        }
+
         // Write crc32
         writer.write_n(&computed_crc32.to_be_bytes(), 32);
         writer.write_n(&[0x80], 8);

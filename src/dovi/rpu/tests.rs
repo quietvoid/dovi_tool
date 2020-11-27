@@ -133,3 +133,13 @@ fn data_before_crc32() {
 
     assert_eq!(&original_data[2..], &parsed_data[2..]);
 }
+
+#[test]
+fn fix_se_write() {
+    let mode = 0;
+    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/fix_se_write.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let parsed_data = dovi_rpu.write_rpu_data(mode);
+
+    assert_eq!(&original_data[2..], &parsed_data[2..]);
+}
