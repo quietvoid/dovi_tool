@@ -4,13 +4,16 @@ use std::path::PathBuf;
 
 use ansi_term::Colour::Red;
 use indicatif::ProgressBar;
+use nom::{bytes::complete::take_until, IResult};
 use std::io::Read;
 
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
+const NAL_START_CODE: &[u8] = &[0, 0, 0, 1];
+const HEADER_LEN: usize = 4;
+
 pub struct DoviReader {
-    nal_header: Vec<u8>,
     out_nal_header: Vec<u8>,
     mode: Option<u8>,
     nalus: Vec<NalUnit>,
@@ -79,10 +82,42 @@ impl DoviWriter {
 impl DoviReader {
     pub fn new(mode: Option<u8>) -> DoviReader {
         DoviReader {
-            nal_header: vec![0, 0, 1],
             out_nal_header: vec![0, 0, 0, 1],
             mode,
             nalus: Vec::with_capacity(2048),
+        }
+    }
+
+    pub fn take_until_nal(data: &[u8]) -> IResult<&[u8], &[u8]> {
+        take_until(NAL_START_CODE)(data)
+    }
+
+    pub fn get_offsets(data: &[u8]) -> (Vec<usize>, Option<&[u8]>) {
+        let mut consumed = 0;
+        let mut offsets = Vec::with_capacity(256);
+
+        loop {
+            match Self::take_until_nal(&data[consumed..]) {
+                Ok(nal) => {
+                    // Byte count before the NAL is the offset
+                    consumed += nal.1.len();
+
+                    offsets.push(consumed + 1);
+
+                    // Consumes the tag, so add it back
+                    consumed += HEADER_LEN;
+                }
+                _ => {
+                    let remaining = if offsets.is_empty() {
+                        None
+                    } else {
+                        Some(&data[consumed..])
+                    };
+
+                    // Return remaining data
+                    return (offsets, remaining);
+                }
+            }
         }
     }
 
@@ -145,19 +180,9 @@ impl DoviReader {
                 chunk.extend_from_slice(&main_buf);
             }
 
-            let mut offsets: Vec<usize> = chunk
-                .windows(3)
-                .enumerate()
-                .filter_map(|(index, v)| {
-                    if v == self.nal_header {
-                        Some(index)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+            let (mut offsets, remaining) = Self::get_offsets(&chunk);
 
-            if offsets.is_empty() {
+            if remaining.is_none() {
                 continue;
             }
 
