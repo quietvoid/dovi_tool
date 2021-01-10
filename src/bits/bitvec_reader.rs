@@ -1,3 +1,4 @@
+use bitvec::mem::BitMemory;
 use bitvec::prelude::*;
 use std::fmt;
 

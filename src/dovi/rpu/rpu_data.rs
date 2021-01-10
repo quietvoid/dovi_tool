@@ -60,11 +60,7 @@ impl DoviRpu {
             }
 
             // EOF case
-            let final_len = if end_byte == 0 {
-                48
-            } else {
-                40
-            };
+            let final_len = if end_byte == 0 { 48 } else { 40 };
 
             // CRC32 is at the end, apparently sometimes there is more unknown data
             if reader.available() != final_len {
