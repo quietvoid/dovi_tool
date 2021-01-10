@@ -10,8 +10,8 @@ use std::io::Read;
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
-const NAL_START_CODE: &[u8] = &[0, 0, 0, 1];
-const HEADER_LEN: usize = 4;
+const NAL_START_CODE: &[u8] = &[0, 0, 1];
+const HEADER_LEN: usize = 3;
 
 pub struct DoviReader {
     out_nal_header: Vec<u8>,
@@ -92,7 +92,7 @@ impl DoviReader {
         take_until(NAL_START_CODE)(data)
     }
 
-    pub fn get_offsets(data: &[u8]) -> (Vec<usize>, Option<&[u8]>) {
+    pub fn get_offsets(data: &[u8]) -> Vec<usize> {
         let mut consumed = 0;
         let mut offsets = Vec::with_capacity(256);
 
@@ -102,21 +102,12 @@ impl DoviReader {
                     // Byte count before the NAL is the offset
                     consumed += nal.1.len();
 
-                    offsets.push(consumed + 1);
+                    offsets.push(consumed);
 
-                    // Consumes the tag, so add it back
+                    // nom consumes the tag, so add it back
                     consumed += HEADER_LEN;
                 }
-                _ => {
-                    let remaining = if offsets.is_empty() {
-                        None
-                    } else {
-                        Some(&data[consumed..])
-                    };
-
-                    // Return remaining data
-                    return (offsets, remaining);
-                }
+                _ => return offsets,
             }
         }
     }
@@ -180,9 +171,9 @@ impl DoviReader {
                 chunk.extend_from_slice(&main_buf);
             }
 
-            let (mut offsets, remaining) = Self::get_offsets(&chunk);
+            let mut offsets = Self::get_offsets(&chunk);
 
-            if remaining.is_none() {
+            if offsets.is_empty() {
                 continue;
             }
 
