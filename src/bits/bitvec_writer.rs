@@ -23,7 +23,7 @@ impl BitVecWriter {
 
     #[inline(always)]
     pub fn write_n(&mut self, v: &[u8], n: usize) {
-        let slice = v.view_bits();
+        let slice: &BitSlice<Msb0, u8> = v.view_bits();
 
         self.bs.extend_from_bitslice(&slice[slice.len() - n..]);
 
@@ -70,6 +70,6 @@ impl BitVecWriter {
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        self.bs.as_slice()
+        self.bs.as_raw_slice()
     }
 }

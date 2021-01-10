@@ -17,6 +17,7 @@ pub struct DoviReader {
     out_nal_header: Vec<u8>,
     mode: Option<u8>,
     nalus: Vec<NalUnit>,
+    offsets: Vec<usize>,
 }
 
 pub struct DoviWriter {
@@ -85,6 +86,7 @@ impl DoviReader {
             out_nal_header: vec![0, 0, 0, 1],
             mode,
             nalus: Vec::with_capacity(2048),
+            offsets: Vec::with_capacity(2048),
         }
     }
 
@@ -92,9 +94,8 @@ impl DoviReader {
         take_until(NAL_START_CODE)(data)
     }
 
-    pub fn get_offsets(data: &[u8]) -> Vec<usize> {
+    pub fn get_offsets(&mut self, data: &[u8]) {
         let mut consumed = 0;
-        let mut offsets = Vec::with_capacity(256);
 
         loop {
             match Self::take_until_nal(&data[consumed..]) {
@@ -102,12 +103,12 @@ impl DoviReader {
                     // Byte count before the NAL is the offset
                     consumed += nal.1.len();
 
-                    offsets.push(consumed);
+                    self.offsets.push(consumed);
 
                     // nom consumes the tag, so add it back
                     consumed += HEADER_LEN;
                 }
-                _ => return offsets,
+                _ => return,
             }
         }
     }
@@ -134,7 +135,7 @@ impl DoviReader {
         let mut sec_buf = vec![0; 50_000];
 
         let mut chunk = Vec::with_capacity(chunk_size);
-        let mut end: Vec<u8> = Vec::with_capacity(10_000);
+        let mut end: Vec<u8> = Vec::with_capacity(100_000);
 
         let mut consumed = 0;
 
@@ -171,16 +172,17 @@ impl DoviReader {
                 chunk.extend_from_slice(&main_buf);
             }
 
-            let mut offsets = Self::get_offsets(&chunk);
+            self.offsets.clear();
+            self.get_offsets(&chunk);
 
-            if offsets.is_empty() {
+            if self.offsets.is_empty() {
                 continue;
             }
 
             let last = if read_bytes < chunk_size {
-                *offsets.last().unwrap()
+                *self.offsets.last().unwrap()
             } else {
-                let last = offsets.pop().unwrap();
+                let last = self.offsets.pop().unwrap();
 
                 end.clear();
                 end.extend_from_slice(&chunk[last..]);
@@ -189,7 +191,7 @@ impl DoviReader {
             };
 
             self.nalus.clear();
-            self.parse_offsets(&chunk, &offsets, last);
+            self.parse_offsets(&chunk, last);
             self.write_nalus(&chunk, dovi_writer, &self.nalus)?;
 
             chunk.clear();
@@ -223,7 +225,8 @@ impl DoviReader {
         Ok(())
     }
 
-    pub fn parse_offsets(&mut self, chunk: &[u8], offsets: &[usize], last: usize) {
+    pub fn parse_offsets(&mut self, chunk: &[u8], last: usize) {
+        let offsets = &self.offsets;
         let count = offsets.len();
         for (index, offset) in offsets.iter().enumerate() {
             let size = if offset == &last {
