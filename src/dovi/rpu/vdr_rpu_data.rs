@@ -79,6 +79,10 @@ impl VdrRpuData {
             // rpu_data_mapping_param()
             data.poly_order_minus1.push(vec![0; pivot_idx_count]);
             data.linear_interp_flag.push(vec![false; pivot_idx_count]);
+
+            data.poly_coef_int.push(vec![vec![]; pivot_idx_count]);
+            data.poly_coef.push(vec![vec![]; pivot_idx_count]);
+
             data.pred_linear_interp_value_int
                 .push(vec![0; pivot_idx_count]);
             data.pred_linear_interp_value.push(vec![0; pivot_idx_count]);
@@ -144,10 +148,8 @@ impl VdrRpuData {
                             let poly_coef_count =
                                 data.poly_order_minus1[cmp][pivot_idx] as usize + 1;
 
-                            data.poly_coef_int
-                                .push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
-                            data.poly_coef
-                                .push(vec![vec![0; poly_coef_count + 2]; pivot_idx_count]);
+                            data.poly_coef_int[cmp][pivot_idx] = vec![0; poly_coef_count + 1];
+                            data.poly_coef[cmp][pivot_idx] = vec![0; poly_coef_count + 1];
 
                             for i in 0..=poly_coef_count {
                                 if header.coefficient_data_type == 0 {
