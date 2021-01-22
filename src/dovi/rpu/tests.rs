@@ -157,7 +157,8 @@ fn eof_rpu() {
 #[test]
 fn poly_coef_int_logic_rpu() {
     let mode = 0;
-    let (original_data, mut dovi_rpu) = parse_file(PathBuf::from("./assets/poly_coef_int_logic.bin"));
+    let (original_data, mut dovi_rpu) =
+        parse_file(PathBuf::from("./assets/poly_coef_int_logic.bin"));
     assert_eq!(dovi_rpu.dovi_profile, 7);
     let parsed_data = dovi_rpu.write_rpu_data(mode);
 
