@@ -1,0 +1,9 @@
+[package]
+name = "bits_handler"
+version = "0.1.0"
+authors = ["quietvoid"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+bitvec = "0.20.1"

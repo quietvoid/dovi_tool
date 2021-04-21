@@ -1,0 +1,9 @@
+[package]
+name = "hevc_bitstream"
+version = "0.1.0"
+authors = ["quietvoid"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+bits_handler = { path = '../bits_handler' }

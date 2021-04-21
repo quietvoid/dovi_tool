@@ -2,8 +2,10 @@ use regex::Regex;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-mod bits;
-use bits::{bitvec_reader, bitvec_writer};
+use bits_handler::{bitvec_reader, bitvec_writer};
+
+use hevc_bitstream;
+
 
 mod dovi;
 use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};

@@ -8,8 +8,10 @@ license = "MIT"
 [dependencies]
 structopt = "0.3.21"
 indicatif = "0.15.0"
-regex = "1.4.3"
+regex = "1.4.5"
 ansi_term = "0.12.1"
-bitvec = "0.20.1"
 crc = "2.0.0-rc.1"
-nom = "6.0.1"
+nom = "6.1.2"
+bitvec = "0.20.1"
+bits_handler = { path = './bits_handler' }
+hevc_bitstream = { path = './hevc_bitstream' }

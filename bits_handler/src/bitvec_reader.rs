@@ -92,6 +92,15 @@ impl BitVecReader {
     pub fn available(&self) -> usize {
         self.bs.len() - self.offset
     }
+
+    pub fn skip_n(&mut self, n: usize) {
+        self.offset += n;
+    }
+
+    pub fn replace_inner(&mut self, new_data: &[u8]) {
+        self.bs.clear();
+        self.bs.extend(new_data);
+    }
 }
 
 impl fmt::Debug for BitVecReader {

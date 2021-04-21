@@ -40,7 +40,7 @@ impl Demuxer {
 
         match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
             Ok(_) => (),
-            Err(e) => panic!(e),
+            Err(e) => panic!("{}", e),
         }
     }
 }
