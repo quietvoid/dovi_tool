@@ -2,7 +2,7 @@ use regex::Regex;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
-use bits_handler::{bitvec_reader, bitvec_writer};
+use bitvec_helpers::{bitvec_reader, bitvec_writer};
 
 mod dovi;
 use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};

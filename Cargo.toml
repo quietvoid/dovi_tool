@@ -13,5 +13,5 @@ ansi_term = "0.12.1"
 crc = "2.0.0-rc.1"
 nom = "6.1.2"
 bitvec = "0.20.1"
-bits_handler = { path = './bits_handler' }
-hevc_bitstream = { path = './hevc_bitstream' }
+bitvec_helpers = { path = "../bitvec_helpers" }
+hevc_parser = { path = "../hevc_parser" }

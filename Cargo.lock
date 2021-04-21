@@ -51,13 +51,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
-name = "bits_handler"
-version = "0.1.0"
-dependencies = [
- "bitvec 0.20.2",
-]
-
-[[package]]
 name = "bitvec"
 version = "0.19.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,6 +72,13 @@ dependencies = [
  "radium 0.6.2",
  "tap",
  "wyz",
+]
+
+[[package]]
+name = "bitvec_helpers"
+version = "0.1.0"
+dependencies = [
+ "bitvec 0.20.2",
 ]
 
 [[package]]
@@ -137,10 +137,10 @@ name = "dovi_tool"
 version = "0.1.2"
 dependencies = [
  "ansi_term 0.12.1",
- "bits_handler",
  "bitvec 0.20.2",
+ "bitvec_helpers",
  "crc",
- "hevc_bitstream",
+ "hevc_parser",
  "indicatif",
  "nom",
  "regex",
@@ -178,10 +178,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "hevc_bitstream"
+name = "hevc_parser"
 version = "0.1.0"
 dependencies = [
- "bits_handler",
+ "bitvec_helpers",
 ]
 
 [[package]]
@@ -204,9 +204,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lexical-core"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21f866863575d0e1d654fbeeabdc927292fdf862873dc3c96c6f753357e13374"
+checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
 dependencies = [
  "arrayvec",
  "bitflags",

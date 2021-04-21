@@ -9,9 +9,9 @@ use std::io::Read;
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
-use hevc_bitstream::hevc::NalUnit;
-use hevc_bitstream::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
-use hevc_bitstream::HevcBitstream;
+use hevc_parser::hevc::NalUnit;
+use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
+use hevc_parser::HevcParser;
 
 const NAL_START_CODE: &[u8] = &[0, 0, 1];
 const HEADER_LEN: usize = 3;
@@ -124,7 +124,7 @@ impl DoviReader {
 
         let mut consumed = 0;
 
-        let mut bs = HevcBitstream::default();
+        let mut bs = HevcParser::default();
 
         while let Ok(n) = reader.read(&mut main_buf) {
             let mut read_bytes = n;
@@ -213,7 +213,7 @@ impl DoviReader {
 
     pub fn parse_offsets(
         &mut self,
-        bs: &mut HevcBitstream,
+        bs: &mut HevcParser,
         chunk: &[u8],
         last: usize,
     ) -> Vec<NalUnit> {
