@@ -1,5 +1,4 @@
 use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
 use ansi_term::Colour::Red;
@@ -10,8 +9,9 @@ use std::io::Read;
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
-use hevc::*;
-use hevc_bitstream::*;
+use hevc_bitstream::hevc::NalUnit;
+use hevc_bitstream::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
+use hevc_bitstream::HevcBitstream;
 
 const NAL_START_CODE: &[u8] = &[0, 0, 1];
 const HEADER_LEN: usize = 3;

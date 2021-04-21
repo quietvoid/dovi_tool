@@ -1,9 +1,14 @@
 use bits_handler::bitvec_reader::BitVecReader;
 
 pub mod hevc;
-pub mod vps;
+pub mod utils;
+
 use hevc::*;
 use vps::VPSNal;
+use sps::SPSNal;
+use pps::PPSNal;
+
+use utils::clear_start_code_emulation_prevention_3_byte;
 
 #[derive(Default)]
 pub struct HevcBitstream {
@@ -16,7 +21,7 @@ pub struct HevcBitstream {
 }
 
 // We don't want to parse large slices because the memory is copied
-const MAX_PARSE_SIZE: usize = 8192;
+const MAX_PARSE_SIZE: usize = 2048;
 
 impl HevcBitstream {
     pub fn parse_nal(&mut self, data: &[u8], offset: usize, size: usize) -> NalUnit {
@@ -38,6 +43,12 @@ impl HevcBitstream {
 
         self.parse_nal_header(&mut nal);
 
+        self.nals.push(nal.clone());
+
+        if nal.nuh_layer_id > 0 {
+            return nal;
+        }
+
         match nal.nal_type {
             NAL_VPS => self.parse_vps(),
             NAL_SPS => self.parse_sps(),
@@ -51,8 +62,6 @@ impl HevcBitstream {
             },
             _ => (),
         };
-
-        self.nals.push(nal.clone());
 
         nal
     }
@@ -68,13 +77,18 @@ impl HevcBitstream {
     
     pub fn parse_vps(&mut self) {
         let mut vps = VPSNal::parse(&mut self.reader);
-        vps.nal_index = self.nals.len();
+        vps.nal_index = self.nals.len() - 1;
 
         self.vps.push(vps);
     }
     
     pub fn parse_sps(&mut self) {
-        
+        let mut sps = SPSNal::parse(&mut self.reader);
+        sps.nal_index = self.nals.len() - 1;
+
+        println!("{:#?}", sps);
+
+        self.sps.push(sps);
     }
 
     pub fn parse_pps(&mut self) {
