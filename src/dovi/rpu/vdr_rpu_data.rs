@@ -179,7 +179,7 @@ impl VdrRpuData {
                             reader.get_n(coefficient_log2_denom_length);
 
                         for i in 1..=data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
-                            for j in 0..7 as usize {
+                            for j in 0..7_usize {
                                 if header.coefficient_data_type == 0 {
                                     data.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se();
                                 }
@@ -300,7 +300,7 @@ impl VdrRpuData {
                             );
 
                             for i in 1..=self.mmr_order_minus1[cmp_idx][pivot_idx] as usize + 1 {
-                                for j in 0..7 as usize {
+                                for j in 0..7_usize {
                                     if header.coefficient_data_type == 0 {
                                         writer
                                             .write_se(self.mmr_coef_int[cmp_idx][pivot_idx][i][j]);

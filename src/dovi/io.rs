@@ -1,6 +1,6 @@
-use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
+use std::{fs::File, path::Path};
 
 use ansi_term::Colour::Red;
 use indicatif::ProgressBar;
@@ -10,8 +10,8 @@ use std::io::Read;
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
-use super::hevc_bitstream::*;
 use hevc::*;
+use hevc_bitstream::*;
 
 const NAL_START_CODE: &[u8] = &[0, 0, 1];
 const HEADER_LEN: usize = 3;
@@ -29,11 +29,7 @@ pub struct DoviWriter {
 }
 
 impl DoviWriter {
-    pub fn new(
-        bl_out: Option<&PathBuf>,
-        el_out: Option<&PathBuf>,
-        rpu_out: Option<&PathBuf>,
-    ) -> DoviWriter {
+    pub fn new(bl_out: Option<&Path>, el_out: Option<&Path>, rpu_out: Option<&Path>) -> DoviWriter {
         let chunk_size = 100_000;
         let bl_writer = if let Some(bl_out) = bl_out {
             Some(BufWriter::with_capacity(
@@ -105,7 +101,7 @@ impl DoviReader {
     pub fn read_write_from_io(
         &mut self,
         format: &Format,
-        input: &PathBuf,
+        input: &Path,
         pb: Option<&ProgressBar>,
         dovi_writer: &mut DoviWriter,
     ) -> Result<(), std::io::Error> {
@@ -215,7 +211,12 @@ impl DoviReader {
         Ok(())
     }
 
-    pub fn parse_offsets(&mut self, bs: &mut HevcBitstream, chunk: &[u8], last: usize) -> Vec<NalUnit> {
+    pub fn parse_offsets(
+        &mut self,
+        bs: &mut HevcBitstream,
+        chunk: &[u8],
+        last: usize,
+    ) -> Vec<NalUnit> {
         let offsets = &self.offsets;
         let count = offsets.len();
 
@@ -242,7 +243,7 @@ impl DoviReader {
             nals.push(nal);
         }
 
-        return nals;
+        nals
     }
 
     pub fn write_nalus(

@@ -5,12 +5,10 @@ pub mod rpu_extractor;
 mod rpu;
 
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::File;
-use std::path::PathBuf;
+use std::{fs::File, path::Path};
 
 use super::bitvec_reader::BitVecReader;
 use super::bitvec_writer::BitVecWriter;
-use super::hevc_bitstream;
 
 #[derive(Debug, PartialEq)]
 pub enum Format {
@@ -19,7 +17,7 @@ pub enum Format {
     Matroska,
 }
 
-pub fn initialize_progress_bar(format: &Format, input: &PathBuf) -> ProgressBar {
+pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
     let pb: ProgressBar;
     let bytes_count;
 

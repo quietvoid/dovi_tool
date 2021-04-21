@@ -1,11 +1,8 @@
 use regex::Regex;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 use bits_handler::{bitvec_reader, bitvec_writer};
-
-use hevc_bitstream;
-
 
 mod dovi;
 use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};
@@ -76,7 +73,7 @@ enum Command {
     },
 }
 
-fn main() -> std::io::Result<()> {
+fn main() {
     let opt = Opt::from_args();
 
     match opt.cmd {
@@ -96,11 +93,9 @@ fn main() -> std::io::Result<()> {
             extract_rpu(input, stdin, rpu_out, opt.mode);
         }
     }
-
-    Ok(())
 }
 
-fn input_format(input: &PathBuf) -> Result<Format, &str> {
+fn input_format(input: &Path) -> Result<Format, &str> {
     let regex = Regex::new(r"\.(hevc|.?265|mkv)").unwrap();
     let file_name = match input.file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
@@ -115,7 +110,7 @@ fn input_format(input: &PathBuf) -> Result<Format, &str> {
         } else {
             Ok(Format::Raw)
         }
-    } else if file_name == "" {
+    } else if file_name.is_empty() {
         Err("Missing input.")
     } else if !input.is_file() {
         Err("Input file doesn't exist.")
