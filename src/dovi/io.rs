@@ -9,7 +9,7 @@ use std::io::Read;
 use super::rpu::parse_dovi_rpu;
 use super::Format;
 
-use hevc_parser::hevc::NalUnit;
+use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::HevcParser;
 
@@ -177,7 +177,7 @@ impl DoviReader {
                 last
             };
 
-            let nals: Vec<NalUnit> = self.parse_offsets(&mut bs, &chunk, last);
+            let nals: Vec<NALUnit> = self.parse_offsets(&mut bs, &chunk, last);
             self.write_nalus(&chunk, dovi_writer, &nals)?;
 
             chunk.clear();
@@ -216,7 +216,7 @@ impl DoviReader {
         bs: &mut HevcParser,
         chunk: &[u8],
         last: usize,
-    ) -> Vec<NalUnit> {
+    ) -> Vec<NALUnit> {
         let offsets = &self.offsets;
         let count = offsets.len();
 
@@ -238,7 +238,7 @@ impl DoviReader {
                 }
             };
 
-            let nal: NalUnit = bs.parse_nal(chunk, *offset, size);
+            let nal: NALUnit = bs.parse_nal(chunk, *offset, size);
 
             nals.push(nal);
         }
@@ -250,7 +250,7 @@ impl DoviReader {
         &self,
         chunk: &[u8],
         dovi_writer: &mut DoviWriter,
-        nalus: &[NalUnit],
+        nalus: &[NALUnit],
     ) -> Result<(), std::io::Error> {
         for nalu in nalus {
             match nalu.nal_type {
