@@ -11,7 +11,6 @@ indicatif = "0.15.0"
 regex = "1.4.5"
 ansi_term = "0.12.1"
 crc = "2.0.0-rc.1"
-nom = "6.1.2"
 bitvec = "0.20.1"
-bitvec_helpers = { path = "../bitvec_helpers" }
-hevc_parser = { path = "../hevc_parser" }
+bitvec_helpers = "0.1.0"
+hevc_parser = "0.1.0"
