@@ -219,21 +219,25 @@ impl DoviReader {
         let frames = bs.ordered_frames();
 
         if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+            // Sort by matching frame POC
             self.rpu_nals.sort_by_key(|rpu| {
                 let matching_index = frames.iter().position(|f| rpu.decoded_index == f.decoded_number as usize).unwrap();
 
                 frames[matching_index].presentation_number
             });
 
-
             // Set presentation number to new index
             self.rpu_nals.iter_mut()
                 .enumerate()
                 .for_each(|(idx, rpu)| rpu.presentation_number = idx);
-        }
 
-        for rpu in &self.rpu_nals {
-            println!("{:?}", rpu.data);
+            // Write data to file
+            for rpu in self.rpu_nals.iter_mut() {
+                rpu_writer.write_all(&self.out_nal_header)?;
+                rpu_writer.write_all(&rpu.data)?;
+            }
+
+            rpu_writer.flush()?;
         }
 
         Ok(())
@@ -289,9 +293,7 @@ impl DoviReader {
                     }
                 }
                 NAL_UNSPEC62 => {
-                    if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
-                        rpu_writer.write_all(&self.out_nal_header)?;
-                    } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                    if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&self.out_nal_header)?;
                     }
 
@@ -320,7 +322,7 @@ impl DoviReader {
                         self.rpu_nals.push(RpuNal {
                             decoded_index: self.rpu_nals.len(),
                             presentation_number: 0,
-                            data: chunk[nalu.start..nalu.end].to_vec()
+                            data: chunk[nalu.start + 2..nalu.end].to_vec()
                         });
                     } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&chunk[nalu.start..nalu.end])?;
