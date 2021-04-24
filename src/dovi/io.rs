@@ -20,12 +20,21 @@ pub struct DoviReader {
     out_nal_header: Vec<u8>,
     mode: Option<u8>,
     offsets: Vec<usize>,
+
+    rpu_nals: Vec<RpuNal>,
 }
 
 pub struct DoviWriter {
     bl_writer: Option<BufWriter<File>>,
     el_writer: Option<BufWriter<File>>,
     rpu_writer: Option<BufWriter<File>>,
+}
+
+#[derive(Debug)]
+pub struct RpuNal {
+    decoded_index: usize,
+    presentation_number: usize,
+    data: Vec<u8>,
 }
 
 impl DoviWriter {
@@ -72,6 +81,7 @@ impl DoviReader {
             out_nal_header: vec![0, 0, 0, 1],
             mode,
             offsets: Vec::with_capacity(2048),
+            rpu_nals: Vec::new(),
         }
     }
 
@@ -204,8 +214,26 @@ impl DoviReader {
             el_writer.flush()?;
         }
 
+        bs.finish();
+
+        let frames = bs.ordered_frames();
+
         if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
-            rpu_writer.flush()?;
+            self.rpu_nals.sort_by_key(|rpu| {
+                let matching_index = frames.iter().position(|f| rpu.decoded_index == f.decoded_number as usize).unwrap();
+
+                frames[matching_index].presentation_number
+            });
+
+
+            // Set presentation number to new index
+            self.rpu_nals.iter_mut()
+                .enumerate()
+                .for_each(|(idx, rpu)| rpu.presentation_number = idx);
+        }
+
+        for rpu in &self.rpu_nals {
+            println!("{:?}", rpu.data);
         }
 
         Ok(())
@@ -247,20 +275,20 @@ impl DoviReader {
     }
 
     pub fn write_nalus(
-        &self,
+        &mut self,
         chunk: &[u8],
         dovi_writer: &mut DoviWriter,
         nalus: &[NALUnit],
     ) -> Result<(), std::io::Error> {
         for nalu in nalus {
             match nalu.nal_type {
-                NAL_UNSPEC62 => {
+                NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&self.out_nal_header)?;
                         el_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
                     }
                 }
-                NAL_UNSPEC63 => {
+                NAL_UNSPEC62 => {
                     if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
                         rpu_writer.write_all(&self.out_nal_header)?;
                     } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
@@ -276,18 +304,24 @@ impl DoviReader {
                             Ok(mut dovi_rpu) => {
                                 let modified_data = dovi_rpu.write_rpu_data(mode);
 
-                                if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
-                                    // RPU for x265, remove 0x7C01
-                                    rpu_writer.write_all(&modified_data[2..])?;
+                                if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                                    self.rpu_nals.push(RpuNal {
+                                        decoded_index: self.rpu_nals.len(),
+                                        presentation_number: 0,
+                                        data: modified_data[2..].to_vec()
+                                    });
                                 } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                                     el_writer.write_all(&modified_data)?;
                                 }
                             }
                             Err(e) => panic!("{}", Red.paint(e)),
                         }
-                    } else if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
-                        // RPU for x265, remove 0x7C01
-                        rpu_writer.write_all(&chunk[nalu.start + 2..nalu.end])?;
+                    } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                        self.rpu_nals.push(RpuNal {
+                            decoded_index: self.rpu_nals.len(),
+                            presentation_number: 0,
+                            data: chunk[nalu.start..nalu.end].to_vec()
+                        });
                     } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(&chunk[nalu.start..nalu.end])?;
                     }
