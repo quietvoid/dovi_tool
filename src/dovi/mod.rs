@@ -17,6 +17,12 @@ pub enum Format {
     Matroska,
 }
 
+#[derive(Debug)]
+pub struct RpuOptions {
+    pub mode: Option<u8>,
+    pub crop: bool,
+}
+
 pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
     let pb: ProgressBar;
     let bytes_count;

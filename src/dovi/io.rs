@@ -6,7 +6,7 @@ use indicatif::ProgressBar;
 use std::io::Read;
 
 use super::rpu::parse_dovi_rpu;
-use super::Format;
+use super::{Format, RpuOptions};
 
 use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
@@ -14,7 +14,7 @@ use hevc_parser::HevcParser;
 
 pub struct DoviReader {
     out_nal_header: Vec<u8>,
-    mode: Option<u8>,
+    options: RpuOptions,
 
     rpu_nals: Vec<RpuNal>,
 }
@@ -71,10 +71,10 @@ impl DoviWriter {
 }
 
 impl DoviReader {
-    pub fn new(mode: Option<u8>) -> DoviReader {
+    pub fn new(options: RpuOptions) -> DoviReader {
         DoviReader {
             out_nal_header: vec![0, 0, 0, 1],
-            mode,
+            options,
             rpu_nals: Vec::new(),
         }
     }
@@ -209,12 +209,14 @@ impl DoviReader {
                     // Mode 0: Parse, untouched
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
-                    if let Some(mode) = self.mode {
+                    if let Some(mode) = self.options.mode {
                         match parse_dovi_rpu(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
-                                let modified_data = dovi_rpu.write_rpu_data(mode);
+                                let modified_data =
+                                    dovi_rpu.write_rpu_data(mode, self.options.crop, false);
 
                                 if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                                    // RPU for x265, remove 0x7C01
                                     self.rpu_nals.push(RpuNal {
                                         decoded_index: self.rpu_nals.len(),
                                         presentation_number: 0,
@@ -227,6 +229,7 @@ impl DoviReader {
                             Err(e) => panic!("{}", Red.paint(e)),
                         }
                     } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                        // RPU for x265, remove 0x7C01
                         self.rpu_nals.push(RpuNal {
                             decoded_index: self.rpu_nals.len(),
                             presentation_number: 0,

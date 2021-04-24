@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use indicatif::ProgressBar;
 
-use super::{io, Format};
+use super::{io, Format, RpuOptions};
 
 use io::{DoviReader, DoviWriter};
 
@@ -23,19 +23,19 @@ impl Demuxer {
         }
     }
 
-    pub fn process_input(&self, mode: Option<u8>) {
+    pub fn process_input(&self, options: RpuOptions) {
         let pb = super::initialize_progress_bar(&self.format, &self.input);
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.demux_raw_hevc(Some(&pb), mode),
+            _ => self.demux_raw_hevc(Some(&pb), options),
         };
 
         pb.finish_and_clear();
     }
 
-    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, mode: Option<u8>) {
-        let mut dovi_reader = DoviReader::new(mode);
+    pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
+        let mut dovi_reader = DoviReader::new(options);
         let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None);
 
         match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
