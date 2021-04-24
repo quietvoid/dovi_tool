@@ -186,8 +186,6 @@ fn extract_rpu(
                 None => PathBuf::from("RPU.bin"),
             };
 
-            println!("{:?}", options);
-
             let parser = RpuExtractor::new(format, input, rpu_out);
             parser.process_input(options);
         }
