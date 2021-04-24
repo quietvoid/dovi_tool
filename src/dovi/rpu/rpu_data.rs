@@ -103,7 +103,7 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    pub fn write_rpu_data(&mut self, mode: u8) -> Vec<u8> {
+    pub fn write_rpu_data(&mut self, mode: u8, crop: bool, skip_check: bool) -> Vec<u8> {
         if self.dovi_profile == 7 {
             match mode {
                 1 => self.convert_to_mel(),
@@ -125,7 +125,7 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data(&mut writer);
+                self.write_vdr_dm_data(&mut writer, crop);
             }
         }
 
@@ -133,8 +133,8 @@ impl DoviRpu {
 
         let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
 
-        // Validate the parsed crc32 is the same
-        if mode == 0 {
+        if mode == 0 && !skip_check {
+            // Validate the parsed crc32 is the same
             assert_eq!(self.rpu_data_crc32, computed_crc32);
         }
 
@@ -167,9 +167,9 @@ impl DoviRpu {
         }
     }
 
-    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter) {
+    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter, crop: bool) {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer);
+            vdr_dm_data.write(writer, crop);
         }
     }
 

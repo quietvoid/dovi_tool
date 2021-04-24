@@ -1,12 +1,11 @@
 use regex::Regex;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
-mod bits;
-use bits::{bitvec_reader, bitvec_writer};
+use bitvec_helpers::{bitvec_reader, bitvec_writer};
 
 mod dovi;
-use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format};
+use dovi::{demuxer::Demuxer, rpu_extractor::RpuExtractor, Format, RpuOptions};
 
 #[derive(StructOpt, Debug)]
 struct Opt {
@@ -18,6 +17,13 @@ struct Opt {
         long_help = "Sets the mode for RPU processing.\nMode 1: Converts the RPU to be MEL compatible\nMode 2: Converts the RPU to be profile 8.1 compatible"
     )]
     mode: Option<u8>,
+
+    #[structopt(
+        long,
+        short = "c",
+        help = "Set active area offsets to 0, cannot be used with mode 0"
+    )]
+    crop: bool,
 
     #[structopt(subcommand)]
     cmd: Command,
@@ -74,8 +80,13 @@ enum Command {
     },
 }
 
-fn main() -> std::io::Result<()> {
+fn main() {
     let opt = Opt::from_args();
+
+    let rpu_options = RpuOptions {
+        mode: opt.mode,
+        crop: opt.crop,
+    };
 
     match opt.cmd {
         Command::Demux {
@@ -84,21 +95,19 @@ fn main() -> std::io::Result<()> {
             bl_out,
             el_out,
         } => {
-            demux(input, stdin, bl_out, el_out, opt.mode);
+            demux(input, stdin, bl_out, el_out, rpu_options);
         }
         Command::ExtractRpu {
             input,
             stdin,
             rpu_out,
         } => {
-            extract_rpu(input, stdin, rpu_out, opt.mode);
+            extract_rpu(input, stdin, rpu_out, rpu_options);
         }
     }
-
-    Ok(())
 }
 
-fn input_format(input: &PathBuf) -> Result<Format, &str> {
+fn input_format(input: &Path) -> Result<Format, &str> {
     let regex = Regex::new(r"\.(hevc|.?265|mkv)").unwrap();
     let file_name = match input.file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
@@ -113,7 +122,7 @@ fn input_format(input: &PathBuf) -> Result<Format, &str> {
         } else {
             Ok(Format::Raw)
         }
-    } else if file_name == "" {
+    } else if file_name.is_empty() {
         Err("Missing input.")
     } else if !input.is_file() {
         Err("Input file doesn't exist.")
@@ -127,7 +136,7 @@ fn demux(
     stdin: Option<PathBuf>,
     bl_out: Option<PathBuf>,
     el_out: Option<PathBuf>,
-    mode: Option<u8>,
+    options: RpuOptions,
 ) {
     let input = match input {
         Some(input) => input,
@@ -150,7 +159,7 @@ fn demux(
             };
 
             let demuxer = Demuxer::new(format, input, bl_out, el_out);
-            demuxer.process_input(mode);
+            demuxer.process_input(options);
         }
         Err(msg) => println!("{}", msg),
     }
@@ -160,7 +169,7 @@ fn extract_rpu(
     input: Option<PathBuf>,
     stdin: Option<PathBuf>,
     rpu_out: Option<PathBuf>,
-    mode: Option<u8>,
+    options: RpuOptions,
 ) {
     let input = match input {
         Some(input) => input,
@@ -177,8 +186,10 @@ fn extract_rpu(
                 None => PathBuf::from("RPU.bin"),
             };
 
+            println!("{:?}", options);
+
             let parser = RpuExtractor::new(format, input, rpu_out);
-            parser.process_input(mode);
+            parser.process_input(options);
         }
         Err(msg) => println!("{}", msg),
     }

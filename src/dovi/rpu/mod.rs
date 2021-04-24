@@ -8,9 +8,9 @@ use bitvec::prelude;
 use rpu_data::DoviRpu;
 use rpu_data_header::RpuDataHeader;
 
-use super::{
+use super::{BitVecReader, BitVecWriter};
+use hevc_parser::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
-    BitVecReader, BitVecWriter,
 };
 
 #[inline(always)]
