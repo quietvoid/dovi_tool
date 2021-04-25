@@ -176,7 +176,9 @@ impl DoviRpu {
     }
 
     pub fn convert_with_mode(&mut self, mode: u8) {
-        self.modified = true;
+        if mode != 0 {
+            self.modified = true;
+        }
 
         if self.dovi_profile == 7 {
             match mode {
