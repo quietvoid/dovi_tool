@@ -135,7 +135,9 @@ pub fn write_rpu_file(output_path: &Path, rpus: &mut Vec<DoviRpu>) -> Result<(),
         let data = rpu.write_rpu_data();
 
         writer.write_all(OUT_NAL_HEADER)?;
-        writer.write_all(&data)?;
+
+        // Remove 0x7C01
+        writer.write_all(&data[2..])?;
     }
 
     writer.flush()?;
