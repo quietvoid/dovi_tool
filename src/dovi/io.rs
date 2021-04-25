@@ -21,6 +21,7 @@ pub struct DoviWriter {
     bl_writer: Option<BufWriter<File>>,
     el_writer: Option<BufWriter<File>>,
     rpu_writer: Option<BufWriter<File>>,
+    sl_writer: Option<BufWriter<File>>,
 }
 
 #[derive(Debug)]
@@ -31,7 +32,12 @@ pub struct RpuNal {
 }
 
 impl DoviWriter {
-    pub fn new(bl_out: Option<&Path>, el_out: Option<&Path>, rpu_out: Option<&Path>) -> DoviWriter {
+    pub fn new(
+        bl_out: Option<&Path>,
+        el_out: Option<&Path>,
+        rpu_out: Option<&Path>,
+        single_layer_out: Option<&Path>,
+    ) -> DoviWriter {
         let chunk_size = 100_000;
         let bl_writer = if let Some(bl_out) = bl_out {
             Some(BufWriter::with_capacity(
@@ -60,10 +66,20 @@ impl DoviWriter {
             None
         };
 
+        let sl_writer = if let Some(single_layer_out) = single_layer_out {
+            Some(BufWriter::with_capacity(
+                chunk_size,
+                File::create(single_layer_out).expect("Can't create file"),
+            ))
+        } else {
+            None
+        };
+
         DoviWriter {
             bl_writer,
             el_writer,
             rpu_writer,
+            sl_writer,
         }
     }
 }
@@ -194,6 +210,38 @@ impl DoviReader {
         nals: &[NALUnit],
     ) -> Result<(), std::io::Error> {
         for nal in nals {
+            if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
+                if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
+                    continue;
+                }
+
+                sl_writer.write_all(OUT_NAL_HEADER)?;
+
+                if nal.nal_type == NAL_UNSPEC62 {
+                    if let Some(mode) = self.options.mode {
+                        match parse_dovi_rpu(&chunk[nal.start..nal.end]) {
+                            Ok(mut dovi_rpu) => {
+                                dovi_rpu.convert_with_mode(mode);
+
+                                if self.options.crop {
+                                    dovi_rpu.crop();
+                                }
+
+                                let modified_data = dovi_rpu.write_rpu_data();
+                                sl_writer.write_all(&modified_data)?;
+
+                                continue;
+                            }
+                            Err(e) => panic!("{}", Red.paint(e)),
+                        }
+                    }
+                }
+
+                sl_writer.write_all(&chunk[nal.start..nal.end])?;
+
+                continue;
+            }
+
             match nal.nal_type {
                 NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {

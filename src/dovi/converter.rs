@@ -1,29 +1,30 @@
 use std::path::PathBuf;
 
-use super::{input_format, io, Format, RpuOptions};
 use indicatif::ProgressBar;
+
+use super::{input_format, io, Format, RpuOptions};
 
 use io::{DoviReader, DoviWriter};
 
-pub struct RpuExtractor {
+pub struct Converter {
     format: Format,
     input: PathBuf,
-    rpu_out: PathBuf,
+    output: PathBuf,
 }
 
-impl RpuExtractor {
-    pub fn new(format: Format, input: PathBuf, rpu_out: PathBuf) -> Self {
+impl Converter {
+    pub fn new(format: Format, input: PathBuf, output: PathBuf) -> Self {
         Self {
             format,
             input,
-            rpu_out,
+            output,
         }
     }
 
-    pub fn extract_rpu(
+    pub fn convert(
         input: Option<PathBuf>,
         stdin: Option<PathBuf>,
-        rpu_out: Option<PathBuf>,
+        output: Option<PathBuf>,
         options: RpuOptions,
     ) {
         let input = match input {
@@ -36,13 +37,13 @@ impl RpuExtractor {
 
         match input_format(&input) {
             Ok(format) => {
-                let rpu_out = match rpu_out {
+                let output = match output {
                     Some(path) => path,
-                    None => PathBuf::from("RPU.bin"),
+                    None => PathBuf::from("BL_EL.hevc"),
                 };
 
-                let parser = RpuExtractor::new(format, input, rpu_out);
-                parser.process_input(options);
+                let demuxer = Converter::new(format, input, output);
+                demuxer.process_input(options);
             }
             Err(msg) => println!("{}", msg),
         }
@@ -53,13 +54,13 @@ impl RpuExtractor {
 
         match self.format {
             Format::Matroska => panic!("unsupported"),
-            _ => self.extract_rpu_from_el(Some(&pb), options),
+            _ => self.convert_raw_hevc(Some(&pb), options),
         };
     }
 
-    fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
+    fn convert_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
         let mut dovi_reader = DoviReader::new(options);
-        let mut dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out), None);
+        let mut dovi_writer = DoviWriter::new(None, None, None, Some(&self.output));
 
         match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
             Ok(_) => (),

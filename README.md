@@ -25,10 +25,16 @@ Input can be piped.
 * FEL to MEL example: `dovi_tool -m 1 extract-rpu video.hevc`
 
 #### editor
-Edits a RPU according to a JSON config.
+Edits a RPU according to a JSON config.  
 See examples in `assets` folder.
 
 * `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
+
+#### convert
+Converts RPU within a single layer HEVC file.  
+The enhancement layer can be discarded using `--discard`
+
+* Convert to 8.1 and discard EL: `dovi_tool convert -m 2 convert --discard file.hevc`
 
 Build artifacts can be found in the Github Actions.  
 More features may or may not be added in the future.
