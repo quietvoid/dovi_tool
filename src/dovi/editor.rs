@@ -1,12 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{BufReader, Read};
 use std::{collections::HashMap, path::PathBuf};
+
+use super::{parse_rpu_file, rpu::vdr_dm_data::ExtMetadataBlockLevel5, write_rpu_file, DoviRpu};
 
 pub struct Editor {
     input: PathBuf,
     json_path: PathBuf,
     rpu_out: PathBuf,
+
+    rpus: Option<Vec<DoviRpu>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -23,7 +26,17 @@ pub struct ActiveArea {
     #[serde(default)]
     crop: bool,
 
+    presets: Vec<ActiveAreaOffsets>,
     edits: HashMap<String, u16>,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct ActiveAreaOffsets {
+    id: u16,
+    left: u16,
+    right: u16,
+    top: u16,
+    bottom: u16,
 }
 
 impl Editor {
@@ -38,30 +51,117 @@ impl Editor {
             ))
         };
 
-        let editor = Editor {
+        let mut editor = Editor {
             input,
             json_path,
             rpu_out: out_path,
+            rpus: None,
         };
 
-        let json_file = File::open(editor.json_path).unwrap();
+        let json_file = File::open(&editor.json_path).unwrap();
         let config: EditConfig = serde_json::from_reader(&json_file).unwrap();
 
-        let rpu_file = File::open(editor.input).unwrap();
-        let metadata = rpu_file.metadata().unwrap();
+        println!("{:#?}", config);
 
-        // Should never be this large, avoid mistakes
-        if metadata.len() > 250_000_000 {
-            panic!("Input file probably too large");
+        editor.rpus = parse_rpu_file(&editor.input);
+
+        if let Some(ref mut rpus) = editor.rpus {
+            config.execute(rpus);
+
+            match write_rpu_file(&editor.rpu_out, rpus) {
+                Ok(_) => (),
+                Err(e) => panic!("{:?}", e),
+            }
+        }
+    }
+}
+
+impl EditConfig {
+    fn execute(&self, rpus: &mut Vec<DoviRpu>) {
+        // Convert with mode
+        if self.mode > 0 {
+            self.convert_with_mode(rpus);
         }
 
-        let mut reader = BufReader::new(rpu_file);
+        if let Some(active_area) = &self.active_area {
+            active_area.execute(rpus);
+        }
+    }
 
-        // Should be small enough to fit in the memory
-        let mut data = vec![0; metadata.len() as usize];
-        reader.read_exact(&mut data).unwrap();
+    fn convert_with_mode(&self, rpus: &mut Vec<DoviRpu>) {
+        println!("Converting with mode {}...", self.mode);
+        rpus.iter_mut()
+            .for_each(|rpu| rpu.convert_with_mode(self.mode));
+    }
 
-        println!("{:?}", &data[..300]);
-        println!("{:?}", config);
+    fn range_string_to_tuple(range: &str) -> (usize, usize) {
+        let mut result = (0, 0);
+
+        if range.contains('-') {
+            let mut split = range.split('-');
+
+            if let Some(first) = split.next() {
+                if let Ok(first_num) = first.parse() {
+                    result.0 = first_num;
+                }
+            }
+
+            if let Some(second) = split.next() {
+                if let Ok(second_num) = second.parse() {
+                    result.1 = second_num;
+                }
+            }
+
+            result
+        } else {
+            panic!("Invalid edit range");
+        }
+    }
+}
+
+impl ActiveArea {
+    fn execute(&self, rpus: &mut Vec<DoviRpu>) {
+        if self.crop {
+            self.crop(rpus);
+        }
+
+        if !self.edits.is_empty() {
+            self.do_edits(rpus);
+        }
+    }
+
+    fn crop(&self, rpus: &mut Vec<DoviRpu>) {
+        println!("Cropping...");
+        rpus.iter_mut().for_each(|rpu| rpu.crop());
+    }
+
+    fn do_edits(&self, rpus: &mut Vec<DoviRpu>) {
+        println!("Editing active area offsets...");
+
+        self.edits.iter().for_each(|edit| {
+            let (start, end) = EditConfig::range_string_to_tuple(edit.0);
+            let preset_id = *edit.1;
+
+            if end as usize > rpus.len() {
+                panic!("Invalid range: {} > {} available RPUs", start, rpus.len());
+            }
+
+            if let Some(active_area_offsets) = self.presets.iter().find(|e| e.id == preset_id) {
+                rpus[start..end].iter_mut().for_each(|rpu| {
+                    let (left, right, top, bottom) = (
+                        active_area_offsets.left,
+                        active_area_offsets.right,
+                        active_area_offsets.top,
+                        active_area_offsets.bottom,
+                    );
+
+                    if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
+                        block.set_offsets(left, right, top, bottom);
+                    }
+                });
+            } else {
+                panic!("Invalid preset ID: {}", preset_id);
+            }
+        })
     }
 }

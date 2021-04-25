@@ -1,9 +1,18 @@
 {
-  "mode": 0,
+  "mode": 2,
   "active_area": {
-    "crop": false,
+    "crop": true,
+    "presets": [
+      {
+        "id": 0,
+        "left": 0,
+        "right": 0,
+        "top": 210,
+        "bottom": 210
+      }
+    ],
     "edits": {
-      "0-40": 210
+      "0-40": 0
     }
   }
 }

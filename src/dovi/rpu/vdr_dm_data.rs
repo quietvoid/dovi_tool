@@ -1,4 +1,4 @@
-use super::{prelude::*, BitVecReader, BitVecWriter};
+use super::{prelude::*, BitVecReader, BitVecWriter, DoviRpu};
 
 #[derive(Debug, Default)]
 pub struct VdrDmData {
@@ -182,7 +182,7 @@ impl VdrDmData {
         assert_eq!(self.signal_eotf, 65535);
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, crop: bool) {
+    pub fn write(&self, writer: &mut BitVecWriter) {
         writer.write_ue(self.affected_dm_metadata_id);
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
@@ -232,7 +232,7 @@ impl VdrDmData {
             }
 
             for ext_metadata_block in &self.ext_metadata_blocks {
-                ext_metadata_block.write(writer, crop);
+                ext_metadata_block.write(writer);
             }
         }
     }
@@ -350,7 +350,7 @@ impl ExtMetadataBlock {
         ext_metadata_block
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, crop: bool) {
+    pub fn write(&self, writer: &mut BitVecWriter) {
         let block_info = match self {
             ExtMetadataBlock::Level1(b) => &b.block_info,
             ExtMetadataBlock::Level2(b) => &b.block_info,
@@ -390,17 +390,10 @@ impl ExtMetadataBlock {
                 writer.write_n(&block.anchor_power.to_be_bytes(), 12);
             }
             ExtMetadataBlock::Level5(block) => {
-                if crop {
-                    writer.write_n(&(0_u16).to_be_bytes(), 13);
-                    writer.write_n(&(0_u16).to_be_bytes(), 13);
-                    writer.write_n(&(0_u16).to_be_bytes(), 13);
-                    writer.write_n(&(0_u16).to_be_bytes(), 13);
-                } else {
-                    writer.write_n(&block.active_area_left_offset.to_be_bytes(), 13);
-                    writer.write_n(&block.active_area_right_offset.to_be_bytes(), 13);
-                    writer.write_n(&block.active_area_top_offset.to_be_bytes(), 13);
-                    writer.write_n(&block.active_area_bottom_offset.to_be_bytes(), 13);
-                }
+                writer.write_n(&block.active_area_left_offset.to_be_bytes(), 13);
+                writer.write_n(&block.active_area_right_offset.to_be_bytes(), 13);
+                writer.write_n(&block.active_area_top_offset.to_be_bytes(), 13);
+                writer.write_n(&block.active_area_bottom_offset.to_be_bytes(), 13);
             }
             ExtMetadataBlock::Level6(block) => {
                 writer.write_n(&block.max_display_mastering_luminance.to_be_bytes(), 16);
@@ -426,12 +419,38 @@ impl ExtMetadataBlock {
 }
 
 impl ExtMetadataBlockLevel5 {
-    pub fn get_offsets(&self) -> Vec<u16> {
+    pub fn _get_offsets(&self) -> Vec<u16> {
         vec![
             self.active_area_left_offset,
             self.active_area_right_offset,
             self.active_area_top_offset,
             self.active_area_bottom_offset,
         ]
+    }
+
+    pub fn set_offsets(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
+        self.active_area_left_offset = left;
+        self.active_area_right_offset = right;
+        self.active_area_top_offset = top;
+        self.active_area_bottom_offset = bottom;
+    }
+
+    pub fn crop(&mut self) {
+        self.active_area_left_offset = 0;
+        self.active_area_right_offset = 0;
+        self.active_area_top_offset = 0;
+        self.active_area_bottom_offset = 0;
+    }
+
+    pub fn get_mut(rpu: &mut DoviRpu) -> Option<&mut ExtMetadataBlockLevel5> {
+        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+            for ext in vdr_dm_data.ext_metadata_blocks.iter_mut() {
+                if let ExtMetadataBlock::Level5(block) = ext {
+                    return Some(block);
+                }
+            }
+        }
+
+        None
     }
 }
