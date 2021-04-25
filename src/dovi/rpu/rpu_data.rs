@@ -1,6 +1,7 @@
 use super::{
-    add_start_code_emulation_prevention_3_byte, rpu_data_header, vdr_dm_data, vdr_rpu_data,
-    BitVecReader, BitVecWriter,
+    add_start_code_emulation_prevention_3_byte, rpu_data_header,
+    vdr_dm_data::{self, ExtMetadataBlockLevel5},
+    vdr_rpu_data, BitVecReader, BitVecWriter,
 };
 
 use super::prelude::*;
@@ -20,6 +21,8 @@ pub struct DoviRpu {
     pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,
     pub last_byte: u8,
+
+    pub modified: bool,
 }
 
 impl DoviRpu {
@@ -78,7 +81,7 @@ impl DoviRpu {
         dovi_rpu
     }
 
-    pub fn convert_to_mel(&mut self) {
+    fn convert_to_mel(&mut self) {
         if let Some(ref mut nlq_data) = self.nlq_data {
             nlq_data.convert_to_mel();
         } else {
@@ -86,7 +89,7 @@ impl DoviRpu {
         }
     }
 
-    pub fn convert_to_81(&mut self) {
+    fn convert_to_81(&mut self) {
         let header = &mut self.header;
 
         // Change to 8.1
@@ -103,17 +106,7 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    pub fn write_rpu_data(&mut self, mode: u8, crop: bool, skip_check: bool) -> Vec<u8> {
-        if self.dovi_profile == 7 {
-            match mode {
-                1 => self.convert_to_mel(),
-                2 => self.convert_to_81(),
-                _ => (),
-            }
-        } else if mode != 0 {
-            panic!("Can only change profile 7 RPU!");
-        }
-
+    pub fn write_rpu_data(&mut self) -> Vec<u8> {
         let mut writer = BitVecWriter::new();
 
         let header = &self.header;
@@ -125,7 +118,7 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data(&mut writer, crop);
+                self.write_vdr_dm_data(&mut writer);
             }
         }
 
@@ -133,7 +126,7 @@ impl DoviRpu {
 
         let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
 
-        if mode == 0 && !skip_check {
+        if !self.modified {
             // Validate the parsed crc32 is the same
             assert_eq!(self.rpu_data_crc32, computed_crc32);
         }
@@ -167,9 +160,9 @@ impl DoviRpu {
         }
     }
 
-    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter, crop: bool) {
+    pub fn write_vdr_dm_data(&self, writer: &mut BitVecWriter) {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer, crop);
+            vdr_dm_data.write(writer);
         }
     }
 
@@ -180,5 +173,29 @@ impl DoviRpu {
         digest.update(&data);
 
         digest.finalize()
+    }
+
+    pub fn convert_with_mode(&mut self, mode: u8) {
+        if mode != 0 {
+            self.modified = true;
+        }
+
+        if self.dovi_profile == 7 {
+            match mode {
+                1 => self.convert_to_mel(),
+                2 => self.convert_to_81(),
+                _ => (),
+            }
+        } else if mode != 0 {
+            panic!("Can only change profile 7 RPU!");
+        }
+    }
+
+    pub fn crop(&mut self) {
+        self.modified = true;
+
+        if let Some(block) = ExtMetadataBlockLevel5::get_mut(self) {
+            block.crop();
+        }
     }
 }

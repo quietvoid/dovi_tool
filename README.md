@@ -24,5 +24,11 @@ Input can be piped.
 * `dovi_tool extract-rpu video.hevc`
 * FEL to MEL example: `dovi_tool -m 1 extract-rpu video.hevc`
 
+#### editor
+Edits a RPU according to a JSON config.
+See examples in `assets` folder.
+
+* `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
+
 Build artifacts can be found in the Github Actions.  
 More features may or may not be added in the future.

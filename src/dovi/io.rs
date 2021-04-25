@@ -6,16 +6,14 @@ use indicatif::ProgressBar;
 use std::io::Read;
 
 use super::rpu::parse_dovi_rpu;
-use super::{Format, RpuOptions};
+use super::{Format, RpuOptions, OUT_NAL_HEADER};
 
 use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::HevcParser;
 
 pub struct DoviReader {
-    out_nal_header: Vec<u8>,
     options: RpuOptions,
-
     rpu_nals: Vec<RpuNal>,
 }
 
@@ -73,7 +71,6 @@ impl DoviWriter {
 impl DoviReader {
     pub fn new(options: RpuOptions) -> DoviReader {
         DoviReader {
-            out_nal_header: vec![0, 0, 0, 1],
             options,
             rpu_nals: Vec::new(),
         }
@@ -200,13 +197,13 @@ impl DoviReader {
             match nal.nal_type {
                 NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                        el_writer.write_all(&self.out_nal_header)?;
+                        el_writer.write_all(OUT_NAL_HEADER)?;
                         el_writer.write_all(&chunk[nal.start + 2..nal.end])?;
                     }
                 }
                 NAL_UNSPEC62 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                        el_writer.write_all(&self.out_nal_header)?;
+                        el_writer.write_all(OUT_NAL_HEADER)?;
                     }
 
                     // No mode: Copy
@@ -216,8 +213,13 @@ impl DoviReader {
                     if let Some(mode) = self.options.mode {
                         match parse_dovi_rpu(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
-                                let modified_data =
-                                    dovi_rpu.write_rpu_data(mode, self.options.crop, false);
+                                dovi_rpu.convert_with_mode(mode);
+
+                                if self.options.crop {
+                                    dovi_rpu.crop();
+                                }
+
+                                let modified_data = dovi_rpu.write_rpu_data();
 
                                 if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                                     // RPU for x265, remove 0x7C01
@@ -245,7 +247,7 @@ impl DoviReader {
                 }
                 _ => {
                     if let Some(ref mut bl_writer) = dovi_writer.bl_writer {
-                        bl_writer.write_all(&self.out_nal_header)?;
+                        bl_writer.write_all(OUT_NAL_HEADER)?;
                         bl_writer.write_all(&chunk[nal.start..nal.end])?;
                     }
                 }
@@ -295,7 +297,7 @@ impl DoviReader {
 
             // Write data to file
             for rpu in self.rpu_nals.iter_mut() {
-                rpu_writer.write_all(&self.out_nal_header)?;
+                rpu_writer.write_all(OUT_NAL_HEADER)?;
                 rpu_writer.write_all(&rpu.data)?;
             }
 
