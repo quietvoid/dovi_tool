@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
 use std::{fs::File, path::Path};
 
 use ansi_term::Colour::Red;
@@ -179,6 +179,10 @@ impl DoviReader {
             }
         }
 
+        if let Some(pb) = pb {
+            pb.finish_and_clear();
+        }
+
         parser.finish();
 
         self.flush_writer(&parser, dovi_writer)?;
@@ -266,10 +270,13 @@ impl DoviReader {
 
         // Reorder RPUs to display output order
         if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+            print!("Reordering metadata... ");
+            stdout().flush().ok();
+
             let frames = parser.ordered_frames();
 
             // Sort by matching frame POC
-            self.rpu_nals.sort_by_key(|rpu| {
+            self.rpu_nals.sort_by_cached_key(|rpu| {
                 let matching_index = frames
                     .iter()
                     .position(|f| rpu.decoded_index == f.decoded_number as usize)
@@ -283,6 +290,8 @@ impl DoviReader {
                 .iter_mut()
                 .enumerate()
                 .for_each(|(idx, rpu)| rpu.presentation_number = idx);
+
+            println!("Done.");
 
             // Write data to file
             for rpu in self.rpu_nals.iter_mut() {

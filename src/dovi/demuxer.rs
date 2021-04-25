@@ -30,8 +30,6 @@ impl Demuxer {
             Format::Matroska => panic!("unsupported"),
             _ => self.demux_raw_hevc(Some(&pb), options),
         };
-
-        pb.finish_and_clear();
     }
 
     pub fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
