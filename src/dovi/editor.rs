@@ -26,8 +26,11 @@ pub struct ActiveArea {
     #[serde(default)]
     crop: bool,
 
-    presets: Vec<ActiveAreaOffsets>,
-    edits: HashMap<String, u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    presets: Option<Vec<ActiveAreaOffsets>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    edits: Option<HashMap<String, u16>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -125,8 +128,10 @@ impl ActiveArea {
             self.crop(rpus);
         }
 
-        if !self.edits.is_empty() {
-            self.do_edits(rpus);
+        if let Some(edits) = &self.edits {
+            if !edits.is_empty() {
+                self.do_edits(edits, rpus);
+            }
         }
     }
 
@@ -135,33 +140,35 @@ impl ActiveArea {
         rpus.iter_mut().for_each(|rpu| rpu.crop());
     }
 
-    fn do_edits(&self, rpus: &mut Vec<DoviRpu>) {
-        println!("Editing active area offsets...");
+    fn do_edits(&self, edits: &HashMap<String, u16>, rpus: &mut Vec<DoviRpu>) {
+        if let Some(presets) = &self.presets {
+            println!("Editing active area offsets...");
 
-        self.edits.iter().for_each(|edit| {
-            let (start, end) = EditConfig::range_string_to_tuple(edit.0);
-            let preset_id = *edit.1;
+            edits.iter().for_each(|edit| {
+                let (start, end) = EditConfig::range_string_to_tuple(edit.0);
+                let preset_id = *edit.1;
 
-            if end as usize > rpus.len() {
-                panic!("Invalid range: {} > {} available RPUs", start, rpus.len());
-            }
+                if end as usize > rpus.len() {
+                    panic!("Invalid range: {} > {} available RPUs", start, rpus.len());
+                }
 
-            if let Some(active_area_offsets) = self.presets.iter().find(|e| e.id == preset_id) {
-                rpus[start..end].iter_mut().for_each(|rpu| {
-                    let (left, right, top, bottom) = (
-                        active_area_offsets.left,
-                        active_area_offsets.right,
-                        active_area_offsets.top,
-                        active_area_offsets.bottom,
-                    );
-
-                    if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
-                        block.set_offsets(left, right, top, bottom);
+                    if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
+                        rpus[start..end].iter_mut().for_each(|rpu| {
+                            let (left, right, top, bottom) = (
+                                active_area_offsets.left,
+                                active_area_offsets.right,
+                                active_area_offsets.top,
+                                active_area_offsets.bottom,
+                            );
+        
+                            if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
+                                block.set_offsets(left, right, top, bottom);
+                            }
+                        });
+                    } else {
+                        panic!("Invalid preset ID: {}", preset_id);
                     }
-                });
-            } else {
-                panic!("Invalid preset ID: {}", preset_id);
-            }
-        })
+            });
+        }
     }
 }
