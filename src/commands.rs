@@ -78,4 +78,34 @@ pub enum Command {
         )]
         rpu_out: Option<PathBuf>,
     },
+
+    Convert {
+        #[structopt(
+            name = "input",
+            short = "i",
+            long,
+            help = "Sets the input file to use",
+            conflicts_with = "stdin",
+            parse(from_os_str)
+        )]
+        input: Option<PathBuf>,
+
+        #[structopt(
+            help = "Uses stdin as input data",
+            conflicts_with = "input",
+            parse(from_os_str)
+        )]
+        stdin: Option<PathBuf>,
+
+        #[structopt(
+            short = "o",
+            long,
+            help = "Converted single layer output file location",
+            parse(from_os_str)
+        )]
+        output: Option<PathBuf>,
+
+        #[structopt(short = "d", long, help = "Discard the EL stream")]
+        discard: bool,
+    },
 }

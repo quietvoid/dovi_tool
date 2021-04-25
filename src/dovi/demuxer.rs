@@ -68,7 +68,7 @@ impl Demuxer {
 
     fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
         let mut dovi_reader = DoviReader::new(options);
-        let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None);
+        let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None, None);
 
         match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
             Ok(_) => (),

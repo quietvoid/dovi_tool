@@ -8,7 +8,10 @@ mod commands;
 use commands::Command;
 
 mod dovi;
-use dovi::{demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor, Format, RpuOptions};
+use dovi::{
+    converter::Converter, demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor, Format,
+    RpuOptions,
+};
 
 #[derive(StructOpt, Debug)]
 struct Opt {
@@ -35,9 +38,10 @@ struct Opt {
 fn main() {
     let opt = Opt::from_args();
 
-    let rpu_options = RpuOptions {
+    let mut rpu_options = RpuOptions {
         mode: opt.mode,
         crop: opt.crop,
+        discard_el: false,
     };
 
     match opt.cmd {
@@ -57,6 +61,15 @@ fn main() {
             json_file,
             rpu_out,
         } => Editor::edit(input, json_file, rpu_out),
+        Command::Convert {
+            input,
+            stdin,
+            output,
+            discard,
+        } => {
+            rpu_options.discard_el = discard;
+            Converter::convert(input, stdin, output, rpu_options)
+        }
     }
 }
 

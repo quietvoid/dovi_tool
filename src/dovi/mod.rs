@@ -1,3 +1,4 @@
+pub mod converter;
 pub mod demuxer;
 pub mod editor;
 pub mod rpu_extractor;
@@ -29,6 +30,7 @@ pub enum Format {
 pub struct RpuOptions {
     pub mode: Option<u8>,
     pub crop: bool,
+    pub discard_el: bool,
 }
 
 pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {

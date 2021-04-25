@@ -152,22 +152,22 @@ impl ActiveArea {
                     panic!("Invalid range: {} > {} available RPUs", start, rpus.len());
                 }
 
-                    if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
-                        rpus[start..end].iter_mut().for_each(|rpu| {
-                            let (left, right, top, bottom) = (
-                                active_area_offsets.left,
-                                active_area_offsets.right,
-                                active_area_offsets.top,
-                                active_area_offsets.bottom,
-                            );
-        
-                            if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
-                                block.set_offsets(left, right, top, bottom);
-                            }
-                        });
-                    } else {
-                        panic!("Invalid preset ID: {}", preset_id);
-                    }
+                if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
+                    rpus[start..end].iter_mut().for_each(|rpu| {
+                        let (left, right, top, bottom) = (
+                            active_area_offsets.left,
+                            active_area_offsets.right,
+                            active_area_offsets.top,
+                            active_area_offsets.bottom,
+                        );
+
+                        if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
+                            block.set_offsets(left, right, top, bottom);
+                        }
+                    });
+                } else {
+                    panic!("Invalid preset ID: {}", preset_id);
+                }
             });
         }
     }
