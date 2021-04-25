@@ -1,7 +1,8 @@
 pub mod demuxer;
-mod io;
+pub mod editor;
 pub mod rpu_extractor;
 
+mod io;
 mod rpu;
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -9,6 +10,7 @@ use std::{fs::File, path::Path};
 
 use super::bitvec_reader::BitVecReader;
 use super::bitvec_writer::BitVecWriter;
+use super::input_format;
 
 #[derive(Debug, PartialEq)]
 pub enum Format {
