@@ -320,10 +320,14 @@ impl DoviReader {
 
         // Reorder RPUs to display output order
         if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+            let frames = parser.ordered_frames();
+
+            if frames.is_empty() {
+                panic!("No frames parsed!");
+            }
+
             print!("Reordering metadata... ");
             stdout().flush().ok();
-
-            let frames = parser.ordered_frames();
 
             // Sort by matching frame POC
             self.rpu_nals.sort_by_cached_key(|rpu| {

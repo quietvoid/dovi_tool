@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["quietvoid"]
 edition = "2018"
 license = "MIT"
@@ -13,6 +13,6 @@ ansi_term = "0.12.1"
 crc = "2.0.0-rc.1"
 bitvec = "0.20.1"
 bitvec_helpers = "0.1.0"
-hevc_parser = "0.1.0"
+hevc_parser = "0.1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

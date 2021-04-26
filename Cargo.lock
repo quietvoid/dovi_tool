@@ -136,7 +136,7 @@ checksum = "ccaeedb56da03b09f598226e25e80088cb4cd25f316e6e4df7d695f0feeb1403"
 
 [[package]]
 name = "dovi_tool"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ansi_term 0.12.1",
  "bitvec 0.20.2",
@@ -182,9 +182,9 @@ dependencies = [
 
 [[package]]
 name = "hevc_parser"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45d3a986c49b993d9a798e00b2fdfc5a2366f772d81275fb857c0b163335497f"
+checksum = "1452c5121c7a5a1b470c8951007952de86fadb56b6272cc4e6b7c8635b77f3b5"
 dependencies = [
  "bitvec_helpers",
  "nom",
