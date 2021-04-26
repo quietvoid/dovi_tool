@@ -201,7 +201,7 @@ impl DoviRpu {
 
     pub fn p5_to_p81(&mut self) {
         self.modified = true;
-        
+
         if self.dovi_profile == 5 {
             self.convert_to_81();
 
@@ -211,12 +211,11 @@ impl DoviRpu {
             self.header.bl_video_full_range_flag = false;
 
             self.header.num_pivots_minus_2 = [0, 0, 0];
-            self.header.pred_pivot_value.iter_mut()
-                .for_each(|v2| {
-                    v2.truncate(2);
-                    v2[0] = 0;
-                    v2[1] = 1023;
-                });
+            self.header.pred_pivot_value.iter_mut().for_each(|v2| {
+                v2.truncate(2);
+                v2[0] = 0;
+                v2[1] = 1023;
+            });
 
             if let Some(ref mut vdr_rpu_data) = self.vdr_rpu_data {
                 vdr_rpu_data.p5_to_p81();

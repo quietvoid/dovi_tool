@@ -336,10 +336,12 @@ impl VdrRpuData {
             v[0] = 0;
         });
 
-        self.diff_pred_part_idx_mapping_minus1.iter_mut().for_each(|v| {
-            v.truncate(1);
-            v[0] = 0;
-        });
+        self.diff_pred_part_idx_mapping_minus1
+            .iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
 
         self.poly_order_minus1.iter_mut().for_each(|v| {
             v.truncate(1);
@@ -393,7 +395,7 @@ impl VdrRpuData {
             v.truncate(1);
             v[0] = 0;
         });
-        
+
         self.mmr_coef_int.iter_mut().for_each(|v| {
             v.truncate(1);
             v[0] = vec![];
