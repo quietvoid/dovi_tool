@@ -236,6 +236,33 @@ impl VdrDmData {
             }
         }
     }
+
+    pub fn p5_to_p81(&mut self) {
+        self.ycc_to_rgb_coef0 = 9574;
+        self.ycc_to_rgb_coef1 = 0;
+        self.ycc_to_rgb_coef2 = 13802;
+        self.ycc_to_rgb_coef3 = 9574;
+        self.ycc_to_rgb_coef4 = -1540;
+        self.ycc_to_rgb_coef5 = -5348;
+        self.ycc_to_rgb_coef6 = 9574;
+        self.ycc_to_rgb_coef7 = 17610;
+        self.ycc_to_rgb_coef8 = 0;
+        self.ycc_to_rgb_offset0 = 16777216;
+        self.ycc_to_rgb_offset1 = 134217728;
+        self.ycc_to_rgb_offset2 = 134217728;
+
+        self.rgb_to_lms_coef0 = 7222;
+        self.rgb_to_lms_coef1 = 8771;
+        self.rgb_to_lms_coef2 = 390;
+        self.rgb_to_lms_coef3 = 2654;
+        self.rgb_to_lms_coef4 = 12430;
+        self.rgb_to_lms_coef5 = 1300;
+        self.rgb_to_lms_coef6 = 0;
+        self.rgb_to_lms_coef7 = 422;
+        self.rgb_to_lms_coef8 = 15962;
+
+        self.signal_color_space = 0;
+    }
 }
 
 impl ExtMetadataBlock {

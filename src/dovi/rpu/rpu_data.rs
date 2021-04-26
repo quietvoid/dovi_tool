@@ -198,4 +198,35 @@ impl DoviRpu {
             block.crop();
         }
     }
+
+    pub fn p5_to_p81(&mut self) {
+        self.modified = true;
+        
+        if self.dovi_profile == 5 {
+            self.convert_to_81();
+
+            self.dovi_profile = 8;
+
+            self.header.vdr_rpu_profile = 1;
+            self.header.bl_video_full_range_flag = false;
+
+            self.header.num_pivots_minus_2 = [0, 0, 0];
+            self.header.pred_pivot_value.iter_mut()
+                .for_each(|v2| {
+                    v2.truncate(2);
+                    v2[0] = 0;
+                    v2[1] = 1023;
+                });
+
+            if let Some(ref mut vdr_rpu_data) = self.vdr_rpu_data {
+                vdr_rpu_data.p5_to_p81();
+            }
+
+            if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+                vdr_dm_data.p5_to_p81();
+            }
+        } else {
+            panic!("Attempt to convert profile 5: RPU is not profile 5!");
+        }
+    }
 }

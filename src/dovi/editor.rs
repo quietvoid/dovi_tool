@@ -19,6 +19,9 @@ pub struct EditConfig {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     active_area: Option<ActiveArea>,
+
+    #[serde(default)]
+    p5_to_p81: bool,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -82,8 +85,10 @@ impl Editor {
 impl EditConfig {
     fn execute(&self, rpus: &mut Vec<DoviRpu>) {
         // Convert with mode
-        if self.mode > 0 {
+        if self.mode > 0 && !self.p5_to_p81 {
             self.convert_with_mode(rpus);
+        } else if self.p5_to_p81 {
+            self.convert_p5_to_p81(rpus);
         }
 
         if let Some(active_area) = &self.active_area {
@@ -119,6 +124,11 @@ impl EditConfig {
         } else {
             panic!("Invalid edit range");
         }
+    }
+
+    fn convert_p5_to_p81(&self, rpus: &mut Vec<DoviRpu>) {
+        println!("Converting from profile 5 to profile 8.1 (experimental)");
+        rpus.iter_mut().for_each(|rpu| rpu.p5_to_p81());
     }
 }
 
