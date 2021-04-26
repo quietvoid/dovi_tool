@@ -108,4 +108,26 @@ pub enum Command {
         #[structopt(short = "d", long, help = "Discard the EL stream")]
         discard: bool,
     },
+
+    InjectRpu {
+        #[structopt(
+            name = "input",
+            short = "i",
+            long,
+            help = "Sets the input HEVC file to use",
+            parse(from_os_str)
+        )]
+        input: PathBuf,
+
+        #[structopt(
+            name = "rpu_in",
+            long,
+            help = "Sets the input RPU file to use",
+            parse(from_os_str)
+        )]
+        rpu_in: PathBuf,
+
+        #[structopt(long, help = "Output HEVC file location", parse(from_os_str))]
+        output: Option<PathBuf>,
+    },
 }

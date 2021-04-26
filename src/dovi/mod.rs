@@ -2,6 +2,7 @@ pub mod converter;
 pub mod demuxer;
 pub mod editor;
 pub mod rpu_extractor;
+pub mod rpu_injector;
 
 mod io;
 mod rpu;
@@ -10,7 +11,7 @@ use hevc_parser::HevcParser;
 use rpu::{parse_dovi_rpu, DoviRpu};
 
 use indicatif::{ProgressBar, ProgressStyle};
-use std::io::{BufReader, Read, Write};
+use std::io::{stdout, BufReader, Read, Write};
 use std::{fs::File, io::BufWriter, path::Path};
 
 use super::bitvec_reader::BitVecReader;
@@ -67,6 +68,7 @@ impl std::fmt::Display for Format {
 
 pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
     println!("Parsing RPU file...");
+    stdout().flush().ok();
 
     let rpu_file = File::open(input).unwrap();
     let metadata = rpu_file.metadata().unwrap();

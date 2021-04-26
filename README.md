@@ -8,6 +8,11 @@
 
 ### Commands
 
+#### convert
+Converts RPU within a single layer HEVC file.  
+The enhancement layer can be discarded using `--discard`
+
+* Convert to 8.1 and discard EL: `dovi_tool convert -m 2 convert --discard file.hevc`
 #### demux
 Rust port of yusesope's python tool. Credits goes to them.  
 Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files.
@@ -17,24 +22,23 @@ Demuxes single track dual layer Dolby Vision into Base layer and Enhancement lay
 * Convert RPU to 8.1: `dovi_tool -m 2 demux file.hevc`
 
 #### extract-rpu
-Extracts Dolby Vision RPU from an HEVC encoded file.
+Extracts Dolby Vision RPU from an single track dual layer encoded file.
 Supports profiles 5, 7, and 8.  
 Input can be piped.
 
 * `dovi_tool extract-rpu video.hevc`
 * FEL to MEL example: `dovi_tool -m 1 extract-rpu video.hevc`
 
+#### inject-rpu
+Interleaves RPU NAL units between slices in an encoded HEVC file.
+
+* `dovi_tool inject-rpu -i video.hevc --rpu-in RPU.bin`
+
 #### editor
 Edits a RPU according to a JSON config.  
 See examples in `assets` folder.
 
 * `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
-
-#### convert
-Converts RPU within a single layer HEVC file.  
-The enhancement layer can be discarded using `--discard`
-
-* Convert to 8.1 and discard EL: `dovi_tool convert -m 2 convert --discard file.hevc`
 
 Build artifacts can be found in the Github Actions.  
 More features may or may not be added in the future.

@@ -9,8 +9,8 @@ use commands::Command;
 
 mod dovi;
 use dovi::{
-    converter::Converter, demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor, Format,
-    RpuOptions,
+    converter::Converter, demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor,
+    rpu_injector::RpuInjector, Format, RpuOptions,
 };
 
 #[derive(StructOpt, Debug)]
@@ -51,11 +51,6 @@ fn main() {
             bl_out,
             el_out,
         } => Demuxer::demux(input, stdin, bl_out, el_out, rpu_options),
-        Command::ExtractRpu {
-            input,
-            stdin,
-            rpu_out,
-        } => RpuExtractor::extract_rpu(input, stdin, rpu_out, rpu_options),
         Command::Editor {
             input,
             json_file,
@@ -70,6 +65,16 @@ fn main() {
             rpu_options.discard_el = discard;
             Converter::convert(input, stdin, output, rpu_options)
         }
+        Command::ExtractRpu {
+            input,
+            stdin,
+            rpu_out,
+        } => RpuExtractor::extract_rpu(input, stdin, rpu_out, rpu_options),
+        Command::InjectRpu {
+            input,
+            rpu_in,
+            output,
+        } => RpuInjector::inject_rpu(input, rpu_in, output),
     }
 }
 
