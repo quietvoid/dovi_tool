@@ -7,7 +7,7 @@ pub mod rpu_injector;
 mod io;
 mod rpu;
 
-use hevc_parser::HevcParser;
+use hevc_parser::{HevcParser, hevc::{Frame, NAL_AUD}};
 use rpu::{parse_dovi_rpu, DoviRpu};
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -147,4 +147,29 @@ pub fn write_rpu_file(output_path: &Path, rpus: &mut Vec<DoviRpu>) -> Result<(),
     writer.flush()?;
 
     Ok(())
+}
+
+pub fn get_aud(frame: &Frame) -> Vec<u8> {
+    let pic_type: u8 = match &frame.frame_type {
+        2 => 0,
+        1 => 1,
+        0 => 2,
+        _ => 7,
+    };
+
+    let mut data = OUT_NAL_HEADER.to_vec();
+    let mut writer = BitVecWriter::new();
+
+    // forbidden_zero_bit
+    writer.write(false);
+
+    writer.write_n(&(NAL_AUD).to_be_bytes(), 6);
+    writer.write_n(&(0 as u8).to_be_bytes(), 6);
+    writer.write_n(&(0 as u8).to_be_bytes(), 3);
+
+    writer.write_n(&pic_type.to_be_bytes(), 3);
+
+    data.extend_from_slice(writer.as_slice());
+
+    data
 }

@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
+use crate::dovi::get_aud;
+
 use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
 
 use hevc_parser::hevc::*;
@@ -171,6 +173,10 @@ impl RpuInjector {
 
             let mut nals_parsed = 0;
 
+            // AUDs
+            //let first_decoded_index = frames.iter().position(|f| f.decoded_number == 0).unwrap();
+            //writer.write_all(&get_aud(&frames[first_decoded_index]))?;
+
             while let Ok(n) = reader.read(&mut main_buf) {
                 let read_bytes = n;
                 if read_bytes == 0 {
@@ -203,6 +209,11 @@ impl RpuInjector {
                 let nals = parser.split_nals(&chunk, &offsets, last, true);
 
                 for (cur_index, nal) in nals.iter().enumerate() {
+                    // AUDs
+                    //if nal.nal_type == NAL_AUD {
+                    //    continue;
+                    //}
+
                     writer.write_all(OUT_NAL_HEADER)?;
                     writer.write_all(&chunk[nal.start..nal.end])?;
 
@@ -219,6 +230,11 @@ impl RpuInjector {
 
                         writer.write_all(OUT_NAL_HEADER)?;
                         writer.write_all(&data)?;
+
+                        // AUDs
+                        //if rpu_index < rpus.len() - 1 {
+                        //    writer.write_all(&get_aud(&frames[rpu_index]))?;
+                        //}
                     }
                 }
 
@@ -250,7 +266,10 @@ impl RpuInjector {
 }
 
 fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
-    let slice_nals = frame.nals.iter().filter(|nal| {
+    let slice_nals = frame.nals
+        .iter()
+        .enumerate()
+        .filter(|(idx, nal)| {
         matches!(
             nal.nal_type,
             NAL_TRAIL_R
@@ -275,14 +294,20 @@ fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
     // Assuming the slices are decoded in order, the highest index is the last slice NAL
     let last_slice = slice_nals
         .enumerate()
-        .max_by_key(|(index, _)| *index)
+        .max_by_key(|(_idx1, (idx2, _))| *idx2)
         .unwrap();
+
     let last_slice_index = last_slice.0;
+    let last_slice_global_index = last_slice.1.0;
+    let last_slice_nal = last_slice.1.1;
+    
+    // Use the last nal because there might be suffix NALs (EL or SEI suffix)
+    let last_nal_offset = last_slice_index + frame.nals.len() - last_slice_global_index - 1;
 
     if let Some(first_slice_index) = nals.iter().position(|n| {
-        n.decoded_frame_index == frame.decoded_number && last_slice.1.nal_type == n.nal_type
+        n.decoded_frame_index == frame.decoded_number && last_slice_nal.nal_type == n.nal_type
     }) {
-        first_slice_index + last_slice_index
+        first_slice_index + last_nal_offset
     } else {
         panic!("Could not find a NAL for frame {}", frame.decoded_number);
     }
