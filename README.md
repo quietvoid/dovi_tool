@@ -6,6 +6,8 @@
   * `1` - Converts the RPU to be MEL compatible.
   * `2` - Converts the RPU to be profile 8.1 compatible.
 
+* `-c`, `--crop` Set active area offsets to 0 (meaning no letterbox bars)
+
 ### Commands
 
 #### convert

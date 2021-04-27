@@ -27,7 +27,7 @@ struct Opt {
     #[structopt(
         long,
         short = "c",
-        help = "Set active area offsets to 0, cannot be used with mode 0"
+        help = "Set active area offsets to 0 (meaning no letterbox bars)"
     )]
     crop: bool,
 
