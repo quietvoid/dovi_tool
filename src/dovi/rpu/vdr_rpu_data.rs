@@ -319,6 +319,93 @@ impl VdrRpuData {
                 }
             });
     }
+
+    pub fn p5_to_p81(&mut self) {
+        self.mapping_idc.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.mapping_param_pred_flag.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = false;
+        });
+
+        self.num_mapping_param_predictors.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.diff_pred_part_idx_mapping_minus1
+            .iter_mut()
+            .for_each(|v| {
+                v.truncate(1);
+                v[0] = 0;
+            });
+
+        self.poly_order_minus1.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.linear_interp_flag.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = false;
+        });
+
+        self.pred_linear_interp_value_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.pred_linear_interp_value.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.poly_coef_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| {
+                v2.truncate(2);
+                v2[0] = 0;
+                v2[1] = 1;
+            });
+        });
+
+        self.poly_coef.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v.iter_mut().for_each(|v2| {
+                v2.truncate(2);
+                v2[0] = 0;
+                v2[1] = 0;
+            });
+        });
+
+        self.mmr_order_minus1.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.mmr_constant_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.mmr_constant.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = 0;
+        });
+
+        self.mmr_coef_int.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = vec![];
+        });
+
+        self.mmr_coef.iter_mut().for_each(|v| {
+            v.truncate(1);
+            v[0] = vec![];
+        });
+    }
 }
 
 impl NlqData {
