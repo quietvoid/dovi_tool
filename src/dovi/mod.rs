@@ -7,7 +7,10 @@ pub mod rpu_injector;
 mod io;
 mod rpu;
 
-use hevc_parser::{HevcParser, hevc::{Frame, NAL_AUD}};
+use hevc_parser::{
+    hevc::{Frame, NAL_AUD},
+    HevcParser,
+};
 use rpu::{parse_dovi_rpu, DoviRpu};
 
 use indicatif::{ProgressBar, ProgressStyle};

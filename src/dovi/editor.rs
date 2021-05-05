@@ -163,7 +163,7 @@ impl ActiveArea {
                 }
 
                 if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
-                    rpus[start..end].iter_mut().for_each(|rpu| {
+                    rpus[start..=end].iter_mut().for_each(|rpu| {
                         let (left, right, top, bottom) = (
                             active_area_offsets.left,
                             active_area_offsets.right,

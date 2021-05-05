@@ -266,10 +266,7 @@ impl RpuInjector {
 }
 
 fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
-    let slice_nals = frame.nals
-        .iter()
-        .enumerate()
-        .filter(|(idx, nal)| {
+    let slice_nals = frame.nals.iter().enumerate().filter(|(_idx, nal)| {
         matches!(
             nal.nal_type,
             NAL_TRAIL_R
@@ -298,9 +295,9 @@ fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
         .unwrap();
 
     let last_slice_index = last_slice.0;
-    let last_slice_global_index = last_slice.1.0;
-    let last_slice_nal = last_slice.1.1;
-    
+    let last_slice_global_index = last_slice.1 .0;
+    let last_slice_nal = last_slice.1 .1;
+
     // Use the last nal because there might be suffix NALs (EL or SEI suffix)
     let last_nal_offset = last_slice_index + frame.nals.len() - last_slice_global_index - 1;
 
