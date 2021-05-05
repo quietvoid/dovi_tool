@@ -1,8 +1,8 @@
 target
 **/*.rs.bk
-*.mkv
-*.hevc
-*.txt
-*.vpy
-*.bin
-*.ffindex
+/*.mkv
+/*.hevc
+/*.txt
+/*.vpy
+/*.bin
+/*.ffindex
