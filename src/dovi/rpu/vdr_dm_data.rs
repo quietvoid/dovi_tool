@@ -171,15 +171,16 @@ impl VdrDmData {
             }
         }
 
-        data.validate();
-
         data
     }
 
-    pub fn validate(&self) {
+    pub fn validate(&self, profile: u8) {
         assert!(self.affected_dm_metadata_id <= 15);
         assert!(self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16);
-        assert_eq!(self.signal_eotf, 65535);
+
+        if profile > 4 {
+            assert_eq!(self.signal_eotf, 65535);
+        }
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) {

@@ -10,7 +10,7 @@ use commands::Command;
 mod dovi;
 use dovi::{
     converter::Converter, demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor,
-    rpu_injector::RpuInjector, Format, RpuOptions,
+    rpu_info::RpuInfo, rpu_injector::RpuInjector, Format, RpuOptions,
 };
 
 #[derive(StructOpt, Debug)]
@@ -75,6 +75,7 @@ fn main() {
             rpu_in,
             output,
         } => RpuInjector::inject_rpu(input, rpu_in, output),
+        Command::Info { input, frame } => RpuInfo::info(input, frame),
     }
 }
 

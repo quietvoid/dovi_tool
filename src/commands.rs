@@ -130,4 +130,23 @@ pub enum Command {
         #[structopt(long, help = "Output HEVC file location", parse(from_os_str))]
         output: Option<PathBuf>,
     },
+
+    Info {
+        #[structopt(
+            name = "input",
+            short = "i",
+            long,
+            help = "Sets the input RPU file to use",
+            parse(from_os_str)
+        )]
+        input: PathBuf,
+
+        #[structopt(
+            name = "frame",
+            short = "f",
+            long,
+            help = "Frame number to show info for"
+        )]
+        frame: Option<usize>,
+    },
 }

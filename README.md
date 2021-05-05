@@ -42,5 +42,12 @@ See examples in `assets` folder.
 
 * `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
 
+#### info
+Prints the parsed RPU data for a specific frame.
+
+* `dovi_tool info -i RPU.bin -f 0`  
+
+&nbsp;
+
 Build artifacts can be found in the Github Actions.  
 More features may or may not be added in the future.

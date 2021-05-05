@@ -41,6 +41,7 @@ impl DoviRpu {
         let reader = &mut dovi_rpu.reader;
         dovi_rpu.header = RpuDataHeader::rpu_data_header(reader);
 
+        // Preliminary header validation
         dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
 
         dovi_rpu.header.validate(dovi_rpu.dovi_profile);
@@ -77,6 +78,8 @@ impl DoviRpu {
             let last_byte: u8 = reader.get_n(8);
             assert_eq!(last_byte, 0x80);
         }
+
+        dovi_rpu.validate();
 
         dovi_rpu
     }
@@ -226,6 +229,15 @@ impl DoviRpu {
             }
         } else {
             panic!("Attempt to convert profile 5: RPU is not profile 5!");
+        }
+    }
+
+    pub fn validate(&mut self) {
+        self.dovi_profile = self.header.get_dovi_profile();
+        self.header.validate(self.dovi_profile);
+
+        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+            vdr_dm_data.validate(self.dovi_profile);
         }
     }
 }

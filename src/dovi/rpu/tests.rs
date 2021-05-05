@@ -17,6 +17,15 @@ pub fn _parse_file(input: PathBuf) -> (Vec<u8>, DoviRpu) {
 }
 
 #[test]
+fn profile4() {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/profile4.bin"));
+    assert_eq!(dovi_rpu.dovi_profile, 4);
+    let parsed_data = dovi_rpu.write_rpu_data();
+
+    assert_eq!(&original_data, &parsed_data);
+}
+
+#[test]
 fn profile5() {
     let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/profile5.bin"));
     assert_eq!(dovi_rpu.dovi_profile, 5);

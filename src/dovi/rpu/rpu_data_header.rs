@@ -149,9 +149,13 @@ impl RpuDataHeader {
                 }
             }
             1 => {
-                // 7 or 8
+                // 4, 7 or 8
                 if self.el_spatial_resampling_filter_flag && !self.disable_residual_flag {
-                    7
+                    if self.vdr_bit_depth_minus_8 == 4 {
+                        7
+                    } else {
+                        4
+                    }
                 } else {
                     8
                 }
