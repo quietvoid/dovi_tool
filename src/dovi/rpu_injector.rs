@@ -140,6 +140,9 @@ impl RpuInjector {
                 panic!("Number of frames of input and RPU file are different!");
             }
 
+            println!("Computing frame indices..");
+            stdout().flush().ok();
+
             let last_slice_indices: Vec<usize> = frames
                 .iter()
                 .map(|f| find_last_slice_nal_index(nals, f))
