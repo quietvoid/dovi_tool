@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use crate::dovi::get_aud;
 
-use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
+use super::{input_format, parse_rpu_file, write_nal_header, DoviRpu, Format, OUT_NAL_HEADER};
 
 use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
@@ -209,15 +209,15 @@ impl RpuInjector {
                     last
                 };
 
-                let nals = parser.split_nals(&chunk, &offsets, last, true);
+                let new_nals = parser.split_nals(&chunk, &offsets, last, true);
 
-                for (cur_index, nal) in nals.iter().enumerate() {
+                for (cur_index, nal) in new_nals.iter().enumerate() {
                     // AUDs
                     //if nal.nal_type == NAL_AUD {
                     //    continue;
                     //}
 
-                    writer.write_all(OUT_NAL_HEADER)?;
+                    write_nal_header(nal, &mut writer)?;
                     writer.write_all(&chunk[nal.start..nal.end])?;
 
                     let global_index = nals_parsed + cur_index;
@@ -228,6 +228,7 @@ impl RpuInjector {
                             .iter()
                             .position(|i| i == &global_index)
                             .unwrap();
+
                         let dovi_rpu = &mut rpus[rpu_index];
                         let data = dovi_rpu.write_rpu_data();
 

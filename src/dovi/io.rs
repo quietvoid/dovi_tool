@@ -6,7 +6,7 @@ use indicatif::ProgressBar;
 use std::io::Read;
 
 use super::rpu::parse_dovi_rpu;
-use super::{Format, RpuOptions, OUT_NAL_HEADER};
+use super::{write_nal_header, Format, RpuOptions, OUT_NAL_HEADER};
 
 use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
@@ -215,7 +215,7 @@ impl DoviReader {
                     continue;
                 }
 
-                sl_writer.write_all(OUT_NAL_HEADER)?;
+                write_nal_header(nal, sl_writer)?;
 
                 if nal.nal_type == NAL_UNSPEC62 {
                     if let Some(mode) = self.options.mode {
@@ -245,13 +245,13 @@ impl DoviReader {
             match nal.nal_type {
                 NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                        el_writer.write_all(OUT_NAL_HEADER)?;
+                        write_nal_header(nal, el_writer)?;
                         el_writer.write_all(&chunk[nal.start + 2..nal.end])?;
                     }
                 }
                 NAL_UNSPEC62 => {
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                        el_writer.write_all(OUT_NAL_HEADER)?;
+                        write_nal_header(nal, el_writer)?;
                     }
 
                     // No mode: Copy
@@ -295,7 +295,7 @@ impl DoviReader {
                 }
                 _ => {
                     if let Some(ref mut bl_writer) = dovi_writer.bl_writer {
-                        bl_writer.write_all(OUT_NAL_HEADER)?;
+                        write_nal_header(nal, bl_writer)?;
                         bl_writer.write_all(&chunk[nal.start..nal.end])?;
                     }
                 }

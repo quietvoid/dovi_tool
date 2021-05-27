@@ -9,7 +9,7 @@ mod io;
 mod rpu;
 
 use hevc_parser::{
-    hevc::{Frame, NAL_AUD},
+    hevc::{Frame, NALUnit, NAL_AUD},
     HevcParser,
 };
 use rpu::{parse_dovi_rpu, DoviRpu};
@@ -23,6 +23,7 @@ use super::bitvec_writer::BitVecWriter;
 use super::input_format;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
+const OUT_NAL_HEADER_3: &[u8] = &[0, 0, 1];
 
 #[derive(Debug, PartialEq)]
 pub enum Format {
@@ -58,16 +59,6 @@ pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
     }
 
     pb
-}
-
-impl std::fmt::Display for Format {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Format::Matroska => write!(f, "Matroska file"),
-            Format::Raw => write!(f, "HEVC file"),
-            Format::RawStdin => write!(f, "HEVC pipe"),
-        }
-    }
 }
 
 pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
@@ -176,4 +167,24 @@ pub fn get_aud(frame: &Frame) -> Vec<u8> {
     data.extend_from_slice(writer.as_slice());
 
     data
+}
+
+pub fn write_nal_header(nal: &NALUnit, writer: &mut dyn Write) -> Result<(), std::io::Error> {
+    if nal.start_code_len == 4 {
+        writer.write_all(OUT_NAL_HEADER)?;
+    } else if nal.start_code_len == 3 {
+        writer.write_all(OUT_NAL_HEADER_3)?;
+    }
+
+    Ok(())
+}
+
+impl std::fmt::Display for Format {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Format::Matroska => write!(f, "Matroska file"),
+            Format::Raw => write!(f, "HEVC file"),
+            Format::RawStdin => write!(f, "HEVC pipe"),
+        }
+    }
 }
