@@ -182,9 +182,9 @@ dependencies = [
 
 [[package]]
 name = "hevc_parser"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1452c5121c7a5a1b470c8951007952de86fadb56b6272cc4e6b7c8635b77f3b5"
+checksum = "7f298a0fe46ca5e3dfab8309be4307aebca18a9c69bf0df83bf4686fc5e5ca70"
 dependencies = [
  "bitvec_helpers",
  "nom",
