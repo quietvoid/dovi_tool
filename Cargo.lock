@@ -136,7 +136,7 @@ checksum = "ccaeedb56da03b09f598226e25e80088cb4cd25f316e6e4df7d695f0feeb1403"
 
 [[package]]
 name = "dovi_tool"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ansi_term 0.12.1",
  "bitvec 0.20.2",
