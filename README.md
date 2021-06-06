@@ -14,7 +14,7 @@
 Converts RPU within a single layer HEVC file.  
 The enhancement layer can be discarded using `--discard`
 
-* Convert to 8.1 and discard EL: `dovi_tool convert -m 2 convert --discard file.hevc`
+* Convert to 8.1 and discard EL: `dovi_tool -m 2 convert --discard file.hevc`
 #### demux
 Rust port of yusesope's python tool. Credits goes to them.  
 Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files.
