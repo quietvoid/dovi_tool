@@ -9,7 +9,7 @@ pub struct Editor {
     json_path: PathBuf,
     rpu_out: PathBuf,
 
-    rpus: Option<Vec<DoviRpu>>,
+    rpus: Option<Vec<Option<DoviRpu>>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -20,8 +20,11 @@ pub struct EditConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     active_area: Option<ActiveArea>,
 
-    #[serde(default)]
-    p5_to_p81: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remove: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    duplicate: Option<Vec<DuplicateMetadata>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -43,6 +46,13 @@ pub struct ActiveAreaOffsets {
     right: u16,
     top: u16,
     bottom: u16,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct DuplicateMetadata {
+    source: usize,
+    offset: usize,
+    length: usize,
 }
 
 impl Editor {
@@ -69,7 +79,11 @@ impl Editor {
 
         println!("{:#?}", config);
 
-        editor.rpus = parse_rpu_file(&editor.input);
+        editor.rpus = if let Some(rpus) = parse_rpu_file(&editor.input) {
+            Some(rpus.into_iter().map(Some).collect())
+        } else {
+            None
+        };
 
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus);
@@ -83,12 +97,15 @@ impl Editor {
 }
 
 impl EditConfig {
-    fn execute(&self, rpus: &mut Vec<DoviRpu>) {
+    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+        // Drop metadata frames
+        if let Some(ranges) = &self.remove {
+            self.remove_frames(ranges, rpus);
+        }
+
         // Convert with mode
-        if self.mode > 0 && !self.p5_to_p81 {
+        if self.mode > 0 {
             self.convert_with_mode(rpus);
-        } else if self.p5_to_p81 {
-            self.convert_p5_to_p81(rpus);
         }
 
         if let Some(active_area) = &self.active_area {
@@ -96,9 +113,10 @@ impl EditConfig {
         }
     }
 
-    fn convert_with_mode(&self, rpus: &mut Vec<DoviRpu>) {
+    fn convert_with_mode(&self, rpus: &mut Vec<Option<DoviRpu>>) {
         println!("Converting with mode {}...", self.mode);
         rpus.iter_mut()
+            .filter_map(|e| e.as_mut())
             .for_each(|rpu| rpu.convert_with_mode(self.mode));
     }
 
@@ -126,14 +144,31 @@ impl EditConfig {
         }
     }
 
-    fn convert_p5_to_p81(&self, rpus: &mut Vec<DoviRpu>) {
-        println!("Converting from profile 5 to profile 8.1 (experimental)");
-        rpus.iter_mut().for_each(|rpu| rpu.p5_to_p81());
+    fn remove_frames(&self, ranges: &Vec<String>, rpus: &mut Vec<Option<DoviRpu>>) {
+        let mut amount = 0;
+
+        ranges.iter().for_each(|range| {
+            if range.contains('-') {
+                let (start, end) = EditConfig::range_string_to_tuple(range);
+                assert!(end < rpus.len());
+
+                amount += end - start + 1;
+                rpus[start..=end].iter_mut().for_each(|e| *e = None);
+            } else if let Ok(index) = range.parse::<usize>() {
+                assert!(index < rpus.len());
+
+                amount += 1;
+
+                rpus[index] = None;
+            }
+        });
+
+        println!("Removed {} metadata frames.", amount);
     }
 }
 
 impl ActiveArea {
-    fn execute(&self, rpus: &mut Vec<DoviRpu>) {
+    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) {
         if self.crop {
             self.crop(rpus);
         }
@@ -145,12 +180,14 @@ impl ActiveArea {
         }
     }
 
-    fn crop(&self, rpus: &mut Vec<DoviRpu>) {
+    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) {
         println!("Cropping...");
-        rpus.iter_mut().for_each(|rpu| rpu.crop());
+        rpus.iter_mut()
+            .filter_map(|e| e.as_mut())
+            .for_each(|rpu| rpu.crop());
     }
 
-    fn do_edits(&self, edits: &HashMap<String, u16>, rpus: &mut Vec<DoviRpu>) {
+    fn do_edits(&self, edits: &HashMap<String, u16>, rpus: &mut Vec<Option<DoviRpu>>) {
         if let Some(presets) = &self.presets {
             println!("Editing active area offsets...");
 
@@ -159,22 +196,25 @@ impl ActiveArea {
                 let preset_id = *edit.1;
 
                 if end as usize > rpus.len() {
-                    panic!("Invalid range: {} > {} available RPUs", start, rpus.len());
+                    panic!("Invalid range: {} > {} available RPUs", end, rpus.len());
                 }
 
                 if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
-                    rpus[start..=end].iter_mut().for_each(|rpu| {
-                        let (left, right, top, bottom) = (
-                            active_area_offsets.left,
-                            active_area_offsets.right,
-                            active_area_offsets.top,
-                            active_area_offsets.bottom,
-                        );
+                    rpus[start..=end]
+                        .iter_mut()
+                        .filter_map(|e| e.as_mut())
+                        .for_each(|rpu| {
+                            let (left, right, top, bottom) = (
+                                active_area_offsets.left,
+                                active_area_offsets.right,
+                                active_area_offsets.top,
+                                active_area_offsets.bottom,
+                            );
 
-                        if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
-                            block.set_offsets(left, right, top, bottom);
-                        }
-                    });
+                            if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
+                                block.set_offsets(left, right, top, bottom);
+                            }
+                        });
                 } else {
                     panic!("Invalid preset ID: {}", preset_id);
                 }
