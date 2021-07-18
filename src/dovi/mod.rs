@@ -132,23 +132,28 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
     }
 }
 
-pub fn write_rpu_file(
-    output_path: &Path,
-    rpus: &mut Vec<Option<DoviRpu>>,
-) -> Result<(), std::io::Error> {
+pub fn encode_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
+    let encoded_rpus = rpus
+        .iter_mut()
+        .filter_map(|e| e.as_mut())
+        .map(|e| e.write_rpu_data())
+        .collect();
+
+    encoded_rpus
+}
+
+pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<(), std::io::Error> {
     println!("Writing RPU file...");
     let mut writer = BufWriter::with_capacity(
         100_000,
         File::create(output_path).expect("Can't create file"),
     );
 
-    for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
-        let data = rpu.write_rpu_data();
-
+    for encoded_rpu in data {
         writer.write_all(OUT_NAL_HEADER)?;
 
         // Remove 0x7C01
-        writer.write_all(&data[2..])?;
+        writer.write_all(&encoded_rpu[2..])?;
     }
 
     writer.flush()?;

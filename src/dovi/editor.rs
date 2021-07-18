@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{parse_rpu_file, rpu::vdr_dm_data::ExtMetadataBlockLevel5, write_rpu_file, DoviRpu};
+use super::{
+    encode_rpus, parse_rpu_file, rpu::vdr_dm_data::ExtMetadataBlockLevel5, write_rpu_file, DoviRpu,
+};
 
 pub struct Editor {
     input: PathBuf,
@@ -75,7 +77,7 @@ impl Editor {
         };
 
         let json_file = File::open(&editor.json_path).unwrap();
-        let config: EditConfig = serde_json::from_reader(&json_file).unwrap();
+        let mut config: EditConfig = serde_json::from_reader(&json_file).unwrap();
 
         println!("{:#?}", config);
 
@@ -88,7 +90,18 @@ impl Editor {
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus);
 
-            match write_rpu_file(&editor.rpu_out, rpus) {
+            let mut data = encode_rpus(rpus);
+
+            if let Some(ref mut to_duplicate) = config.duplicate {
+                to_duplicate.sort_by_key(|meta| meta.offset);
+                to_duplicate.reverse();
+            }
+
+            if let Some(to_duplicate) = &config.duplicate {
+                config.duplicate_metadata(to_duplicate, &mut data);
+            }
+
+            match write_rpu_file(&editor.rpu_out, data) {
                 Ok(_) => (),
                 Err(e) => panic!("{:?}", e),
             }
@@ -164,6 +177,22 @@ impl EditConfig {
         });
 
         println!("Removed {} metadata frames.", amount);
+    }
+
+    fn duplicate_metadata(&self, to_duplicate: &Vec<DuplicateMetadata>, data: &mut Vec<Vec<u8>>) {
+        println!("Duplicating metadata. Initial metadata len {}", data.len());
+
+        to_duplicate.iter().for_each(|meta| {
+            assert!(meta.source < data.len() && meta.offset < data.len());
+
+            let source = data[meta.source].clone();
+            data.splice(
+                meta.offset..meta.offset,
+                std::iter::repeat(source).take(meta.length),
+            );
+        });
+
+        println!("Duplicated, new metadata len {}", data.len());
     }
 }
 
