@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-use crate::dovi::get_aud;
+//use crate::dovi::get_aud;
 
 use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
 

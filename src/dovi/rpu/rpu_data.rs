@@ -189,8 +189,10 @@ impl DoviRpu {
                 2 => self.convert_to_81(),
                 _ => (),
             }
+        } else if self.dovi_profile == 5 && mode == 3 {
+            self.p5_to_p81();
         } else if mode != 0 {
-            panic!("Can only change profile 7 RPU!");
+            panic!("Invalid profile for mode {} conversion!", mode);
         }
     }
 
@@ -202,7 +204,7 @@ impl DoviRpu {
         }
     }
 
-    pub fn p5_to_p81(&mut self) {
+    fn p5_to_p81(&mut self) {
         self.modified = true;
 
         if self.dovi_profile == 5 {

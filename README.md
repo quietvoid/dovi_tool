@@ -40,6 +40,8 @@ Interleaves RPU NAL units between slices in an encoded HEVC file.
 Edits a RPU according to a JSON config.  
 See examples in `assets` folder.
 
+All indices start at 0, and are inclusive.  For example, using "0-39" edits the first 40 frames.
+
 * `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
 
 #### info
