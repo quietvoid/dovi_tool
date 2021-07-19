@@ -5,6 +5,7 @@
   * `0` - Parses the RPU, rewrites it untouched.
   * `1` - Converts the RPU to be MEL compatible.
   * `2` - Converts the RPU to be profile 8.1 compatible.
+  * `3` - Converts profile 5 to 8 (experimental).
 
 * `-c`, `--crop` Set active area offsets to 0 (meaning no letterbox bars)
 
