@@ -10,7 +10,7 @@ mod rpu;
 
 use hevc_parser::{
     hevc::{Frame, NAL_AUD},
-    HevcParser,
+    HevcParser, NALUStartCode,
 };
 use rpu::{parse_dovi_rpu, DoviRpu};
 
@@ -89,7 +89,7 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
     reader.read_exact(&mut data).unwrap();
 
     let mut offsets = Vec::with_capacity(200_000);
-    let mut parser = HevcParser::default();
+    let mut parser = HevcParser::with_nalu_start_code(NALUStartCode::Length4);
 
     parser.get_offsets(&data, &mut offsets);
 
@@ -101,21 +101,12 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
         .enumerate()
         .map(|(index, offset)| {
             let size = if offset == &last {
-                data.len() - offset - 1
+                data.len() - offset
             } else {
-                let size = if index == count - 1 {
-                    last - offset
-                } else {
-                    offsets[index + 1] - offset
-                };
-
-                match &data[offset + size - 1..offset + size + 3] {
-                    [0, 0, 0, 1] => size - 2,
-                    _ => size,
-                }
+                offsets[index + 1] - offset
             };
 
-            let start = *offset + 1;
+            let start = *offset;
             let end = start + size;
 
             parse_dovi_rpu(&data[start..end])

@@ -180,3 +180,18 @@ fn sets_offsets_to_zero() {
         assert_eq!(vec![0, 0, 0, 0], block._get_offsets());
     }
 }
+
+#[test]
+fn profile8_001_end_crc32() {
+    use crate::dovi::parse_rpu_file;
+
+    let rpus = parse_rpu_file(&PathBuf::from("./assets/p8_001_end_crc32.bin"));
+    assert!(rpus.is_some());
+
+    let rpus = rpus.unwrap();
+    assert_eq!(rpus.len(), 3);
+
+    let dovi_rpu = &rpus[0];
+    assert_eq!(8, dovi_rpu.dovi_profile);
+    assert_eq!([216, 0, 0, 1], dovi_rpu.rpu_data_crc32.to_be_bytes());
+}

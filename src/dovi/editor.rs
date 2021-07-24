@@ -101,6 +101,8 @@ impl Editor {
                 config.duplicate_metadata(to_duplicate, &mut data);
             }
 
+            println!("Final metadata length: {}", data.len());
+
             match write_rpu_file(&editor.rpu_out, data) {
                 Ok(_) => (),
                 Err(e) => panic!("{:?}", e),
@@ -191,8 +193,6 @@ impl EditConfig {
                 std::iter::repeat(source).take(meta.length),
             );
         });
-
-        println!("Duplicated, new metadata len {}", data.len());
     }
 }
 

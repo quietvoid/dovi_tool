@@ -8,6 +8,7 @@ use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
 
 use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
+use indicatif::{ProgressBar, ProgressStyle};
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -143,10 +144,24 @@ impl RpuInjector {
             println!("Computing frame indices..");
             stdout().flush().ok();
 
+            let pb_indices = ProgressBar::new(frames.len() as u64);
+            pb_indices.set_style(
+                ProgressStyle::default_bar()
+                    .template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
+            );
+
             let last_slice_indices: Vec<usize> = frames
                 .iter()
-                .map(|f| find_last_slice_nal_index(nals, f))
+                .map(|f| {
+                    let index = find_last_slice_nal_index(nals, f);
+
+                    pb_indices.inc(1);
+
+                    index
+                })
                 .collect();
+
+            pb_indices.finish_and_clear();
 
             assert_eq!(frames.len(), last_slice_indices.len());
 

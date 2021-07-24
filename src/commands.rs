@@ -119,15 +119,15 @@ pub enum Command {
         )]
         input: PathBuf,
 
-        #[structopt(
-            name = "rpu_in",
-            long,
-            help = "Sets the input RPU file to use",
-            parse(from_os_str)
-        )]
+        #[structopt(long, help = "Sets the input RPU file to use", parse(from_os_str))]
         rpu_in: PathBuf,
 
-        #[structopt(long, help = "Output HEVC file location", parse(from_os_str))]
+        #[structopt(
+            long,
+            short = "o",
+            help = "Output HEVC file location",
+            parse(from_os_str)
+        )]
         output: Option<PathBuf>,
     },
 

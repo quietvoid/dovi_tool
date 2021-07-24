@@ -35,7 +35,7 @@ Input can be piped.
 #### inject-rpu
 Interleaves RPU NAL units between slices in an encoded HEVC file.
 
-* `dovi_tool inject-rpu -i video.hevc --rpu-in RPU.bin`
+* `dovi_tool inject-rpu -i video.hevc --rpu-in RPU.bin -o injected_output.hevc`
 
 #### editor
 Edits a RPU according to a JSON config.  
