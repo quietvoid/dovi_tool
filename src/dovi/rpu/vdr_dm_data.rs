@@ -174,11 +174,14 @@ impl VdrDmData {
         data
     }
 
-    pub fn validate(&self, profile: u8) {
+    pub fn validate(&self) {
         assert!(self.affected_dm_metadata_id <= 15);
         assert!(self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16);
 
-        if profile > 4 {
+        if self.signal_eotf_param0 == 0
+            && self.signal_eotf_param1 == 0
+            && self.signal_eotf_param2 == 0
+        {
             assert_eq!(self.signal_eotf, 65535);
         }
     }

@@ -239,7 +239,7 @@ impl DoviRpu {
         self.header.validate(self.dovi_profile);
 
         if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.validate(self.dovi_profile);
+            vdr_dm_data.validate();
         }
     }
 }
