@@ -37,7 +37,7 @@ impl RpuInjector {
                     let frames = parser.ordered_frames();
                     let nals = parser.get_nals();
 
-                    match injector.interleave_rpu_nals(&nals, frames) {
+                    match injector.interleave_rpu_nals(nals, frames) {
                         Ok(_) => (),
                         Err(e) => panic!("{}", e),
                     }
@@ -137,9 +137,19 @@ impl RpuInjector {
         frames: &[Frame],
     ) -> Result<(), std::io::Error> {
         if let Some(ref mut rpus) = self.rpus {
-            if frames.len() != rpus.len() {
-                panic!("Number of frames of input and RPU file are different!");
-            }
+            let mismatched_length = if frames.len() != rpus.len() {
+                println!("\nWarning: mismatched lengths. video {}, RPU {}", frames.len(), rpus.len());
+
+                if rpus.len() < frames.len() {
+                    println!("Metadata will be duplicated at the end to match video length\n");
+                } else {
+                    println!("Metadata will be skipped at the end to match video length\n");
+                }
+
+                true
+            } else {
+                false
+            };
 
             println!("Computing frame indices..");
             stdout().flush().ok();
@@ -195,6 +205,8 @@ impl RpuInjector {
             //let first_decoded_index = frames.iter().position(|f| f.decoded_number == 0).unwrap();
             //writer.write_all(&get_aud(&frames[first_decoded_index]))?;
 
+            let mut last_metadata_written: Option<Vec<u8>> = None;
+
             while let Ok(n) = reader.read(&mut main_buf) {
                 let read_bytes = n;
                 if read_bytes == 0 {
@@ -239,15 +251,28 @@ impl RpuInjector {
 
                     // Slice before interleaved RPU
                     if last_slice_indices.contains(&global_index) {
+                        // We can unwrap because parsed indices are the same
                         let rpu_index = last_slice_indices
                             .iter()
                             .position(|i| i == &global_index)
                             .unwrap();
-                        let dovi_rpu = &mut rpus[rpu_index];
-                        let data = dovi_rpu.write_rpu_data();
 
-                        writer.write_all(OUT_NAL_HEADER)?;
-                        writer.write_all(&data)?;
+                        // If we have a RPU for index, write it
+                        // Otherwise, write the same data as previous
+                        if rpu_index < rpus.len() {
+                            let dovi_rpu = &mut rpus[rpu_index];
+                            let data = dovi_rpu.write_rpu_data();
+
+                            writer.write_all(OUT_NAL_HEADER)?;
+                            writer.write_all(&data)?;
+
+                            last_metadata_written = Some(data);
+                        } else if mismatched_length {
+                            if let Some(data) = &last_metadata_written {
+                                writer.write_all(OUT_NAL_HEADER)?;
+                                writer.write_all(data)?;
+                            }
+                        }
 
                         // AUDs
                         //if rpu_index < rpus.len() - 1 {

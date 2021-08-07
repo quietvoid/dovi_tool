@@ -162,7 +162,7 @@ impl VdrDmData {
 
         if data.num_ext_blocks > 0 {
             while !reader.is_aligned() {
-                assert_eq!(reader.get(), false);
+                assert!(!reader.get());
             }
 
             for _ in 0..data.num_ext_blocks {

@@ -169,7 +169,7 @@ impl EditConfig {
         }
     }
 
-    fn remove_frames(&self, ranges: &Vec<String>, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn remove_frames(&self, ranges: &[String], rpus: &mut Vec<Option<DoviRpu>>) {
         let mut amount = 0;
 
         ranges.iter().for_each(|range| {
@@ -191,7 +191,7 @@ impl EditConfig {
         println!("Removed {} metadata frames.", amount);
     }
 
-    fn duplicate_metadata(&self, to_duplicate: &Vec<DuplicateMetadata>, data: &mut Vec<Vec<u8>>) {
+    fn duplicate_metadata(&self, to_duplicate: &[DuplicateMetadata], data: &mut Vec<Vec<u8>>) {
         println!("Duplicating metadata. Initial metadata len {}", data.len());
 
         to_duplicate.iter().for_each(|meta| {

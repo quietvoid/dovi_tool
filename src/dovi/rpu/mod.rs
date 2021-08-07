@@ -25,7 +25,7 @@ pub fn parse_dovi_rpu(data: &[u8]) -> Result<DoviRpu, String> {
         [0, 0, 1, 25, 8] => &data[3..],
         [0, 1, 25, 8, 9] | [124, 1, 25, 8, 9] => &data[2..],
         [1, 25, 8, 9, _] => &data[1..],
-        [25, 8, 9, _, _] => &data,
+        [25, 8, 9, _, _] => data,
         _ => return Err(format!("Invalid RPU data start bytes\n{:?}", &data)),
     };
 
