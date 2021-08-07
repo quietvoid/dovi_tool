@@ -39,7 +39,7 @@ Interleaves RPU NAL units between slices in an encoded HEVC file.
 
 #### editor
 Edits a RPU according to a JSON config.  
-See examples in `assets` folder.
+See documentation: [editor.md](editor.md) or [examples](assets/editor_examples)
 
 All indices start at 0, and are inclusive.  For example, using "0-39" edits the first 40 frames.
 

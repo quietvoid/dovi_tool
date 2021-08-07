@@ -267,6 +267,19 @@ impl VdrDmData {
 
         self.signal_color_space = 0;
     }
+
+    // Source PQ means the mastering display
+    // MDL 1000,1-10 = 7,3079
+    // MDL 4000,50   = 62,3696
+    pub fn change_source_levels(&mut self, min_pq: Option<u16>, max_pq: Option<u16>) {
+        if let Some(v) = min_pq {
+            self.source_min_pq = v;
+        }
+
+        if let Some(v) = max_pq {
+            self.source_max_pq = v;
+        }
+    }
 }
 
 impl ExtMetadataBlock {
