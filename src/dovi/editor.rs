@@ -27,6 +27,12 @@ pub struct EditConfig {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     duplicate: Option<Vec<DuplicateMetadata>>,
+
+    #[serde(default)]
+    min_pq: Option<u16>,
+
+    #[serde(default)]
+    max_pq: Option<u16>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -126,6 +132,10 @@ impl EditConfig {
         if let Some(active_area) = &self.active_area {
             active_area.execute(rpus);
         }
+
+        if self.min_pq.is_some() || self.max_pq.is_some() {
+            self.change_source_levels(rpus);
+        }
     }
 
     fn convert_with_mode(&self, rpus: &mut Vec<Option<DoviRpu>>) {
@@ -159,7 +169,7 @@ impl EditConfig {
         }
     }
 
-    fn remove_frames(&self, ranges: &Vec<String>, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn remove_frames(&self, ranges: &[String], rpus: &mut Vec<Option<DoviRpu>>) {
         let mut amount = 0;
 
         ranges.iter().for_each(|range| {
@@ -181,7 +191,7 @@ impl EditConfig {
         println!("Removed {} metadata frames.", amount);
     }
 
-    fn duplicate_metadata(&self, to_duplicate: &Vec<DuplicateMetadata>, data: &mut Vec<Vec<u8>>) {
+    fn duplicate_metadata(&self, to_duplicate: &[DuplicateMetadata], data: &mut Vec<Vec<u8>>) {
         println!("Duplicating metadata. Initial metadata len {}", data.len());
 
         to_duplicate.iter().for_each(|meta| {
@@ -192,6 +202,16 @@ impl EditConfig {
                 meta.offset..meta.offset,
                 std::iter::repeat(source).take(meta.length),
             );
+        });
+    }
+
+    fn change_source_levels(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                vdr_dm_data.change_source_levels(self.min_pq, self.max_pq)
+            }
         });
     }
 }

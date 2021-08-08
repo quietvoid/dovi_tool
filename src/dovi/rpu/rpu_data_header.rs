@@ -114,7 +114,7 @@ impl RpuDataHeader {
         match profile {
             5 => {
                 assert_eq!(self.vdr_rpu_profile, 0);
-                assert_eq!(self.bl_video_full_range_flag, true);
+                assert!(self.bl_video_full_range_flag);
                 assert_eq!(self.nlq_method_idc, None);
                 assert_eq!(self.nlq_num_pivots_minus2, None);
             }

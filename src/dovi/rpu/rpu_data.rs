@@ -173,7 +173,7 @@ impl DoviRpu {
     pub fn compute_crc32(data: &[u8]) -> u32 {
         let crc = Crc::<u32>::new(&CRC_32_MPEG_2);
         let mut digest = crc.digest();
-        digest.update(&data);
+        digest.update(data);
 
         digest.finalize()
     }
