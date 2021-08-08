@@ -233,4 +233,39 @@ impl RpuDataHeader {
             }
         }
     }
+
+    pub fn p8_default() -> RpuDataHeader {
+        RpuDataHeader {
+            rpu_nal_prefix: 25,
+            rpu_type: 2,
+            rpu_format: 18,
+            vdr_rpu_profile: 1,
+            vdr_rpu_level: 0,
+            vdr_seq_info_present_flag: true,
+            chroma_resampling_explicit_filter_flag: false,
+            coefficient_data_type: 0,
+            coefficient_log2_denom: 23,
+            vdr_rpu_normalized_idc: 1,
+            bl_video_full_range_flag: false,
+            bl_bit_depth_minus8: 2,
+            el_bit_depth_minus8: 2,
+            vdr_bit_depth_minus_8: 4,
+            spatial_resampling_filter_flag: false,
+            reserved_zero_3bits: 0,
+            el_spatial_resampling_filter_flag: false,
+            disable_residual_flag: true,
+            vdr_dm_metadata_present_flag: true,
+            use_prev_vdr_rpu_flag: false,
+            prev_vdr_rpu_id: 0,
+            vdr_rpu_id: 0,
+            mapping_color_space: 0,
+            mapping_chroma_format_idc: 0,
+            num_pivots_minus_2: [0, 0, 0],
+            pred_pivot_value: vec![vec![0, 1023], vec![0, 1023], vec![0, 1023]],
+            nlq_method_idc: None,
+            nlq_num_pivots_minus2: None,
+            num_x_partitions_minus1: 0,
+            num_y_partitions_minus1: 0,
+        }
+    }
 }

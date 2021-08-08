@@ -125,7 +125,13 @@ impl DoviRpu {
             }
         }
 
-        self.remaining.iter().for_each(|b| writer.write(*b));
+        if !self.remaining.is_empty() {
+            self.remaining.iter().for_each(|b| writer.write(*b));
+        } else {
+            while !writer.is_aligned() {
+                writer.write(false);
+            }
+        }
 
         let computed_crc32 = DoviRpu::compute_crc32(&writer.as_slice()[1..]);
 

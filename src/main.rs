@@ -9,8 +9,8 @@ use commands::Command;
 
 mod dovi;
 use dovi::{
-    converter::Converter, demuxer::Demuxer, editor::Editor, rpu_extractor::RpuExtractor,
-    rpu_info::RpuInfo, rpu_injector::RpuInjector, Format, RpuOptions,
+    converter::Converter, demuxer::Demuxer, editor::Editor, generator::Generator,
+    rpu_extractor::RpuExtractor, rpu_info::RpuInfo, rpu_injector::RpuInjector, Format, RpuOptions,
 };
 
 #[derive(StructOpt, Debug)]
@@ -76,6 +76,7 @@ fn main() {
             output,
         } => RpuInjector::inject_rpu(input, rpu_in, output),
         Command::Info { input, frame } => RpuInfo::info(input, frame),
+        Command::Generate { json_file, rpu_out } => Generator::generate(json_file, rpu_out),
     }
 }
 

@@ -138,7 +138,11 @@ impl RpuInjector {
     ) -> Result<(), std::io::Error> {
         if let Some(ref mut rpus) = self.rpus {
             let mismatched_length = if frames.len() != rpus.len() {
-                println!("\nWarning: mismatched lengths. video {}, RPU {}", frames.len(), rpus.len());
+                println!(
+                    "\nWarning: mismatched lengths. video {}, RPU {}",
+                    frames.len(),
+                    rpus.len()
+                );
 
                 if rpus.len() < frames.len() {
                     println!("Metadata will be duplicated at the end to match video length\n");

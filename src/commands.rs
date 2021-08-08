@@ -149,4 +149,23 @@ pub enum Command {
         )]
         frame: Option<usize>,
     },
+
+    Generate {
+        #[structopt(
+            name = "json",
+            short = "j",
+            long,
+            help = "Sets the generator config JSON file to use",
+            parse(from_os_str)
+        )]
+        json_file: PathBuf,
+
+        #[structopt(
+            long,
+            short = "o",
+            help = "Generated RPU output file location",
+            parse(from_os_str)
+        )]
+        rpu_out: Option<PathBuf>,
+    },
 }

@@ -1,6 +1,7 @@
 pub mod converter;
 pub mod demuxer;
 pub mod editor;
+pub mod generator;
 pub mod rpu_extractor;
 pub mod rpu_info;
 pub mod rpu_injector;
@@ -119,7 +120,11 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
     } else if count == 0 {
         panic!("No RPU found");
     } else {
-        panic!("Number of valid RPUs different from total");
+        panic!(
+            "Number of valid RPUs different from total: expected {} got {}",
+            count,
+            rpus.len()
+        );
     }
 }
 

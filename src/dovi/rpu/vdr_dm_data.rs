@@ -1,4 +1,6 @@
-use super::{prelude::*, BitVecReader, BitVecWriter, DoviRpu};
+use crate::dovi::generator::GenerateConfig;
+
+use super::{nits_to_pq, prelude::*, BitVecReader, BitVecWriter, DoviRpu};
 
 #[derive(Debug, Default)]
 pub struct VdrDmData {
@@ -34,8 +36,8 @@ pub struct VdrDmData {
     signal_color_space: u8,
     signal_chroma_format: u8,
     signal_full_range_flag: u8,
-    source_min_pq: u16,
-    source_max_pq: u16,
+    pub source_min_pq: u16,
+    pub source_max_pq: u16,
     source_diagonal: u16,
     num_ext_blocks: u64,
     pub(crate) ext_metadata_blocks: Vec<ExtMetadataBlock>,
@@ -70,7 +72,7 @@ pub struct ExtMetadataBlockLevel1 {
 #[derive(Debug, Default)]
 pub struct ExtMetadataBlockLevel2 {
     block_info: BlockInfo,
-    target_max_pq: u16,
+    pub target_max_pq: u16,
     trim_slope: u16,
     trim_offset: u16,
     trim_power: u16,
@@ -278,6 +280,147 @@ impl VdrDmData {
 
         if let Some(v) = max_pq {
             self.source_max_pq = v;
+        }
+    }
+
+    pub fn from_config(config: &GenerateConfig) -> VdrDmData {
+        let mut vdr_dm_data = VdrDmData {
+            affected_dm_metadata_id: 0,
+            current_dm_metadata_id: 0,
+            scene_refresh_flag: 0,
+            ycc_to_rgb_coef0: 9574,
+            ycc_to_rgb_coef1: 0,
+            ycc_to_rgb_coef2: 13802,
+            ycc_to_rgb_coef3: 9574,
+            ycc_to_rgb_coef4: -1540,
+            ycc_to_rgb_coef5: -5348,
+            ycc_to_rgb_coef6: 9574,
+            ycc_to_rgb_coef7: 17610,
+            ycc_to_rgb_coef8: 0,
+            ycc_to_rgb_offset0: 16777216,
+            ycc_to_rgb_offset1: 134217728,
+            ycc_to_rgb_offset2: 134217728,
+            rgb_to_lms_coef0: 7222,
+            rgb_to_lms_coef1: 8771,
+            rgb_to_lms_coef2: 390,
+            rgb_to_lms_coef3: 2654,
+            rgb_to_lms_coef4: 12430,
+            rgb_to_lms_coef5: 1300,
+            rgb_to_lms_coef6: 0,
+            rgb_to_lms_coef7: 422,
+            rgb_to_lms_coef8: 15962,
+            signal_eotf: 65535,
+            signal_eotf_param0: 0,
+            signal_eotf_param1: 0,
+            signal_eotf_param2: 0,
+            signal_bit_depth: 12,
+            signal_color_space: 0,
+            signal_chroma_format: 0,
+            signal_full_range_flag: 1,
+            source_diagonal: 42,
+            ..Default::default()
+        };
+
+        vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
+
+        vdr_dm_data.set_level2_from_target(config.target_nits);
+        vdr_dm_data.set_level5_from_config(&config);
+        vdr_dm_data.set_level6_from_config(&config);
+
+        vdr_dm_data.num_ext_blocks = vdr_dm_data.ext_metadata_blocks.len() as u64;
+
+        vdr_dm_data
+    }
+
+    fn set_level2_from_target(&mut self, target_nits: u16) {
+        let target_max_pq = (nits_to_pq(target_nits) * 4095.0).round() as u16;
+
+        let ext_metadata_block_level2 = ExtMetadataBlockLevel2 {
+            block_info: BlockInfo {
+                ext_block_length: 11,
+                ext_block_level: 2,
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0, 0, 0]),
+            },
+            target_max_pq,
+            trim_slope: 2048,
+            trim_offset: 2048,
+            trim_power: 2048,
+            trim_chroma_weight: 2048,
+            trim_saturation_gain: 2048,
+            ms_weight: 2048,
+        };
+
+        self.ext_metadata_blocks
+            .push(ExtMetadataBlock::Level2(ext_metadata_block_level2));
+    }
+
+    fn set_level5_from_config(&mut self, config: &GenerateConfig) {
+        let (left, right, top, bottom) = if let Some(level5_config) = &config.level5 {
+            (
+                level5_config.active_area_left_offset,
+                level5_config.active_area_right_offset,
+                level5_config.active_area_top_offset,
+                level5_config.active_area_bottom_offset,
+            )
+        } else {
+            (0, 0, 0, 0)
+        };
+
+        let ext_metadata_block_level5 = ExtMetadataBlockLevel5 {
+            block_info: BlockInfo {
+                ext_block_length: 7,
+                ext_block_level: 5,
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0, 0, 0, 0]),
+            },
+            active_area_left_offset: left,
+            active_area_right_offset: right,
+            active_area_top_offset: top,
+            active_area_bottom_offset: bottom,
+        };
+
+        self.ext_metadata_blocks
+            .push(ExtMetadataBlock::Level5(ext_metadata_block_level5))
+    }
+
+    fn set_level6_from_config(&mut self, config: &GenerateConfig) {
+        if let Some(level6_config) = &config.level6 {
+            let mdl_min = level6_config.min_display_mastering_luminance;
+            let mdl_max = level6_config.max_display_mastering_luminance;
+
+            // Adjust source by MDL if not set
+            if mdl_min > 0 && self.source_min_pq == 0 {
+                self.source_min_pq = if mdl_min <= 10 {
+                    7
+                } else if mdl_min == 50 {
+                    62
+                } else {
+                    0
+                };
+            }
+
+            if self.source_max_pq == 0 {
+                self.source_max_pq = match mdl_max {
+                    1000 => 3079,
+                    4000 => 3696,
+                    10000 => 4095,
+                    _ => 3079,
+                };
+            }
+
+            let ext_metadata_block_level6 = ExtMetadataBlockLevel6 {
+                block_info: BlockInfo {
+                    ext_block_length: 8,
+                    ext_block_level: 6,
+                    ..Default::default()
+                },
+                max_display_mastering_luminance: level6_config.max_display_mastering_luminance,
+                min_display_mastering_luminance: level6_config.min_display_mastering_luminance,
+                max_content_light_level: level6_config.max_content_light_level,
+                max_frame_average_light_level: level6_config.max_frame_average_light_level,
+            };
+
+            self.ext_metadata_blocks
+                .push(ExtMetadataBlock::Level6(ext_metadata_block_level6))
         }
     }
 }
