@@ -406,6 +406,26 @@ impl VdrRpuData {
             v[0] = vec![];
         });
     }
+
+    pub fn p8_default() -> VdrRpuData {
+        VdrRpuData {
+            mapping_idc: vec![vec![0], vec![0], vec![0]],
+            mapping_param_pred_flag: vec![vec![false], vec![false], vec![false]],
+            num_mapping_param_predictors: vec![vec![0], vec![0], vec![0]],
+            diff_pred_part_idx_mapping_minus1: vec![vec![0], vec![0], vec![0]],
+            poly_order_minus1: vec![vec![0], vec![0], vec![0]],
+            linear_interp_flag: vec![vec![false], vec![false], vec![false]],
+            pred_linear_interp_value_int: vec![vec![0], vec![0], vec![0]],
+            pred_linear_interp_value: vec![vec![0], vec![0], vec![0]],
+            poly_coef_int: vec![vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            poly_coef: vec![vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            mmr_order_minus1: vec![vec![0], vec![0], vec![0]],
+            mmr_constant_int: vec![vec![0], vec![0], vec![0]],
+            mmr_constant: vec![vec![0], vec![0], vec![0]],
+            mmr_coef_int: vec![vec![vec![]], vec![vec![]], vec![vec![]]],
+            mmr_coef: vec![vec![vec![]], vec![vec![]], vec![vec![]]],
+        }
+    }
 }
 
 impl NlqData {
