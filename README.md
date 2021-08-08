@@ -50,6 +50,12 @@ Prints the parsed RPU data for a specific frame.
 
 * `dovi_tool info -i RPU.bin -f 0`  
 
+#### generate
+Generates a number of identical metadata RPUs
+See documentation: [generator.md](generator.md) or [example](assets/generator_example.json)
+
+* `dovi_tool generate -j assets/generator_example.json --rpu-out RPU_generated.bin`
+
 &nbsp;
 
 Build artifacts can be found in the Github Actions.  
