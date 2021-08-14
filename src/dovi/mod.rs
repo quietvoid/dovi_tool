@@ -1,6 +1,7 @@
 pub mod converter;
 pub mod demuxer;
 pub mod editor;
+pub mod exporter;
 pub mod generator;
 pub mod rpu_extractor;
 pub mod rpu_info;

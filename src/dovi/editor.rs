@@ -87,11 +87,8 @@ impl Editor {
 
         println!("{:#?}", config);
 
-        editor.rpus = if let Some(rpus) = parse_rpu_file(&editor.input) {
-            Some(rpus.into_iter().map(Some).collect())
-        } else {
-            None
-        };
+        editor.rpus =
+            parse_rpu_file(&editor.input).map(|rpus| rpus.into_iter().map(Some).collect());
 
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus);
@@ -262,6 +259,12 @@ impl ActiveArea {
 
                             if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
                                 block.set_offsets(left, right, top, bottom);
+                            } else if let Some(ref mut _dm_data) = rpu.vdr_dm_data {
+                                /*
+                                dm_data.add_level5_metadata(left, right, top, bottom);
+                                println!("{:?}", rpu.write_rpu_data());
+                                std::process::exit(0);
+                                */
                             }
                         });
                 } else {

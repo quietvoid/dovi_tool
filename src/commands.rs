@@ -7,8 +7,8 @@ pub enum Command {
     Demux {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input file to use",
             conflicts_with = "stdin",
             parse(from_os_str)
@@ -22,18 +22,28 @@ pub enum Command {
         )]
         stdin: Option<PathBuf>,
 
-        #[structopt(long, help = "BL output file location", parse(from_os_str))]
+        #[structopt(
+            long,
+            short = "bl",
+            help = "BL output file location",
+            parse(from_os_str)
+        )]
         bl_out: Option<PathBuf>,
 
-        #[structopt(long, help = "EL output file location", parse(from_os_str))]
+        #[structopt(
+            long,
+            short = "el",
+            help = "EL output file location",
+            parse(from_os_str)
+        )]
         el_out: Option<PathBuf>,
     },
 
     ExtractRpu {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input file to use",
             conflicts_with = "stdin",
             parse(from_os_str)
@@ -47,15 +57,20 @@ pub enum Command {
         )]
         stdin: Option<PathBuf>,
 
-        #[structopt(long, help = "RPU output file location", parse(from_os_str))]
+        #[structopt(
+            long,
+            short = "o",
+            help = "RPU output file location",
+            parse(from_os_str)
+        )]
         rpu_out: Option<PathBuf>,
     },
 
     Editor {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input RPU file to use",
             parse(from_os_str)
         )]
@@ -63,8 +78,8 @@ pub enum Command {
 
         #[structopt(
             name = "json",
-            short = "j",
             long,
+            short = "j",
             help = "Sets the edit JSON file to use",
             parse(from_os_str)
         )]
@@ -82,8 +97,8 @@ pub enum Command {
     Convert {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input file to use",
             conflicts_with = "stdin",
             parse(from_os_str)
@@ -98,8 +113,8 @@ pub enum Command {
         stdin: Option<PathBuf>,
 
         #[structopt(
-            short = "o",
             long,
+            short = "o",
             help = "Converted single layer output file location",
             parse(from_os_str)
         )]
@@ -112,8 +127,8 @@ pub enum Command {
     InjectRpu {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input HEVC file to use",
             parse(from_os_str)
         )]
@@ -134,8 +149,8 @@ pub enum Command {
     Info {
         #[structopt(
             name = "input",
-            short = "i",
             long,
+            short = "i",
             help = "Sets the input RPU file to use",
             parse(from_os_str)
         )]
@@ -143,8 +158,8 @@ pub enum Command {
 
         #[structopt(
             name = "frame",
-            short = "f",
             long,
+            short = "f",
             help = "Frame number to show info for"
         )]
         frame: Option<usize>,
@@ -153,8 +168,8 @@ pub enum Command {
     Generate {
         #[structopt(
             name = "json",
-            short = "j",
             long,
+            short = "j",
             help = "Sets the generator config JSON file to use",
             parse(from_os_str)
         )]
@@ -167,5 +182,25 @@ pub enum Command {
             parse(from_os_str)
         )]
         rpu_out: Option<PathBuf>,
+    },
+
+    Export {
+        #[structopt(
+            name = "input",
+            long,
+            short = "i",
+            help = "Sets the input RPU file to use",
+            parse(from_os_str)
+        )]
+        input: PathBuf,
+
+        #[structopt(
+            name = "output",
+            long,
+            short = "o",
+            help = "Output JSON file name",
+            parse(from_os_str)
+        )]
+        output: Option<PathBuf>,
     },
 }

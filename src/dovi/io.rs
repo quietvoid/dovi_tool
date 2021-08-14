@@ -39,41 +39,33 @@ impl DoviWriter {
         single_layer_out: Option<&Path>,
     ) -> DoviWriter {
         let chunk_size = 100_000;
-        let bl_writer = if let Some(bl_out) = bl_out {
-            Some(BufWriter::with_capacity(
+        let bl_writer = bl_out.map(|bl_out| {
+            BufWriter::with_capacity(
                 chunk_size,
-                File::create(bl_out).expect("Can't create file"),
-            ))
-        } else {
-            None
-        };
+                File::create(bl_out).expect("Can't create file for BL"),
+            )
+        });
 
-        let el_writer = if let Some(el_out) = el_out {
-            Some(BufWriter::with_capacity(
+        let el_writer = el_out.map(|el_out| {
+            BufWriter::with_capacity(
                 chunk_size,
-                File::create(el_out).expect("Can't create file"),
-            ))
-        } else {
-            None
-        };
+                File::create(el_out).expect("Can't create file for EL"),
+            )
+        });
 
-        let rpu_writer = if let Some(rpu_out) = rpu_out {
-            Some(BufWriter::with_capacity(
+        let rpu_writer = rpu_out.map(|rpu_out| {
+            BufWriter::with_capacity(
                 chunk_size,
-                File::create(rpu_out).expect("Can't create file"),
-            ))
-        } else {
-            None
-        };
+                File::create(rpu_out).expect("Can't create file for RPU"),
+            )
+        });
 
-        let sl_writer = if let Some(single_layer_out) = single_layer_out {
-            Some(BufWriter::with_capacity(
+        let sl_writer = single_layer_out.map(|single_layer_out| {
+            BufWriter::with_capacity(
                 chunk_size,
-                File::create(single_layer_out).expect("Can't create file"),
-            ))
-        } else {
-            None
-        };
+                File::create(single_layer_out).expect("Can't create file for SL output"),
+            )
+        });
 
         DoviWriter {
             bl_writer,

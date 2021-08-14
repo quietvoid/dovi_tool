@@ -1,5 +1,6 @@
 use super::{BitVecReader, BitVecWriter};
-#[derive(Default, Debug)]
+use serde::Serialize;
+#[derive(Default, Debug, Serialize)]
 pub struct RpuDataHeader {
     pub rpu_nal_prefix: u8,
     pub rpu_type: u8,
@@ -35,9 +36,10 @@ pub struct RpuDataHeader {
 
 impl RpuDataHeader {
     pub fn rpu_data_header(reader: &mut BitVecReader) -> RpuDataHeader {
-        let mut rpu_nal = RpuDataHeader::default();
-
-        rpu_nal.rpu_nal_prefix = reader.get_n(8);
+        let mut rpu_nal = RpuDataHeader {
+            rpu_nal_prefix: reader.get_n(8),
+            ..Default::default()
+        };
 
         if rpu_nal.rpu_nal_prefix == 25 {
             rpu_nal.rpu_type = reader.get_n(6);

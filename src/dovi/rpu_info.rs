@@ -22,7 +22,11 @@ impl RpuInfo {
             if let Some(f) = info.frame {
                 assert!(f < rpus.len());
 
-                println!("{:#?}", rpus[f]);
+                let rpu = &rpus[f];
+
+                if let Ok(rpu_serialized) = serde_json::to_string_pretty(&rpu) {
+                    println!("{}", rpu_serialized);
+                }
             }
         }
     }

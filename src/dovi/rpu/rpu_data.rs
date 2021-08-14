@@ -1,5 +1,7 @@
+use serde::Serialize;
+
 use super::{
-    add_start_code_emulation_prevention_3_byte, rpu_data_header,
+    add_start_code_emulation_prevention_3_byte, bitvec_ser_bits, rpu_data_header,
     vdr_dm_data::{self, ExtMetadataBlockLevel5},
     vdr_rpu_data, BitVecReader, BitVecWriter,
 };
@@ -10,18 +12,26 @@ use rpu_data_header::RpuDataHeader;
 use vdr_dm_data::VdrDmData;
 use vdr_rpu_data::{NlqData, VdrRpuData};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub struct DoviRpu {
     pub dovi_profile: u8,
+
+    #[serde(skip_serializing)]
     pub reader: BitVecReader,
+
     pub header: RpuDataHeader,
     pub vdr_rpu_data: Option<VdrRpuData>,
     pub nlq_data: Option<NlqData>,
     pub vdr_dm_data: Option<VdrDmData>,
+
+    #[serde(serialize_with = "bitvec_ser_bits")]
     pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,
+
+    #[serde(skip_serializing)]
     pub last_byte: u8,
 
+    #[serde(skip_serializing)]
     pub modified: bool,
 }
 

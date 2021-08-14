@@ -1,7 +1,7 @@
-use super::RpuDataHeader;
-use super::{BitVecReader, BitVecWriter};
+use super::{BitVecReader, BitVecWriter, RpuDataHeader};
+use serde::Serialize;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct VdrRpuData {
     mapping_idc: Vec<Vec<u64>>,
     mapping_param_pred_flag: Vec<Vec<bool>>,
@@ -20,7 +20,7 @@ pub struct VdrRpuData {
     mmr_coef: Vec<Vec<Vec<Vec<u64>>>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct NlqData {
     num_nlq_param_predictors: Vec<Vec<u64>>,
     nlq_param_pred_flag: Vec<Vec<bool>>,

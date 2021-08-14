@@ -43,10 +43,10 @@ See documentation: [editor.md](editor.md) or [examples](assets/editor_examples)
 
 All indices start at 0, and are inclusive.  For example, using "0-39" edits the first 40 frames.
 
-* `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json --rpu-out RPU_mode2.bin`
+* `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json -o RPU_mode2.bin`
 
 #### info
-Prints the parsed RPU data for a specific frame.
+Prints the parsed RPU data as JSON for a specific frame.
 
 * `dovi_tool info -i RPU.bin -f 0`  
 
@@ -54,7 +54,12 @@ Prints the parsed RPU data for a specific frame.
 Generates a number of identical metadata RPUs
 See documentation: [generator.md](generator.md) or [example](assets/generator_example.json)
 
-* `dovi_tool generate -j assets/generator_example.json --rpu-out RPU_generated.bin`
+* `dovi_tool generate -j assets/generator_example.json -o RPU_generated.bin`
+
+#### export
+Exports an RPU file to JSON
+
+* `dovi_tool export -i RPU.bin -o RPU_export.json`
 
 &nbsp;
 

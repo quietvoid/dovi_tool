@@ -1,8 +1,9 @@
 use crate::dovi::generator::GenerateConfig;
+use serde::Serialize;
 
-use super::{nits_to_pq, prelude::*, BitVecReader, BitVecWriter, DoviRpu};
+use super::{bitvec_ser_bits, nits_to_pq, prelude::*, BitVecReader, BitVecWriter, DoviRpu};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct VdrDmData {
     affected_dm_metadata_id: u64,
     current_dm_metadata_id: u64,
@@ -43,7 +44,7 @@ pub struct VdrDmData {
     pub(crate) ext_metadata_blocks: Vec<ExtMetadataBlock>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum ExtMetadataBlock {
     Level1(ExtMetadataBlockLevel1),
     Level2(ExtMetadataBlockLevel2),
@@ -54,14 +55,16 @@ pub enum ExtMetadataBlock {
     Reserved(ReservedExtMetadataBlock),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct BlockInfo {
     ext_block_length: u64,
     ext_block_level: u8,
+
+    #[serde(serialize_with = "bitvec_ser_bits")]
     remaining: BitVec<Msb0, u8>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel1 {
     block_info: BlockInfo,
     min_pq: u16,
@@ -69,7 +72,7 @@ pub struct ExtMetadataBlockLevel1 {
     avg_pq: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel2 {
     block_info: BlockInfo,
     pub target_max_pq: u16,
@@ -81,7 +84,7 @@ pub struct ExtMetadataBlockLevel2 {
     ms_weight: i16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel3 {
     block_info: BlockInfo,
     min_pq_offset: u16,
@@ -89,14 +92,14 @@ pub struct ExtMetadataBlockLevel3 {
     avg_pq_offset: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel4 {
     block_info: BlockInfo,
     anchor_pq: u16,
     anchor_power: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel5 {
     block_info: BlockInfo,
     active_area_left_offset: u16,
@@ -105,7 +108,7 @@ pub struct ExtMetadataBlockLevel5 {
     active_area_bottom_offset: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExtMetadataBlockLevel6 {
     block_info: BlockInfo,
     max_display_mastering_luminance: u16,
@@ -114,53 +117,55 @@ pub struct ExtMetadataBlockLevel6 {
     max_frame_average_light_level: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ReservedExtMetadataBlock {
     block_info: BlockInfo,
 }
 
 impl VdrDmData {
     pub fn vdr_dm_data_payload(reader: &mut BitVecReader) -> VdrDmData {
-        let mut data = VdrDmData::default();
-        data.affected_dm_metadata_id = reader.get_ue();
-        data.current_dm_metadata_id = reader.get_ue();
-        data.scene_refresh_flag = reader.get_ue();
+        let mut data = VdrDmData {
+            affected_dm_metadata_id: reader.get_ue(),
+            current_dm_metadata_id: reader.get_ue(),
+            scene_refresh_flag: reader.get_ue(),
 
-        data.ycc_to_rgb_coef0 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef1 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef2 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef3 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef4 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef5 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef6 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef7 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_coef8 = reader.get_n::<u16>(16) as i16;
-        data.ycc_to_rgb_offset0 = reader.get_n(32);
-        data.ycc_to_rgb_offset1 = reader.get_n(32);
-        data.ycc_to_rgb_offset2 = reader.get_n(32);
+            ycc_to_rgb_coef0: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef1: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef2: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef3: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef4: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef5: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef6: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef7: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_coef8: reader.get_n::<u16>(16) as i16,
+            ycc_to_rgb_offset0: reader.get_n(32),
+            ycc_to_rgb_offset1: reader.get_n(32),
+            ycc_to_rgb_offset2: reader.get_n(32),
 
-        data.rgb_to_lms_coef0 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef1 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef2 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef3 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef4 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef5 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef6 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef7 = reader.get_n::<u16>(16) as i16;
-        data.rgb_to_lms_coef8 = reader.get_n::<u16>(16) as i16;
+            rgb_to_lms_coef0: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef1: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef2: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef3: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef4: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef5: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef6: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef7: reader.get_n::<u16>(16) as i16,
+            rgb_to_lms_coef8: reader.get_n::<u16>(16) as i16,
 
-        data.signal_eotf = reader.get_n(16);
-        data.signal_eotf_param0 = reader.get_n(16);
-        data.signal_eotf_param1 = reader.get_n(16);
-        data.signal_eotf_param2 = reader.get_n(32);
-        data.signal_bit_depth = reader.get_n(5);
-        data.signal_color_space = reader.get_n(2);
-        data.signal_chroma_format = reader.get_n(2);
-        data.signal_full_range_flag = reader.get_n(2);
-        data.source_min_pq = reader.get_n(12);
-        data.source_max_pq = reader.get_n(12);
-        data.source_diagonal = reader.get_n(10);
-        data.num_ext_blocks = reader.get_ue();
+            signal_eotf: reader.get_n(16),
+            signal_eotf_param0: reader.get_n(16),
+            signal_eotf_param1: reader.get_n(16),
+            signal_eotf_param2: reader.get_n(32),
+            signal_bit_depth: reader.get_n(5),
+            signal_color_space: reader.get_n(2),
+            signal_chroma_format: reader.get_n(2),
+            signal_full_range_flag: reader.get_n(2),
+            source_min_pq: reader.get_n(12),
+            source_max_pq: reader.get_n(12),
+            source_diagonal: reader.get_n(10),
+            num_ext_blocks: reader.get_ue(),
+            ..Default::default()
+        };
 
         if data.num_ext_blocks > 0 {
             while !reader.is_aligned() {
@@ -324,8 +329,8 @@ impl VdrDmData {
         vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
 
         vdr_dm_data.set_level2_from_target(config.target_nits);
-        vdr_dm_data.set_level5_from_config(&config);
-        vdr_dm_data.set_level6_from_config(&config);
+        vdr_dm_data.set_level5_from_config(config);
+        vdr_dm_data.set_level6_from_config(config);
 
         vdr_dm_data.num_ext_blocks = vdr_dm_data.ext_metadata_blocks.len() as u64;
 
@@ -423,14 +428,36 @@ impl VdrDmData {
                 .push(ExtMetadataBlock::Level6(ext_metadata_block_level6))
         }
     }
+
+    pub fn _add_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
+        let ext_metadata_block_level5 = ExtMetadataBlockLevel5 {
+            block_info: BlockInfo {
+                ext_block_length: 7,
+                ext_block_level: 5,
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 4]),
+            },
+            active_area_left_offset: left,
+            active_area_right_offset: right,
+            active_area_top_offset: top,
+            active_area_bottom_offset: bottom,
+        };
+
+        self.ext_metadata_blocks
+            .push(ExtMetadataBlock::Level5(ext_metadata_block_level5));
+        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
+        self._sort_extension_blocks();
+    }
+
+    fn _sort_extension_blocks(&mut self) {}
 }
 
 impl ExtMetadataBlock {
     pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        let mut block_info = BlockInfo::default();
-
-        block_info.ext_block_length = reader.get_ue();
-        block_info.ext_block_level = reader.get_n(8);
+        let mut block_info = BlockInfo {
+            ext_block_length: reader.get_ue(),
+            ext_block_level: reader.get_n(8),
+            ..Default::default()
+        };
 
         let ext_block_len_bits = 8 * block_info.ext_block_length;
         let mut ext_block_use_bits = 0;
@@ -439,10 +466,12 @@ impl ExtMetadataBlock {
             1 => {
                 assert_eq!(block_info.ext_block_length, 5);
 
-                let mut block = ExtMetadataBlockLevel1::default();
-                block.min_pq = reader.get_n(12);
-                block.max_pq = reader.get_n(12);
-                block.avg_pq = reader.get_n(12);
+                let block = ExtMetadataBlockLevel1 {
+                    min_pq: reader.get_n(12),
+                    max_pq: reader.get_n(12),
+                    avg_pq: reader.get_n(12),
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 36;
 
@@ -451,14 +480,16 @@ impl ExtMetadataBlock {
             2 => {
                 assert_eq!(block_info.ext_block_length, 11);
 
-                let mut block = ExtMetadataBlockLevel2::default();
-                block.target_max_pq = reader.get_n(12);
-                block.trim_slope = reader.get_n(12);
-                block.trim_offset = reader.get_n(12);
-                block.trim_power = reader.get_n(12);
-                block.trim_chroma_weight = reader.get_n(12);
-                block.trim_saturation_gain = reader.get_n(12);
-                block.ms_weight = reader.get_n::<u16>(13) as i16;
+                let block = ExtMetadataBlockLevel2 {
+                    target_max_pq: reader.get_n(12),
+                    trim_slope: reader.get_n(12),
+                    trim_offset: reader.get_n(12),
+                    trim_power: reader.get_n(12),
+                    trim_chroma_weight: reader.get_n(12),
+                    trim_saturation_gain: reader.get_n(12),
+                    ms_weight: reader.get_n::<u16>(13) as i16,
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 85;
 
@@ -467,10 +498,12 @@ impl ExtMetadataBlock {
             3 => {
                 assert_eq!(block_info.ext_block_length, 2);
 
-                let mut block = ExtMetadataBlockLevel3::default();
-                block.min_pq_offset = reader.get_n(12);
-                block.max_pq_offset = reader.get_n(12);
-                block.avg_pq_offset = reader.get_n(12);
+                let block = ExtMetadataBlockLevel3 {
+                    min_pq_offset: reader.get_n(12),
+                    max_pq_offset: reader.get_n(12),
+                    avg_pq_offset: reader.get_n(12),
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 36;
 
@@ -479,9 +512,11 @@ impl ExtMetadataBlock {
             4 => {
                 assert_eq!(block_info.ext_block_length, 3);
 
-                let mut block = ExtMetadataBlockLevel4::default();
-                block.anchor_pq = reader.get_n(12);
-                block.anchor_power = reader.get_n(12);
+                let block = ExtMetadataBlockLevel4 {
+                    anchor_pq: reader.get_n(12),
+                    anchor_power: reader.get_n(12),
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 24;
 
@@ -490,11 +525,13 @@ impl ExtMetadataBlock {
             5 => {
                 assert_eq!(block_info.ext_block_length, 7);
 
-                let mut block = ExtMetadataBlockLevel5::default();
-                block.active_area_left_offset = reader.get_n(13);
-                block.active_area_right_offset = reader.get_n(13);
-                block.active_area_top_offset = reader.get_n(13);
-                block.active_area_bottom_offset = reader.get_n(13);
+                let block = ExtMetadataBlockLevel5 {
+                    active_area_left_offset: reader.get_n(13),
+                    active_area_right_offset: reader.get_n(13),
+                    active_area_top_offset: reader.get_n(13),
+                    active_area_bottom_offset: reader.get_n(13),
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 52;
 
@@ -502,18 +539,21 @@ impl ExtMetadataBlock {
             }
             6 => {
                 assert_eq!(block_info.ext_block_length, 8);
-                let mut block = ExtMetadataBlockLevel6::default();
-
-                block.max_display_mastering_luminance = reader.get_n(16);
-                block.min_display_mastering_luminance = reader.get_n(16);
-                block.max_content_light_level = reader.get_n(16);
-                block.max_frame_average_light_level = reader.get_n(16);
+                let block = ExtMetadataBlockLevel6 {
+                    max_display_mastering_luminance: reader.get_n(16),
+                    min_display_mastering_luminance: reader.get_n(16),
+                    max_content_light_level: reader.get_n(16),
+                    max_frame_average_light_level: reader.get_n(16),
+                    ..Default::default()
+                };
 
                 ext_block_use_bits += 64;
 
                 ExtMetadataBlock::Level6(block)
             }
             _ => {
+                println!("Reserved metadata block found, please open an issue.");
+
                 let block = ReservedExtMetadataBlock::default();
                 ExtMetadataBlock::Reserved(block)
             }

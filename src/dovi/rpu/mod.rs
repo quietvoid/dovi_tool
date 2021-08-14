@@ -4,7 +4,10 @@ mod tests;
 pub(crate) mod vdr_dm_data;
 pub(crate) mod vdr_rpu_data;
 
-use bitvec::prelude;
+use bitvec::{
+    order::Msb0,
+    prelude::{self, BitVec},
+};
 pub(crate) use rpu_data::DoviRpu;
 use rpu_data_header::RpuDataHeader;
 
@@ -12,6 +15,8 @@ use super::{BitVecReader, BitVecWriter};
 use hevc_parser::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
+
+use serde::{ser::Serializer, Serialize};
 
 const ST2084_Y_MAX: f64 = 10000.0;
 const ST2084_M1: f64 = 2610.0 / 16384.0;
@@ -65,4 +70,9 @@ pub fn nits_to_pq(nits: u16) -> f64 {
 
     ((ST2084_C1 + ST2084_C2 * y.powf(ST2084_M1)) / (1.0 + ST2084_C3 * y.powf(ST2084_M1)))
         .powf(ST2084_M2)
+}
+
+pub fn bitvec_ser_bits<S: Serializer>(bitvec: &BitVec<Msb0, u8>, s: S) -> Result<S::Ok, S::Error> {
+    let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
+    bits.serialize(s)
 }

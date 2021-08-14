@@ -15,4 +15,4 @@ bitvec = "0.20.4"
 bitvec_helpers = "0.1.0"
 hevc_parser = "0.1.7"
 serde = { version = "1.0.126", features = ["derive"] }
-serde_json = "1.0.64"
+serde_json = { version = "1.0.64", features = ["preserve_order"] }
