@@ -117,7 +117,7 @@ impl DoviReader {
 
         while let Ok(n) = reader.read(&mut main_buf) {
             let mut read_bytes = n;
-            if read_bytes == 0 {
+            if read_bytes == 0 && end.is_empty() && chunk.is_empty() {
                 break;
             }
 
@@ -172,6 +172,7 @@ impl DoviReader {
 
             if !end.is_empty() {
                 chunk.extend_from_slice(&end);
+                end.clear();
             }
 
             consumed += read_bytes;
@@ -325,10 +326,16 @@ impl DoviReader {
             self.rpu_nals.sort_by_cached_key(|rpu| {
                 let matching_index = frames
                     .iter()
-                    .position(|f| rpu.decoded_index == f.decoded_number as usize)
-                    .unwrap();
+                    .position(|f| rpu.decoded_index == f.decoded_number as usize);
 
-                frames[matching_index].presentation_number
+                if let Some(i) = matching_index {
+                    frames[i].presentation_number
+                } else {
+                    panic!(
+                        "Missing frame/slices for metadata! Decoded index {}",
+                        rpu.decoded_index
+                    );
+                }
             });
 
             // Set presentation number to new index
