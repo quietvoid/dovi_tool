@@ -333,6 +333,7 @@ impl VdrDmData {
         vdr_dm_data.set_level6_from_config(config);
 
         vdr_dm_data.num_ext_blocks = vdr_dm_data.ext_metadata_blocks.len() as u64;
+        vdr_dm_data.sort_extension_blocks();
 
         vdr_dm_data
     }
@@ -344,7 +345,7 @@ impl VdrDmData {
             block_info: BlockInfo {
                 ext_block_length: 11,
                 ext_block_level: 2,
-                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0, 0, 0]),
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 3]),
             },
             target_max_pq,
             trim_slope: 2048,
@@ -375,7 +376,7 @@ impl VdrDmData {
             block_info: BlockInfo {
                 ext_block_length: 7,
                 ext_block_level: 5,
-                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0, 0, 0, 0]),
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 4]),
             },
             active_area_left_offset: left,
             active_area_right_offset: right,
@@ -429,7 +430,7 @@ impl VdrDmData {
         }
     }
 
-    pub fn _add_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
+    pub fn add_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
         let ext_metadata_block_level5 = ExtMetadataBlockLevel5 {
             block_info: BlockInfo {
                 ext_block_length: 7,
@@ -445,10 +446,20 @@ impl VdrDmData {
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level5(ext_metadata_block_level5));
         self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
-        self._sort_extension_blocks();
+        self.sort_extension_blocks();
     }
 
-    fn _sort_extension_blocks(&mut self) {}
+    fn sort_extension_blocks(&mut self) {
+        self.ext_metadata_blocks.sort_by_key(|ext| match ext {
+            ExtMetadataBlock::Level1(b) => (b.block_info.ext_block_level, 0),
+            ExtMetadataBlock::Level2(b) => (b.block_info.ext_block_level, b.target_max_pq),
+            ExtMetadataBlock::Level3(b) => (b.block_info.ext_block_level, 0),
+            ExtMetadataBlock::Level4(b) => (b.block_info.ext_block_level, 0),
+            ExtMetadataBlock::Level5(b) => (b.block_info.ext_block_level, 0),
+            ExtMetadataBlock::Level6(b) => (b.block_info.ext_block_level, 0),
+            ExtMetadataBlock::Reserved(b) => (b.block_info.ext_block_level, 0),
+        })
+    }
 }
 
 impl ExtMetadataBlock {

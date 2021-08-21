@@ -137,7 +137,10 @@ impl DoviRpu {
 
         if !self.remaining.is_empty() {
             self.remaining.iter().for_each(|b| writer.write(*b));
-        } else {
+        }
+
+        // Since we edited, remaining is not accurate
+        if self.modified {
             while !writer.is_aligned() {
                 writer.write(false);
             }

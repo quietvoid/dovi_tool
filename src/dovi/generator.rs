@@ -81,7 +81,7 @@ impl Generator {
             vdr_rpu_data: Some(VdrRpuData::p8_default()),
             nlq_data: None,
             vdr_dm_data: Some(VdrDmData::from_config(config)),
-            last_byte: 80,
+            last_byte: 0x80,
             ..Default::default()
         };
 
@@ -98,7 +98,7 @@ impl Generator {
 
             // Remove 0x7C01
             // For some reason there's an extra byte
-            writer.write_all(&encoded_rpu[2..encoded_rpu.len() - 1])?;
+            writer.write_all(&encoded_rpu[2..])?;
         }
 
         writer.flush()?;

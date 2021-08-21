@@ -5,6 +5,7 @@ The editor expects a JSON config like the example below:
     "mode": int,
     
     // Configuration for active area edits
+    // If no L5 metadata is present in the RPU, L5 metadata is inserted
     "active_area": {
         // Should be set to true when final video has no letterbox bars
         "crop": boolean,
@@ -22,7 +23,9 @@ The editor expects a JSON config like the example below:
 
         // List of edits
         "edits": {
-            // Range of frames (inclusive) to use preset for
+            // All or a specific range of frames (inclusive) to use preset for
+            // Edits before an "all" key can be overriden
+            "all": presetId,
             "0-39": presetId
         }
     },

@@ -243,12 +243,12 @@ fn generated_rpu() {
         vdr_rpu_data: Some(VdrRpuData::p8_default()),
         nlq_data: None,
         vdr_dm_data: Some(vdr_dm_data),
-        last_byte: 80,
+        last_byte: 0x80,
         ..Default::default()
     };
 
     let encoded_rpu = rpu.write_rpu_data();
 
-    let reparsed_rpu = parse_dovi_rpu(&encoded_rpu[2..&encoded_rpu.len() - 1]);
+    let reparsed_rpu = parse_dovi_rpu(&encoded_rpu[2..]);
     assert!(reparsed_rpu.is_ok());
 }

@@ -238,7 +238,13 @@ impl ActiveArea {
             println!("Editing active area offsets...");
 
             edits.iter().for_each(|edit| {
-                let (start, end) = EditConfig::range_string_to_tuple(edit.0);
+                // Allow passing "all" instead of a range
+                let (start, end) = if edit.0.to_lowercase() == "all" {
+                    (0, rpus.len() - 1)
+                } else {
+                    EditConfig::range_string_to_tuple(edit.0)
+                };
+
                 let preset_id = *edit.1;
 
                 if end as usize > rpus.len() {
@@ -250,6 +256,8 @@ impl ActiveArea {
                         .iter_mut()
                         .filter_map(|e| e.as_mut())
                         .for_each(|rpu| {
+                            rpu.modified = true;
+
                             let (left, right, top, bottom) = (
                                 active_area_offsets.left,
                                 active_area_offsets.right,
@@ -259,12 +267,8 @@ impl ActiveArea {
 
                             if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
                                 block.set_offsets(left, right, top, bottom);
-                            } else if let Some(ref mut _dm_data) = rpu.vdr_dm_data {
-                                /*
+                            } else if let Some(ref mut dm_data) = rpu.vdr_dm_data {
                                 dm_data.add_level5_metadata(left, right, top, bottom);
-                                println!("{:?}", rpu.write_rpu_data());
-                                std::process::exit(0);
-                                */
                             }
                         });
                 } else {
