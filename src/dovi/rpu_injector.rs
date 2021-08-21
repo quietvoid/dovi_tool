@@ -9,6 +9,7 @@ use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
 use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -72,7 +73,7 @@ impl RpuInjector {
 
         while let Ok(n) = reader.read(&mut main_buf) {
             let read_bytes = n;
-            if read_bytes == 0 {
+            if read_bytes == 0 && end.is_empty() && chunk.is_empty() {
                 break;
             }
 
@@ -105,6 +106,7 @@ impl RpuInjector {
 
             if !end.is_empty() {
                 chunk.extend_from_slice(&end);
+                end.clear();
             }
 
             consumed += read_bytes;
@@ -165,7 +167,7 @@ impl RpuInjector {
             );
 
             let last_slice_indices: Vec<usize> = frames
-                .iter()
+                .par_iter()
                 .map(|f| {
                     let index = find_last_slice_nal_index(nals, f);
 
@@ -213,7 +215,7 @@ impl RpuInjector {
 
             while let Ok(n) = reader.read(&mut main_buf) {
                 let read_bytes = n;
-                if read_bytes == 0 {
+                if read_bytes == 0 && end.is_empty() && chunk.is_empty() {
                     break;
                 }
 
@@ -291,6 +293,7 @@ impl RpuInjector {
 
                 if !end.is_empty() {
                     chunk.extend_from_slice(&end);
+                    end.clear()
                 }
 
                 consumed += read_bytes;

@@ -265,7 +265,7 @@ impl DoviReader {
                                 if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                                     // RPU for x265, remove 0x7C01
                                     self.rpu_nals.push(RpuNal {
-                                        decoded_index: self.rpu_nals.len(),
+                                        decoded_index: nal.decoded_frame_index as usize,
                                         presentation_number: 0,
                                         data: modified_data[2..].to_vec(),
                                     });
@@ -278,7 +278,7 @@ impl DoviReader {
                     } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                         // RPU for x265, remove 0x7C01
                         self.rpu_nals.push(RpuNal {
-                            decoded_index: self.rpu_nals.len(),
+                            decoded_index: nal.decoded_frame_index as usize,
                             presentation_number: 0,
                             data: chunk[nal.start + 2..nal.end].to_vec(),
                         });
@@ -321,6 +321,10 @@ impl DoviReader {
 
             print!("Reordering metadata... ");
             stdout().flush().ok();
+
+            // Remove duplicates because there should only be one RPU NALU per frame
+            self.rpu_nals
+                .dedup_by(|a, b| a.decoded_index == b.decoded_index);
 
             // Sort by matching frame POC
             self.rpu_nals.sort_by_cached_key(|rpu| {
