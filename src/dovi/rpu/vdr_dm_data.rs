@@ -479,6 +479,10 @@ impl VdrDmData {
 
         self.sort_extension_blocks();
     }
+
+    pub fn set_scene_cut(&mut self, is_scene_cut: bool) {
+        self.scene_refresh_flag = is_scene_cut as u64;
+    }
 }
 
 impl ExtMetadataBlock {

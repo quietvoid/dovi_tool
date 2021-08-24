@@ -86,6 +86,7 @@ impl Generator {
         println!("Generating metadata...");
 
         let mut l1_meta: Option<Vec<Level1Metadata>> = None;
+        let mut scene_cuts: Vec<usize> = Vec::new();
 
         if let Some(path) = &self.hdr10plus_path {
             let mut s = String::new();
@@ -108,6 +109,17 @@ impl Generator {
 
                                 let max_rgb =
                                     maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
+
+                                let scene_frame_index =
+                                    e.get("SceneFrameIndex").unwrap().as_u64().unwrap() as usize;
+
+                                if scene_frame_index == 0 {
+                                    let sequence_frame_index =
+                                        e.get("SequenceFrameIndex").unwrap().as_u64().unwrap()
+                                            as usize;
+
+                                    scene_cuts.push(sequence_frame_index);
+                                }
 
                                 Level1Metadata {
                                     min_pq: 0,
@@ -155,6 +167,10 @@ impl Generator {
                 if let Some(meta) = &l1_list.get(i) {
                     if let Some(dm_meta) = &mut rpu.vdr_dm_data {
                         dm_meta.add_level1_metadata(meta.min_pq, meta.max_pq, meta.avg_pq);
+
+                        if scene_cuts.contains(&i) {
+                            dm_meta.set_scene_cut(true);
+                        }
                     }
                 }
 
