@@ -22,7 +22,7 @@ pub struct Generator {
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct GenerateConfig {
     pub length: u64,
-    pub target_nits: u16,
+    pub target_nits: Option<u16>,
 
     #[serde(default)]
     pub source_min_pq: Option<u16>,
@@ -30,6 +30,7 @@ pub struct GenerateConfig {
     #[serde(default)]
     pub source_max_pq: Option<u16>,
 
+    pub level2: Option<Vec<Level2Metadata>>,
     pub level5: Option<Level5Metadata>,
     pub level6: Option<Level6Metadata>,
 }
@@ -38,6 +39,24 @@ pub struct Level1Metadata {
     pub min_pq: u16,
     pub max_pq: u16,
     pub avg_pq: u16,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Level2Metadata {
+    pub target_nits: u16,
+
+    #[serde(default = "default_trim")]
+    pub trim_slope: u16,
+    #[serde(default = "default_trim")]
+    pub trim_offset: u16,
+    #[serde(default = "default_trim")]
+    pub trim_power: u16,
+    #[serde(default = "default_trim")]
+    pub trim_chroma_weight: u16,
+    #[serde(default = "default_trim")]
+    pub trim_saturation_gain: u16,
+    #[serde(default = "default_trim_neg")]
+    pub ms_weight: i16,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -85,59 +104,7 @@ impl Generator {
     fn execute(&self, config: &GenerateConfig) -> Result<(), std::io::Error> {
         println!("Generating metadata...");
 
-        let mut l1_meta: Option<Vec<Level1Metadata>> = None;
-        let mut scene_cuts: Vec<usize> = Vec::new();
-
-        if let Some(path) = &self.hdr10plus_path {
-            let mut s = String::new();
-            File::open(path).unwrap().read_to_string(&mut s).unwrap();
-
-            let hdr10plus: Value = serde_json::from_str(&s).unwrap();
-
-            if let Some(json) = hdr10plus.as_object() {
-                if let Some(scene_info) = json.get("SceneInfo") {
-                    if let Some(list) = scene_info.as_array() {
-                        let info_list = list
-                            .iter()
-                            .filter_map(|e| e.as_object())
-                            .map(|e| {
-                                let lum_v = e.get("LuminanceParameters").unwrap();
-                                let lum = lum_v.as_object().unwrap();
-
-                                let avg_rgb = lum.get("AverageRGB").unwrap().as_u64().unwrap();
-                                let maxscl = lum.get("MaxScl").unwrap().as_array().unwrap();
-
-                                let max_rgb =
-                                    maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
-
-                                let scene_frame_index =
-                                    e.get("SceneFrameIndex").unwrap().as_u64().unwrap() as usize;
-
-                                if scene_frame_index == 0 {
-                                    let sequence_frame_index =
-                                        e.get("SequenceFrameIndex").unwrap().as_u64().unwrap()
-                                            as usize;
-
-                                    scene_cuts.push(sequence_frame_index);
-                                }
-
-                                Level1Metadata {
-                                    min_pq: 0,
-                                    max_pq: (nits_to_pq((max_rgb as f64 / 10.0).round() as u16)
-                                        * 4095.0)
-                                        .round() as u16,
-                                    avg_pq: (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16)
-                                        * 4095.0)
-                                        .round() as u16,
-                                }
-                            })
-                            .collect();
-
-                        l1_meta = Some(info_list)
-                    }
-                }
-            }
-        }
+        let (l1_meta, scene_cuts) = parse_hdr10plus_for_l1(&self.hdr10plus_path);
 
         println!("Writing RPU file...");
         let mut writer = BufWriter::with_capacity(
@@ -190,4 +157,70 @@ impl Generator {
 
         Ok(())
     }
+}
+
+fn parse_hdr10plus_for_l1(
+    hdr10plus_path: &Option<PathBuf>,
+) -> (Option<Vec<Level1Metadata>>, Vec<usize>) {
+    let mut l1_meta = None;
+    let mut scene_cuts: Vec<usize> = Vec::new();
+
+    if let Some(path) = hdr10plus_path {
+        let mut s = String::new();
+        File::open(path).unwrap().read_to_string(&mut s).unwrap();
+
+        let hdr10plus: Value = serde_json::from_str(&s).unwrap();
+
+        if let Some(json) = hdr10plus.as_object() {
+            if let Some(scene_info) = json.get("SceneInfo") {
+                if let Some(list) = scene_info.as_array() {
+                    let info_list = list
+                        .iter()
+                        .filter_map(|e| e.as_object())
+                        .map(|e| {
+                            let lum_v = e.get("LuminanceParameters").unwrap();
+                            let lum = lum_v.as_object().unwrap();
+
+                            let avg_rgb = lum.get("AverageRGB").unwrap().as_u64().unwrap();
+                            let maxscl = lum.get("MaxScl").unwrap().as_array().unwrap();
+
+                            let max_rgb = maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
+
+                            let scene_frame_index =
+                                e.get("SceneFrameIndex").unwrap().as_u64().unwrap() as usize;
+
+                            if scene_frame_index == 0 {
+                                let sequence_frame_index =
+                                    e.get("SequenceFrameIndex").unwrap().as_u64().unwrap() as usize;
+
+                                scene_cuts.push(sequence_frame_index);
+                            }
+
+                            Level1Metadata {
+                                min_pq: 0,
+                                max_pq: (nits_to_pq((max_rgb as f64 / 10.0).round() as u16)
+                                    * 4095.0)
+                                    .round() as u16,
+                                avg_pq: (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16)
+                                    * 4095.0)
+                                    .round() as u16,
+                            }
+                        })
+                        .collect();
+
+                    l1_meta = Some(info_list)
+                }
+            }
+        }
+    }
+
+    (l1_meta, scene_cuts)
+}
+
+fn default_trim() -> u16 {
+    2048
+}
+
+fn default_trim_neg() -> i16 {
+    2048
 }

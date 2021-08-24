@@ -1,6 +1,27 @@
 {
     "length": 1000,
-    "target_nits": 1000,
+    "level2": [
+        {
+            "target_nits": 100
+        },
+        {
+            "target_nits": 600
+        },
+        {
+            "target_nits": 1000,
+            "trim_power": 2096,
+            "trim_saturation_gain": 2128
+        },
+        {
+            "target_nits": 2000,
+            "trim_slope": 2048,
+            "trim_offset": 2048,
+            "trim_power": 2048,
+            "trim_chroma_weight": 2048,
+            "trim_saturation_gain": 2048,
+            "ms_weight": 2048
+        }
+    ],
     "level6": {
         "max_display_mastering_luminance": 1000,
         "min_display_mastering_luminance": 1,

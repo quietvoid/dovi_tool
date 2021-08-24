@@ -328,7 +328,7 @@ impl VdrDmData {
 
         vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
 
-        vdr_dm_data.set_level2_from_target(config.target_nits);
+        vdr_dm_data.set_level2_from_config(config);
         vdr_dm_data.set_level5_from_config(config);
         vdr_dm_data.set_level6_from_config(config);
 
@@ -338,7 +338,16 @@ impl VdrDmData {
         vdr_dm_data
     }
 
-    fn set_level2_from_target(&mut self, target_nits: u16) {
+    fn add_level2_metadata(
+        &mut self,
+        target_nits: u16,
+        trim_slope: u16,
+        trim_offset: u16,
+        trim_power: u16,
+        trim_chroma_weight: u16,
+        trim_saturation_gain: u16,
+        ms_weight: i16,
+    ) {
         let target_max_pq = (nits_to_pq(target_nits) * 4095.0).round() as u16;
 
         let ext_metadata_block_level2 = ExtMetadataBlockLevel2 {
@@ -348,16 +357,35 @@ impl VdrDmData {
                 remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 3]),
             },
             target_max_pq,
-            trim_slope: 2048,
-            trim_offset: 2048,
-            trim_power: 2048,
-            trim_chroma_weight: 2048,
-            trim_saturation_gain: 2048,
-            ms_weight: 2048,
+            trim_slope,
+            trim_offset,
+            trim_power,
+            trim_chroma_weight,
+            trim_saturation_gain,
+            ms_weight,
         };
 
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level2(ext_metadata_block_level2));
+    }
+
+    fn set_level2_from_config(&mut self, config: &GenerateConfig) {
+        // Either single default target or multiple
+        if let Some(target_nits) = config.target_nits {
+            self.add_level2_metadata(target_nits, 2048, 2048, 2048, 2048, 2048, 2048);
+        } else if let Some(l2_targets) = &config.level2 {
+            for l2 in l2_targets {
+                self.add_level2_metadata(
+                    l2.target_nits,
+                    l2.trim_slope,
+                    l2.trim_offset,
+                    l2.trim_power,
+                    l2.trim_chroma_weight,
+                    l2.trim_saturation_gain,
+                    l2.ms_weight,
+                );
+            }
+        }
     }
 
     fn set_level5_from_config(&mut self, config: &GenerateConfig) {
