@@ -205,7 +205,7 @@ fn generated_rpu() {
 
     let config = GenerateConfig {
         length: 1000,
-        target_nits: 600,
+        target_nits: Some(600),
         source_min_pq: None,
         source_max_pq: None,
         level5: None,
@@ -215,6 +215,7 @@ fn generated_rpu() {
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
         }),
+        ..Default::default()
     };
 
     let vdr_dm_data = VdrDmData::from_config(&config);

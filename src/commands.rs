@@ -182,6 +182,13 @@ pub enum Command {
             parse(from_os_str)
         )]
         rpu_out: Option<PathBuf>,
+
+        #[structopt(
+            long,
+            help = "HDR10+ JSON file to generate from (experimental)",
+            parse(from_os_str)
+        )]
+        hdr10plus_json: Option<PathBuf>,
     },
 
     Export {
