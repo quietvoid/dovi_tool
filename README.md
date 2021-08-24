@@ -54,6 +54,8 @@ Prints the parsed RPU data as JSON for a specific frame.
 Generates a number of identical metadata RPUs
 See documentation: [generator.md](generator.md) or [example](assets/generator_example.json)
 
+Can use existing HDR10+ metadata JSON file with `--hdr10plus-json` to fill L1 metadata (experimental)
+
 * `dovi_tool generate -j assets/generator_example.json -o RPU_generated.bin`
 
 #### export
