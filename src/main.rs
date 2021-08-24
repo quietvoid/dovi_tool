@@ -77,7 +77,11 @@ fn main() {
             output,
         } => RpuInjector::inject_rpu(input, rpu_in, output),
         Command::Info { input, frame } => RpuInfo::info(input, frame),
-        Command::Generate { json_file, rpu_out } => Generator::generate(json_file, rpu_out),
+        Command::Generate {
+            json_file,
+            rpu_out,
+            hdr10plus_json,
+        } => Generator::generate(json_file, rpu_out, hdr10plus_json),
         Command::Export { input, output } => Exporter::export(input, output),
     }
 }

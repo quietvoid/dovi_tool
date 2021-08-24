@@ -460,6 +460,25 @@ impl VdrDmData {
             ExtMetadataBlock::Reserved(b) => (b.block_info.ext_block_level, 0),
         })
     }
+
+    pub fn add_level1_metadata(&mut self, min_pq: u16, max_pq: u16, avg_pq: u16) {
+        let ext_metadata_block_level1 = ExtMetadataBlockLevel1 {
+            block_info: BlockInfo {
+                ext_block_length: 5,
+                ext_block_level: 1,
+                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 4]),
+            },
+            min_pq,
+            max_pq,
+            avg_pq,
+        };
+
+        self.ext_metadata_blocks
+            .push(ExtMetadataBlock::Level1(ext_metadata_block_level1));
+        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
+
+        self.sort_extension_blocks();
+    }
 }
 
 impl ExtMetadataBlock {

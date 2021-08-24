@@ -1,6 +1,6 @@
 {
     "length": 1000,
-    "target_nits": 600,
+    "target_nits": 1000,
     "level6": {
         "max_display_mastering_luminance": 1000,
         "min_display_mastering_luminance": 1,
