@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::dovi::rpu::nits_to_pq;
 use crate::dovi::OUT_NAL_HEADER;
@@ -13,10 +13,13 @@ use super::rpu::{
     rpu_data_header::RpuDataHeader, vdr_dm_data::VdrDmData, vdr_rpu_data::VdrRpuData,
 };
 
+use super::CmXmlParser;
+
 pub struct Generator {
-    json_path: PathBuf,
+    json_path: Option<PathBuf>,
     rpu_out: PathBuf,
     hdr10plus_path: Option<PathBuf>,
+    xml_path: Option<PathBuf>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -35,13 +38,14 @@ pub struct GenerateConfig {
     pub level6: Option<Level6Metadata>,
 }
 
+#[derive(Default, Debug, Clone)]
 pub struct Level1Metadata {
     pub min_pq: u16,
     pub max_pq: u16,
     pub avg_pq: u16,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Level2Metadata {
     pub target_nits: u16,
 
@@ -59,6 +63,13 @@ pub struct Level2Metadata {
     pub ms_weight: i16,
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct Level3Metadata {
+    pub min_pq_offset: u16,
+    pub max_pq_offset: u16,
+    pub avg_pq_offset: u16,
+}
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Level5Metadata {
     pub active_area_left_offset: u16,
@@ -67,7 +78,7 @@ pub struct Level5Metadata {
     pub active_area_bottom_offset: u16,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Level6Metadata {
     pub max_display_mastering_luminance: u16,
     pub min_display_mastering_luminance: u16,
@@ -76,7 +87,12 @@ pub struct Level6Metadata {
 }
 
 impl Generator {
-    pub fn generate(json_path: PathBuf, rpu_out: Option<PathBuf>, hdr10plus_path: Option<PathBuf>) {
+    pub fn generate(
+        json_path: Option<PathBuf>,
+        rpu_out: Option<PathBuf>,
+        hdr10plus_path: Option<PathBuf>,
+        xml_path: Option<PathBuf>,
+    ) {
         let out_path = if let Some(out_path) = rpu_out {
             out_path
         } else {
@@ -87,26 +103,32 @@ impl Generator {
             json_path,
             rpu_out: out_path,
             hdr10plus_path,
+            xml_path,
         };
 
-        let json_file = File::open(&generator.json_path).unwrap();
-        let config: GenerateConfig = serde_json::from_reader(&json_file).unwrap();
+        println!("Generating metadata...");
 
-        println!("{:#?}", config);
+        if let Some(json_path) = &generator.json_path {
+            let json_file = File::open(json_path).unwrap();
+            let config: GenerateConfig = serde_json::from_reader(&json_file).unwrap();
 
-        if let Err(res) = generator.execute(&config) {
-            panic!("{:?}", res);
+            println!("{:#?}", config);
+
+            if let Err(res) = generator.execute(&config) {
+                panic!("{:?}", res);
+            }
+        } else if let Some(xml_path) = &generator.xml_path {
+            if let Err(res) = generator.generate_from_xml(xml_path) {
+                panic!("{:?}", res);
+            }
         }
 
         println!("Done.")
     }
 
     fn execute(&self, config: &GenerateConfig) -> Result<(), std::io::Error> {
-        println!("Generating metadata...");
-
         let (l1_meta, scene_cuts) = parse_hdr10plus_for_l1(&self.hdr10plus_path);
 
-        println!("Writing RPU file...");
         let mut writer = BufWriter::with_capacity(
             100_000,
             File::create(&self.rpu_out).expect("Can't create file"),
@@ -149,9 +171,104 @@ impl Generator {
             writer.write_all(OUT_NAL_HEADER)?;
 
             // Remove 0x7C01
-            // For some reason there's an extra byte
             writer.write_all(&encoded_rpu[2..])?;
         }
+
+        println!("Generated metadata for {} frames", length);
+
+        writer.flush()?;
+
+        Ok(())
+    }
+
+    fn generate_from_xml(&self, xml_path: &Path) -> Result<(), std::io::Error> {
+        let mut s = String::new();
+        File::open(xml_path)
+            .unwrap()
+            .read_to_string(&mut s)
+            .unwrap();
+
+        let parser = CmXmlParser::new(s);
+
+        let length = parser.get_video_length();
+        let level6 = parser.get_hdr10_metadata();
+
+        let config = GenerateConfig {
+            length: 0,
+            level6: Some(level6.clone()),
+            ..Default::default()
+        };
+
+        let mut writer = BufWriter::with_capacity(
+            100_000,
+            File::create(&self.rpu_out).expect("Can't create file"),
+        );
+
+        let shots = parser.get_shots();
+
+        for shot in shots {
+            let end = shot.duration;
+
+            for i in 0..end {
+                let mut rpu = DoviRpu {
+                    dovi_profile: 8,
+                    modified: true,
+                    header: RpuDataHeader::p8_default(),
+                    vdr_rpu_data: Some(VdrRpuData::p8_default()),
+                    nlq_data: None,
+                    vdr_dm_data: Some(VdrDmData::from_config(&config)),
+                    last_byte: 0x80,
+                    ..Default::default()
+                };
+
+                if let Some(dm_meta) = &mut rpu.vdr_dm_data {
+                    if let Some(l1_list) = &shot.level1 {
+                        if let Some(meta) = l1_list.get(i) {
+                            dm_meta.add_level1_metadata(meta.min_pq, meta.max_pq, meta.avg_pq);
+
+                            if i == 0 {
+                                dm_meta.set_scene_cut(true);
+                            }
+                        }
+                    }
+
+                    if let Some(l2_list) = &shot.level2 {
+                        if let Some(meta) = l2_list.get(i) {
+                            for l2 in meta {
+                                dm_meta.add_level2_metadata(
+                                    l2.target_nits,
+                                    l2.trim_slope,
+                                    l2.trim_offset,
+                                    l2.trim_power,
+                                    l2.trim_chroma_weight,
+                                    l2.trim_saturation_gain,
+                                    l2.ms_weight,
+                                )
+                            }
+                        }
+                    }
+
+                    if let Some(l3_list) = &shot.level3 {
+                        if let Some(meta) = l3_list.get(i) {
+                            dm_meta.add_level3_metadata(
+                                meta.min_pq_offset,
+                                meta.max_pq_offset,
+                                meta.avg_pq_offset,
+                            );
+                        }
+                    }
+                }
+
+                let encoded_rpu = rpu.write_rpu_data();
+
+                writer.write_all(OUT_NAL_HEADER)?;
+
+                // Remove 0x7C01
+                writer.write_all(&encoded_rpu[2..])?;
+            }
+        }
+
+        println!("Generated metadata for {} frames", length);
 
         writer.flush()?;
 

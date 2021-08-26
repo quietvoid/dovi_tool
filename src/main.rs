@@ -81,7 +81,8 @@ fn main() {
             json_file,
             rpu_out,
             hdr10plus_json,
-        } => Generator::generate(json_file, rpu_out, hdr10plus_json),
+            xml,
+        } => Generator::generate(json_file, rpu_out, hdr10plus_json, xml),
         Command::Export { input, output } => Exporter::export(input, output),
     }
 }

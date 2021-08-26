@@ -9,6 +9,7 @@ pub mod rpu_injector;
 
 mod io;
 mod rpu;
+mod xml;
 
 use hevc_parser::{
     hevc::{Frame, NAL_AUD},
@@ -23,6 +24,8 @@ use std::{fs::File, io::BufWriter, path::Path};
 use super::bitvec_reader::BitVecReader;
 use super::bitvec_writer::BitVecWriter;
 use super::input_format;
+
+use xml::CmXmlParser;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
