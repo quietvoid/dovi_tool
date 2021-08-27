@@ -171,9 +171,10 @@ pub enum Command {
             long,
             short = "j",
             help = "Sets the generator config JSON file to use",
+            conflicts_with = "xml",
             parse(from_os_str)
         )]
-        json_file: PathBuf,
+        json_file: Option<PathBuf>,
 
         #[structopt(
             long,
@@ -189,6 +190,15 @@ pub enum Command {
             parse(from_os_str)
         )]
         hdr10plus_json: Option<PathBuf>,
+
+        #[structopt(
+            short = "xml",
+            long,
+            help = "XML metadata file to generate from (experimental)",
+            conflicts_with = "json_file",
+            parse(from_os_str)
+        )]
+        xml: Option<PathBuf>,
     },
 
     Export {
