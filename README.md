@@ -33,7 +33,7 @@
 &nbsp;
 * #### editor
     Allows editing a binary RPU according to a JSON config.  
-    See documentation: [editor.md](editor.md) or [examples](assets/editor_examples).
+    See documentation: [editor.md](editor.md) or [examples](assets/editor_examples).  
     All indices start at 0, and are inclusive.  For example, using "0-39" edits the first 40 frames.
     * Example: `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json -o RPU_mode2.bin`  
 &nbsp;
