@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["quietvoid"]
 edition = "2018"
 license = "MIT"
