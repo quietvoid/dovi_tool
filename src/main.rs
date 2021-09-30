@@ -2,7 +2,8 @@ use regex::Regex;
 use std::path::Path;
 use structopt::StructOpt;
 
-use bitvec_helpers::{bitvec_reader, bitvec_writer};
+use anyhow::{bail, Result};
+use bitvec_helpers::bitvec_writer;
 
 mod commands;
 use commands::Command;
@@ -36,7 +37,7 @@ struct Opt {
     cmd: Command,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let opt = Opt::from_args();
 
     let mut rpu_options = RpuOptions {
@@ -45,7 +46,7 @@ fn main() {
         discard_el: false,
     };
 
-    match opt.cmd {
+    let res = match opt.cmd {
         Command::Demux {
             input,
             stdin,
@@ -84,10 +85,16 @@ fn main() {
             xml,
         } => Generator::generate(json_file, rpu_out, hdr10plus_json, xml),
         Command::Export { input, output } => Exporter::export(input, output),
+    };
+
+    if let Err(e) = res {
+        panic!("{:?}", e);
     }
+
+    Ok(())
 }
 
-pub fn input_format(input: &Path) -> Result<Format, &str> {
+pub fn input_format(input: &Path) -> Result<Format> {
     let regex = Regex::new(r"\.(hevc|.?265|mkv)").unwrap();
     let file_name = match input.file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
@@ -103,10 +110,10 @@ pub fn input_format(input: &Path) -> Result<Format, &str> {
             Ok(Format::Raw)
         }
     } else if file_name.is_empty() {
-        Err("Missing input.")
+        bail!("Missing input.")
     } else if !input.is_file() {
-        Err("Input file doesn't exist.")
+        bail!("Input file doesn't exist.")
     } else {
-        Err("Invalid input file type.")
+        bail!("Invalid input file type.")
     }
 }

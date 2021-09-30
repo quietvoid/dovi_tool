@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-
+use anyhow::{bail, Result};
 use indicatif::ProgressBar;
+use std::path::PathBuf;
 
 use super::{input_format, io, Format, RpuOptions};
 
@@ -29,7 +29,7 @@ impl Demuxer {
         bl_out: Option<PathBuf>,
         el_out: Option<PathBuf>,
         options: RpuOptions,
-    ) {
+    ) -> Result<()> {
         let input = match input {
             Some(input) => input,
             None => match stdin {
@@ -38,41 +38,35 @@ impl Demuxer {
             },
         };
 
-        match input_format(&input) {
-            Ok(format) => {
-                let bl_out = match bl_out {
-                    Some(path) => path,
-                    None => PathBuf::from("BL.hevc"),
-                };
+        let format = input_format(&input)?;
 
-                let el_out = match el_out {
-                    Some(path) => path,
-                    None => PathBuf::from("EL.hevc"),
-                };
+        let bl_out = match bl_out {
+            Some(path) => path,
+            None => PathBuf::from("BL.hevc"),
+        };
 
-                let demuxer = Demuxer::new(format, input, bl_out, el_out);
-                demuxer.process_input(options);
-            }
-            Err(msg) => println!("{}", msg),
-        }
+        let el_out = match el_out {
+            Some(path) => path,
+            None => PathBuf::from("EL.hevc"),
+        };
+
+        let demuxer = Demuxer::new(format, input, bl_out, el_out);
+        demuxer.process_input(options)
     }
 
-    fn process_input(&self, options: RpuOptions) {
+    fn process_input(&self, options: RpuOptions) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input);
 
         match self.format {
-            Format::Matroska => panic!("unsupported"),
+            Format::Matroska => bail!("unsupported"),
             _ => self.demux_raw_hevc(Some(&pb), options),
-        };
+        }
     }
 
-    fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) {
+    fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) -> Result<()> {
         let mut dovi_reader = DoviReader::new(options);
         let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None, None);
 
-        match dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer) {
-            Ok(_) => (),
-            Err(e) => panic!("{}", e),
-        }
+        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer)
     }
 }

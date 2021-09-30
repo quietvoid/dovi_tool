@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{
-    encode_rpus, parse_rpu_file, rpu::vdr_dm_data::ExtMetadataBlockLevel5, write_rpu_file, DoviRpu,
-};
+use anyhow::{bail, ensure, Result};
+use serde::{Deserialize, Serialize};
+
+use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
 
 pub struct Editor {
     input: PathBuf,
@@ -64,7 +64,7 @@ pub struct DuplicateMetadata {
 }
 
 impl Editor {
-    pub fn edit(input: PathBuf, json_path: PathBuf, rpu_out: Option<PathBuf>) {
+    pub fn edit(input: PathBuf, json_path: PathBuf, rpu_out: Option<PathBuf>) -> Result<()> {
         let out_path = if let Some(out_path) = rpu_out {
             out_path
         } else {
@@ -88,10 +88,10 @@ impl Editor {
         println!("{:#?}", config);
 
         editor.rpus =
-            parse_rpu_file(&editor.input).map(|rpus| rpus.into_iter().map(Some).collect());
+            parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());
 
         if let Some(ref mut rpus) = editor.rpus {
-            config.execute(rpus);
+            config.execute(rpus)?;
 
             let mut data = encode_rpus(rpus);
 
@@ -101,48 +101,53 @@ impl Editor {
             }
 
             if let Some(to_duplicate) = &config.duplicate {
-                config.duplicate_metadata(to_duplicate, &mut data);
+                config.duplicate_metadata(to_duplicate, &mut data)?;
             }
 
             println!("Final metadata length: {}", data.len());
 
-            match write_rpu_file(&editor.rpu_out, data) {
-                Ok(_) => (),
-                Err(e) => panic!("{:?}", e),
-            }
+            write_rpu_file(&editor.rpu_out, data)?;
         }
+
+        Ok(())
     }
 }
 
 impl EditConfig {
-    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         // Drop metadata frames
         if let Some(ranges) = &self.remove {
-            self.remove_frames(ranges, rpus);
+            self.remove_frames(ranges, rpus)?;
         }
 
         // Convert with mode
         if self.mode > 0 {
-            self.convert_with_mode(rpus);
+            self.convert_with_mode(rpus)?;
         }
 
         if let Some(active_area) = &self.active_area {
-            active_area.execute(rpus);
+            active_area.execute(rpus)?;
         }
 
         if self.min_pq.is_some() || self.max_pq.is_some() {
             self.change_source_levels(rpus);
         }
+
+        Ok(())
     }
 
-    fn convert_with_mode(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn convert_with_mode(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         println!("Converting with mode {}...", self.mode);
-        rpus.iter_mut()
-            .filter_map(|e| e.as_mut())
-            .for_each(|rpu| rpu.convert_with_mode(self.mode));
+        let list = rpus.iter_mut().filter_map(|e| e.as_mut());
+
+        for rpu in list {
+            rpu.convert_with_mode(self.mode)?;
+        }
+
+        Ok(())
     }
 
-    fn range_string_to_tuple(range: &str) -> (usize, usize) {
+    fn range_string_to_tuple(range: &str) -> Result<(usize, usize)> {
         let mut result = (0, 0);
 
         if range.contains('-') {
@@ -160,46 +165,62 @@ impl EditConfig {
                 }
             }
 
-            result
+            Ok(result)
         } else {
-            panic!("Invalid edit range");
+            bail!("Invalid edit range")
         }
     }
 
-    fn remove_frames(&self, ranges: &[String], rpus: &mut Vec<Option<DoviRpu>>) {
+    fn remove_frames(&self, ranges: &[String], rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         let mut amount = 0;
 
-        ranges.iter().for_each(|range| {
+        for range in ranges {
             if range.contains('-') {
-                let (start, end) = EditConfig::range_string_to_tuple(range);
-                assert!(end < rpus.len());
+                let (start, end) = EditConfig::range_string_to_tuple(range)?;
+                ensure!(end < rpus.len(), "invalid end range {}", end);
 
                 amount += end - start + 1;
                 rpus[start..=end].iter_mut().for_each(|e| *e = None);
             } else if let Ok(index) = range.parse::<usize>() {
-                assert!(index < rpus.len());
+                ensure!(
+                    index < rpus.len(),
+                    "invalid frame index to remove {}",
+                    index
+                );
 
                 amount += 1;
 
                 rpus[index] = None;
             }
-        });
+        }
 
         println!("Removed {} metadata frames.", amount);
+
+        Ok(())
     }
 
-    fn duplicate_metadata(&self, to_duplicate: &[DuplicateMetadata], data: &mut Vec<Vec<u8>>) {
+    fn duplicate_metadata(
+        &self,
+        to_duplicate: &[DuplicateMetadata],
+        data: &mut Vec<Vec<u8>>,
+    ) -> Result<()> {
         println!("Duplicating metadata. Initial metadata len {}", data.len());
 
-        to_duplicate.iter().for_each(|meta| {
-            assert!(meta.source < data.len() && meta.offset < data.len());
+        for meta in to_duplicate {
+            ensure!(
+                meta.source < data.len() && meta.offset < data.len(),
+                "invalid duplicate: {:?}",
+                meta
+            );
 
             let source = data[meta.source].clone();
             data.splice(
                 meta.offset..meta.offset,
                 std::iter::repeat(source).take(meta.length),
             );
-        });
+        }
+
+        Ok(())
     }
 
     fn change_source_levels(&self, rpus: &mut Vec<Option<DoviRpu>>) {
@@ -214,16 +235,18 @@ impl EditConfig {
 }
 
 impl ActiveArea {
-    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         if self.crop {
             self.crop(rpus);
         }
 
         if let Some(edits) = &self.edits {
             if !edits.is_empty() {
-                self.do_edits(edits, rpus);
+                self.do_edits(edits, rpus)?;
             }
         }
+
+        Ok(())
     }
 
     fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) {
@@ -233,22 +256,26 @@ impl ActiveArea {
             .for_each(|rpu| rpu.crop());
     }
 
-    fn do_edits(&self, edits: &HashMap<String, u16>, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn do_edits(
+        &self,
+        edits: &HashMap<String, u16>,
+        rpus: &mut Vec<Option<DoviRpu>>,
+    ) -> Result<()> {
         if let Some(presets) = &self.presets {
             println!("Editing active area offsets...");
 
-            edits.iter().for_each(|edit| {
+            for edit in edits {
                 // Allow passing "all" instead of a range
                 let (start, end) = if edit.0.to_lowercase() == "all" {
                     (0, rpus.len() - 1)
                 } else {
-                    EditConfig::range_string_to_tuple(edit.0)
+                    EditConfig::range_string_to_tuple(edit.0)?
                 };
 
                 let preset_id = *edit.1;
 
                 if end as usize > rpus.len() {
-                    panic!("Invalid range: {} > {} available RPUs", end, rpus.len());
+                    bail!("Invalid range: {} > {} available RPUs", end, rpus.len());
                 }
 
                 if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
@@ -265,16 +292,20 @@ impl ActiveArea {
                                 active_area_offsets.bottom,
                             );
 
-                            if let Some(block) = ExtMetadataBlockLevel5::get_mut(rpu) {
+                            if let Some(block) = rpu.get_level5_block_mut() {
                                 block.set_offsets(left, right, top, bottom);
                             } else if let Some(ref mut dm_data) = rpu.vdr_dm_data {
-                                dm_data.add_level5_metadata(left, right, top, bottom);
+                                dm_data
+                                    .st2094_10_metadata
+                                    .add_level5_metadata(left, right, top, bottom);
                             }
                         });
                 } else {
-                    panic!("Invalid preset ID: {}", preset_id);
+                    bail!("Invalid preset ID: {}", preset_id);
                 }
-            });
+            }
         }
+
+        Ok(())
     }
 }

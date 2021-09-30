@@ -21,13 +21,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ansi_term"
-version = "0.12.1"
+name = "anyhow"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
-dependencies = [
- "winapi",
-]
+checksum = "61604a8f862e1d5c3229fdd78f8b02c68dcf73a4c4b05fd636d12240aaa242c1"
 
 [[package]]
 name = "arrayvec"
@@ -103,7 +100,7 @@ version = "2.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
 dependencies = [
- "ansi_term 0.11.0",
+ "ansi_term",
  "atty",
  "bitflags",
  "strsim",
@@ -185,18 +182,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "dovi_tool"
-version = "0.5.0"
+name = "dolby_vision"
+version = "1.0.0"
 dependencies = [
- "ansi_term 0.12.1",
+ "anyhow",
  "bitvec 0.20.4",
  "bitvec_helpers",
  "crc",
  "hevc_parser",
+ "roxmltree",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "dovi_tool"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "bitvec 0.20.4",
+ "bitvec_helpers",
+ "dolby_vision",
+ "hevc_parser",
  "indicatif",
  "rayon",
  "regex",
- "roxmltree",
  "serde",
  "serde_json",
  "structopt",
@@ -246,10 +256,11 @@ dependencies = [
 
 [[package]]
 name = "hevc_parser"
-version = "0.1.7"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23fb779f1cca79feaf00b45e1e3feb6809a13d3c422a52c206863988d680f53"
+checksum = "4b03e78b3a1e41ce0344dc514f8b7fab81d88a8ef3adc906224167f399ad2c98"
 dependencies = [
+ "anyhow",
  "bitvec_helpers",
  "nom",
 ]

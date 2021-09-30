@@ -1,6 +1,11 @@
-use super::{BitVecReader, BitVecWriter};
+use anyhow::{ensure, Result};
+use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+
+#[cfg(feature = "serde_feature")]
 use serde::Serialize;
-#[derive(Default, Debug, Serialize)]
+
+#[derive(Default, Debug)]
+#[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataHeader {
     pub rpu_nal_prefix: u8,
     pub rpu_type: u8,
@@ -35,7 +40,7 @@ pub struct RpuDataHeader {
 }
 
 impl RpuDataHeader {
-    pub fn rpu_data_header(reader: &mut BitVecReader) -> RpuDataHeader {
+    pub fn parse(reader: &mut BitVecReader) -> RpuDataHeader {
         let mut rpu_nal = RpuDataHeader {
             rpu_nal_prefix: reader.get_n(8),
             ..Default::default()
@@ -110,34 +115,78 @@ impl RpuDataHeader {
         rpu_nal
     }
 
-    pub fn validate(&self, profile: u8) {
-        assert_eq!(self.rpu_nal_prefix, 25);
+    pub fn validate(&self, profile: u8) -> Result<()> {
+        ensure!(self.rpu_nal_prefix == 25, "rpu_nal_prefix should be 25");
 
         match profile {
             5 => {
-                assert_eq!(self.vdr_rpu_profile, 0);
-                assert!(self.bl_video_full_range_flag);
-                assert_eq!(self.nlq_method_idc, None);
-                assert_eq!(self.nlq_num_pivots_minus2, None);
+                ensure!(
+                    self.vdr_rpu_profile == 0,
+                    "profile 5: vdr_rpu_profile should be 0"
+                );
+                ensure!(
+                    self.bl_video_full_range_flag,
+                    "profile 5: bl_video_full_range_flag should be true"
+                );
+                ensure!(
+                    self.nlq_method_idc.is_none(),
+                    "profile 5: nlq_method_idc should be undefined"
+                );
+                ensure!(
+                    self.nlq_num_pivots_minus2.is_none(),
+                    "profile 5: nlq_num_pivots_minus2 shoule be undefined"
+                );
             }
             7 => {
-                assert_eq!(self.vdr_rpu_profile, 1);
+                ensure!(
+                    self.vdr_rpu_profile == 1,
+                    "profile 7: vdr_rpu_profile should be 1"
+                );
             }
             8 => {
-                assert_eq!(self.vdr_rpu_profile, 1);
-                assert_eq!(self.nlq_method_idc, None);
-                assert_eq!(self.nlq_num_pivots_minus2, None);
+                ensure!(
+                    self.vdr_rpu_profile == 1,
+                    "profile 8: vdr_rpu_profile should be 1"
+                );
+                ensure!(
+                    self.nlq_method_idc.is_none(),
+                    "profile 8: nlq_method_idc should be undefined"
+                );
+                ensure!(
+                    self.nlq_num_pivots_minus2.is_none(),
+                    "profile 8: nlq_num_pivots_minus2 shoule be undefined"
+                );
             }
             _ => (),
         };
 
-        assert_eq!(self.vdr_rpu_level, 0);
-        assert_eq!(self.bl_bit_depth_minus8, 2);
-        assert_eq!(self.el_bit_depth_minus8, 2);
-        assert!(self.vdr_bit_depth_minus_8 <= 6);
-        assert_eq!(self.mapping_color_space, 0);
-        assert_eq!(self.mapping_chroma_format_idc, 0);
-        assert!(self.coefficient_log2_denom <= 23);
+        ensure!(self.vdr_rpu_level == 0, "vdr_rpu_level should be 0");
+        ensure!(
+            self.bl_bit_depth_minus8 == 2,
+            "bl_bit_depth_minus8 should be 2"
+        );
+        ensure!(
+            self.el_bit_depth_minus8 == 2,
+            "el_bit_depth_minus8 should be 2"
+        );
+        ensure!(
+            self.vdr_bit_depth_minus_8 <= 6,
+            "vdr_bit_depth_minus_8 should be <= 6"
+        );
+        ensure!(
+            self.mapping_color_space == 0,
+            "mapping_color_space should be 0"
+        );
+        ensure!(
+            self.mapping_chroma_format_idc == 0,
+            "mapping_chroma_format_idc should be 0"
+        );
+        ensure!(
+            self.coefficient_log2_denom <= 23,
+            "coefficient_log2_denom should be <= 23"
+        );
+
+        Ok(())
     }
 
     pub fn get_dovi_profile(&self) -> u8 {
