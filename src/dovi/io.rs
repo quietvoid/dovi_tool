@@ -1,16 +1,16 @@
-use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
-use std::{fs::File, path::Path};
-
-use ansi_term::Colour::Red;
+use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::io::Read;
-
-use super::rpu::parse_dovi_rpu;
-use super::{Format, RpuOptions, OUT_NAL_HEADER};
+use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
+use std::{fs::File, path::Path};
 
 use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::HevcParser;
+
+use dolby_vision::rpu::dovi_rpu::DoviRpu;
+
+use super::{Format, RpuOptions, OUT_NAL_HEADER};
 
 pub struct DoviReader {
     options: RpuOptions,
@@ -90,7 +90,7 @@ impl DoviReader {
         input: &Path,
         pb: Option<&ProgressBar>,
         dovi_writer: &mut DoviWriter,
-    ) -> Result<(), std::io::Error> {
+    ) -> Result<()> {
         //BufReader & BufWriter
         let stdin = std::io::stdin();
         let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
@@ -139,7 +139,7 @@ impl DoviReader {
                                 break;
                             }
                         }
-                        Err(e) => panic!("{:?}", e),
+                        Err(e) => bail!("{:?}", e),
                     }
                 }
             } else if read_bytes < chunk_size {
@@ -191,9 +191,7 @@ impl DoviReader {
 
         parser.finish();
 
-        self.flush_writer(&parser, dovi_writer)?;
-
-        Ok(())
+        self.flush_writer(&parser, dovi_writer)
     }
 
     pub fn write_nals(
@@ -201,7 +199,7 @@ impl DoviReader {
         chunk: &[u8],
         dovi_writer: &mut DoviWriter,
         nals: &[NALUnit],
-    ) -> Result<(), std::io::Error> {
+    ) -> Result<()> {
         for nal in nals {
             if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
@@ -212,20 +210,20 @@ impl DoviReader {
 
                 if nal.nal_type == NAL_UNSPEC62 {
                     if let Some(mode) = self.options.mode {
-                        match parse_dovi_rpu(&chunk[nal.start..nal.end]) {
+                        match DoviRpu::parse(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
-                                dovi_rpu.convert_with_mode(mode);
+                                dovi_rpu.convert_with_mode(mode)?;
 
                                 if self.options.crop {
                                     dovi_rpu.crop();
                                 }
 
-                                let modified_data = dovi_rpu.write_rpu_data();
+                                let modified_data = dovi_rpu.write_rpu_data()?;
                                 sl_writer.write_all(&modified_data)?;
 
                                 continue;
                             }
-                            Err(e) => panic!("{}", Red.paint(e)),
+                            Err(e) => bail!("{}", e),
                         }
                     }
                 }
@@ -252,15 +250,15 @@ impl DoviReader {
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
                     if let Some(mode) = self.options.mode {
-                        match parse_dovi_rpu(&chunk[nal.start..nal.end]) {
+                        match DoviRpu::parse(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
-                                dovi_rpu.convert_with_mode(mode);
+                                dovi_rpu.convert_with_mode(mode)?;
 
                                 if self.options.crop {
                                     dovi_rpu.crop();
                                 }
 
-                                let modified_data = dovi_rpu.write_rpu_data();
+                                let modified_data = dovi_rpu.write_rpu_data()?;
 
                                 if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                                     // RPU for x265, remove 0x7C01
@@ -273,7 +271,7 @@ impl DoviReader {
                                     el_writer.write_all(&modified_data)?;
                                 }
                             }
-                            Err(e) => panic!("{}", Red.paint(e)),
+                            Err(e) => bail!("{}", e),
                         }
                     } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                         // RPU for x265, remove 0x7C01
@@ -298,11 +296,7 @@ impl DoviReader {
         Ok(())
     }
 
-    fn flush_writer(
-        &mut self,
-        parser: &HevcParser,
-        dovi_writer: &mut DoviWriter,
-    ) -> Result<(), std::io::Error> {
+    fn flush_writer(&mut self, parser: &HevcParser, dovi_writer: &mut DoviWriter) -> Result<()> {
         if let Some(ref mut bl_writer) = dovi_writer.bl_writer {
             bl_writer.flush()?;
         }
@@ -316,7 +310,7 @@ impl DoviReader {
             let frames = parser.ordered_frames();
 
             if frames.is_empty() {
-                panic!("No frames parsed!");
+                bail!("No frames parsed!");
             }
 
             print!("Reordering metadata... ");

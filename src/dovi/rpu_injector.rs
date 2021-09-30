@@ -2,14 +2,15 @@ use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-//use crate::dovi::get_aud;
-
-use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
+use anyhow::{bail, ensure, Result};
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 
 use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
-use indicatif::{ProgressBar, ProgressStyle};
-use rayon::prelude::*;
+
+//use crate::dovi::get_aud;
+use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -20,33 +21,27 @@ pub struct RpuInjector {
 }
 
 impl RpuInjector {
-    pub fn inject_rpu(input: PathBuf, rpu_in: PathBuf, output: Option<PathBuf>) {
-        match input_format(&input) {
-            Ok(format) => {
-                if let Format::Raw = format {
-                    let output = match output {
-                        Some(path) => path,
-                        None => PathBuf::from("injected_output.hevc"),
-                    };
+    pub fn inject_rpu(input: PathBuf, rpu_in: PathBuf, output: Option<PathBuf>) -> Result<()> {
+        let format = input_format(&input)?;
 
-                    let mut injector = RpuInjector::new(input, rpu_in, output);
-                    let mut parser = HevcParser::default();
+        if let Format::Raw = format {
+            let output = match output {
+                Some(path) => path,
+                None => PathBuf::from("injected_output.hevc"),
+            };
 
-                    injector.process_input(&mut parser, format);
-                    parser.finish();
+            let mut injector = RpuInjector::new(input, rpu_in, output)?;
+            let mut parser = HevcParser::default();
 
-                    let frames = parser.ordered_frames();
-                    let nals = parser.get_nals();
+            injector.process_input(&mut parser, format);
+            parser.finish();
 
-                    match injector.interleave_rpu_nals(nals, frames) {
-                        Ok(_) => (),
-                        Err(e) => panic!("{}", e),
-                    }
-                } else {
-                    panic!("unsupported format");
-                }
-            }
-            Err(msg) => println!("{}", msg),
+            let frames = parser.ordered_frames();
+            let nals = parser.get_nals();
+
+            injector.interleave_rpu_nals(nals, frames)
+        } else {
+            bail!("unsupported format")
         }
     }
 
@@ -120,7 +115,7 @@ impl RpuInjector {
         pb.finish_and_clear();
     }
 
-    pub fn new(input: PathBuf, rpu_in: PathBuf, output: PathBuf) -> RpuInjector {
+    pub fn new(input: PathBuf, rpu_in: PathBuf, output: PathBuf) -> Result<RpuInjector> {
         let mut injector = RpuInjector {
             input,
             rpu_in,
@@ -128,16 +123,12 @@ impl RpuInjector {
             rpus: None,
         };
 
-        injector.rpus = parse_rpu_file(&injector.rpu_in);
+        injector.rpus = parse_rpu_file(&injector.rpu_in)?;
 
-        injector
+        Ok(injector)
     }
 
-    fn interleave_rpu_nals(
-        &mut self,
-        nals: &[NALUnit],
-        frames: &[Frame],
-    ) -> Result<(), std::io::Error> {
+    fn interleave_rpu_nals(&mut self, nals: &[NALUnit], frames: &[Frame]) -> Result<()> {
         if let Some(ref mut rpus) = self.rpus {
             let mismatched_length = if frames.len() != rpus.len() {
                 println!(
@@ -179,7 +170,7 @@ impl RpuInjector {
 
             pb_indices.finish_and_clear();
 
-            assert_eq!(frames.len(), last_slice_indices.len());
+            ensure!(frames.len() == last_slice_indices.len());
 
             println!("Rewriting file with interleaved RPU NALs..");
             stdout().flush().ok();
@@ -267,7 +258,7 @@ impl RpuInjector {
                         // Otherwise, write the same data as previous
                         if rpu_index < rpus.len() {
                             let dovi_rpu = &mut rpus[rpu_index];
-                            let data = dovi_rpu.write_rpu_data();
+                            let data = dovi_rpu.write_rpu_data()?;
 
                             writer.write_all(OUT_NAL_HEADER)?;
                             writer.write_all(&data)?;

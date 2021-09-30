@@ -1,20 +1,23 @@
 [package]
 name = "dovi_tool"
-version = "0.5.0"
+version = "1.0.0"
 authors = ["quietvoid"]
 edition = "2018"
 license = "MIT"
 
 [dependencies]
+dolby_vision = { version = "1.0.0", path = "./dolby_vision", "features" = ["hevc_rpu", "xml", "serde_feature"] }
 structopt = "0.3.21"
 indicatif = "0.16.2"
 regex = "1.5.4"
-ansi_term = "0.12.1"
-crc = "2.0.0"
 bitvec = "0.20.4"
 bitvec_helpers = "0.1.0"
-hevc_parser = "0.1.7"
+hevc_parser = "0.2.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }
 rayon = "1.5.0"
-roxmltree = "0.14.1"
+anyhow = "1.0"
+
+[[bin]]
+name = "dovi_tool"
+path = "src/main.rs"

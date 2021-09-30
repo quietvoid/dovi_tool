@@ -1,19 +1,15 @@
-use serde::{Deserialize, Serialize};
+use anyhow::Result;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::dovi::rpu::nits_to_pq;
-use crate::dovi::OUT_NAL_HEADER;
+use dolby_vision::rpu::dovi_rpu::DoviRpu;
+use dolby_vision::st2094_10::generate::{GenerateConfig, Level1Metadata};
+use dolby_vision::utils::nits_to_pq;
+use dolby_vision::xml::CmXmlParser;
 
-use super::DoviRpu;
-
-use super::rpu::{
-    rpu_data_header::RpuDataHeader, vdr_dm_data::VdrDmData, vdr_rpu_data::VdrRpuData,
-};
-
-use super::CmXmlParser;
+use super::OUT_NAL_HEADER;
 
 pub struct Generator {
     json_path: Option<PathBuf>,
@@ -22,77 +18,13 @@ pub struct Generator {
     xml_path: Option<PathBuf>,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
-pub struct GenerateConfig {
-    pub length: u64,
-    pub target_nits: Option<u16>,
-
-    #[serde(default)]
-    pub source_min_pq: Option<u16>,
-
-    #[serde(default)]
-    pub source_max_pq: Option<u16>,
-
-    pub level2: Option<Vec<Level2Metadata>>,
-    pub level5: Option<Level5Metadata>,
-    pub level6: Option<Level6Metadata>,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct Level1Metadata {
-    pub min_pq: u16,
-    pub max_pq: u16,
-    pub avg_pq: u16,
-}
-
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
-pub struct Level2Metadata {
-    pub target_nits: u16,
-
-    #[serde(default = "default_trim")]
-    pub trim_slope: u16,
-    #[serde(default = "default_trim")]
-    pub trim_offset: u16,
-    #[serde(default = "default_trim")]
-    pub trim_power: u16,
-    #[serde(default = "default_trim")]
-    pub trim_chroma_weight: u16,
-    #[serde(default = "default_trim")]
-    pub trim_saturation_gain: u16,
-    #[serde(default = "default_trim_neg")]
-    pub ms_weight: i16,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct Level3Metadata {
-    pub min_pq_offset: u16,
-    pub max_pq_offset: u16,
-    pub avg_pq_offset: u16,
-}
-
-#[derive(Serialize, Deserialize, Default, Debug)]
-pub struct Level5Metadata {
-    pub active_area_left_offset: u16,
-    pub active_area_right_offset: u16,
-    pub active_area_top_offset: u16,
-    pub active_area_bottom_offset: u16,
-}
-
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
-pub struct Level6Metadata {
-    pub max_display_mastering_luminance: u16,
-    pub min_display_mastering_luminance: u16,
-    pub max_content_light_level: u16,
-    pub max_frame_average_light_level: u16,
-}
-
 impl Generator {
     pub fn generate(
         json_path: Option<PathBuf>,
         rpu_out: Option<PathBuf>,
         hdr10plus_path: Option<PathBuf>,
         xml_path: Option<PathBuf>,
-    ) {
+    ) -> Result<()> {
         let out_path = if let Some(out_path) = rpu_out {
             out_path
         } else {
@@ -114,19 +46,17 @@ impl Generator {
 
             println!("{:#?}", config);
 
-            if let Err(res) = generator.execute(&config) {
-                panic!("{:?}", res);
-            }
+            generator.execute(&config)?;
         } else if let Some(xml_path) = &generator.xml_path {
-            if let Err(res) = generator.generate_from_xml(xml_path) {
-                panic!("{:?}", res);
-            }
+            generator.generate_from_xml(xml_path)?;
         }
 
-        println!("Done.")
+        println!("Done.");
+
+        Ok(())
     }
 
-    fn execute(&self, config: &GenerateConfig) -> Result<(), std::io::Error> {
+    fn execute(&self, config: &GenerateConfig) -> Result<()> {
         let (l1_meta, scene_cuts) = parse_hdr10plus_for_l1(&self.hdr10plus_path);
 
         let mut writer = BufWriter::with_capacity(
@@ -141,21 +71,16 @@ impl Generator {
         };
 
         for i in 0..length {
-            let mut rpu = DoviRpu {
-                dovi_profile: 8,
-                modified: true,
-                header: RpuDataHeader::p8_default(),
-                vdr_rpu_data: Some(VdrRpuData::p8_default()),
-                nlq_data: None,
-                vdr_dm_data: Some(VdrDmData::from_config(config)),
-                last_byte: 0x80,
-                ..Default::default()
-            };
+            let mut rpu = DoviRpu::profile8_config(config);
 
             let encoded_rpu = if let Some(l1_list) = &l1_meta {
                 if let Some(meta) = &l1_list.get(i) {
                     if let Some(dm_meta) = &mut rpu.vdr_dm_data {
-                        dm_meta.add_level1_metadata(meta.min_pq, meta.max_pq, meta.avg_pq);
+                        dm_meta.st2094_10_metadata.add_level1_metadata(
+                            meta.min_pq,
+                            meta.max_pq,
+                            meta.avg_pq,
+                        );
 
                         if scene_cuts.contains(&i) {
                             dm_meta.set_scene_cut(true);
@@ -163,9 +88,9 @@ impl Generator {
                     }
                 }
 
-                rpu.write_rpu_data()
+                rpu.write_rpu_data()?
             } else {
-                rpu.write_rpu_data()
+                rpu.write_rpu_data()?
             };
 
             writer.write_all(OUT_NAL_HEADER)?;
@@ -181,14 +106,14 @@ impl Generator {
         Ok(())
     }
 
-    fn generate_from_xml(&self, xml_path: &Path) -> Result<(), std::io::Error> {
+    fn generate_from_xml(&self, xml_path: &Path) -> Result<()> {
         let mut s = String::new();
         File::open(xml_path)
             .unwrap()
             .read_to_string(&mut s)
             .unwrap();
 
-        let parser = CmXmlParser::new(s);
+        let parser = CmXmlParser::new(s)?;
 
         let length = parser.get_video_length();
         let level6 = parser.get_hdr10_metadata();
@@ -210,21 +135,16 @@ impl Generator {
             let end = shot.duration;
 
             for i in 0..end {
-                let mut rpu = DoviRpu {
-                    dovi_profile: 8,
-                    modified: true,
-                    header: RpuDataHeader::p8_default(),
-                    vdr_rpu_data: Some(VdrRpuData::p8_default()),
-                    nlq_data: None,
-                    vdr_dm_data: Some(VdrDmData::from_config(&config)),
-                    last_byte: 0x80,
-                    ..Default::default()
-                };
+                let mut rpu = DoviRpu::profile8_config(&config);
 
                 if let Some(dm_meta) = &mut rpu.vdr_dm_data {
                     if let Some(l1_list) = &shot.level1 {
                         if let Some(meta) = l1_list.get(i) {
-                            dm_meta.add_level1_metadata(meta.min_pq, meta.max_pq, meta.avg_pq);
+                            dm_meta.st2094_10_metadata.add_level1_metadata(
+                                meta.min_pq,
+                                meta.max_pq,
+                                meta.avg_pq,
+                            );
 
                             if i == 0 {
                                 dm_meta.set_scene_cut(true);
@@ -235,7 +155,7 @@ impl Generator {
                     if let Some(l2_list) = &shot.level2 {
                         if let Some(meta) = l2_list.get(i) {
                             for l2 in meta {
-                                dm_meta.add_level2_metadata(
+                                dm_meta.st2094_10_metadata.add_level2_metadata(
                                     l2.target_nits,
                                     l2.trim_slope,
                                     l2.trim_offset,
@@ -250,7 +170,7 @@ impl Generator {
 
                     if let Some(l3_list) = &shot.level3 {
                         if let Some(meta) = l3_list.get(i) {
-                            dm_meta.add_level3_metadata(
+                            dm_meta.st2094_10_metadata.add_level3_metadata(
                                 meta.min_pq_offset,
                                 meta.max_pq_offset,
                                 meta.avg_pq_offset,
@@ -259,7 +179,7 @@ impl Generator {
                     }
                 }
 
-                let encoded_rpu = rpu.write_rpu_data();
+                let encoded_rpu = rpu.write_rpu_data()?;
 
                 writer.write_all(OUT_NAL_HEADER)?;
 
@@ -332,12 +252,4 @@ fn parse_hdr10plus_for_l1(
     }
 
     (l1_meta, scene_cuts)
-}
-
-fn default_trim() -> u16 {
-    2048
-}
-
-fn default_trim_neg() -> i16 {
-    2048
 }

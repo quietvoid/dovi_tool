@@ -8,24 +8,25 @@ pub mod rpu_info;
 pub mod rpu_injector;
 
 mod io;
-mod rpu;
-mod xml;
 
-use hevc_parser::{
-    hevc::{Frame, NAL_AUD},
-    HevcParser, NALUStartCode,
-};
-use rpu::{parse_dovi_rpu, DoviRpu};
+mod tests;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use std::io::{stdout, BufReader, Read, Write};
 use std::{fs::File, io::BufWriter, path::Path};
 
-use super::bitvec_reader::BitVecReader;
-use super::bitvec_writer::BitVecWriter;
-use super::input_format;
+use anyhow::{bail, Result};
 
-use xml::CmXmlParser;
+use super::bitvec_writer::BitVecWriter;
+
+use dolby_vision::rpu;
+
+use super::input_format;
+use hevc_parser::{
+    hevc::{Frame, NAL_AUD},
+    HevcParser, NALUStartCode,
+};
+use rpu::dovi_rpu::DoviRpu;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
@@ -75,7 +76,7 @@ impl std::fmt::Display for Format {
     }
 }
 
-pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
+pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
     println!("Parsing RPU file...");
     stdout().flush().ok();
 
@@ -84,7 +85,7 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
 
     // Should never be this large, avoid mistakes
     if metadata.len() > 250_000_000 {
-        panic!("Input file probably too large");
+        bail!("Input file probably too large");
     }
 
     let mut reader = BufReader::new(rpu_file);
@@ -114,17 +115,17 @@ pub fn parse_rpu_file(input: &Path) -> Option<Vec<DoviRpu>> {
             let start = *offset;
             let end = start + size;
 
-            parse_dovi_rpu(&data[start..end])
+            DoviRpu::parse(&data[start..end])
         })
         .filter_map(Result::ok)
         .collect();
 
     if count > 0 && rpus.len() == count {
-        Some(rpus)
+        Ok(Some(rpus))
     } else if count == 0 {
-        panic!("No RPU found");
+        bail!("No RPU found");
     } else {
-        panic!(
+        bail!(
             "Number of valid RPUs different from total: expected {} got {}",
             count,
             rpus.len()
@@ -137,12 +138,13 @@ pub fn encode_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
         .iter_mut()
         .filter_map(|e| e.as_mut())
         .map(|e| e.write_rpu_data())
+        .filter_map(Result::ok)
         .collect();
 
     encoded_rpus
 }
 
-pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<(), std::io::Error> {
+pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
     println!("Writing RPU file...");
     let mut writer = BufWriter::with_capacity(
         100_000,

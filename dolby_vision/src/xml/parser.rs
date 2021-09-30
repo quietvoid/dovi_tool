@@ -1,10 +1,9 @@
+use anyhow::{bail, ensure, Result};
 use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
 
-use crate::dovi::generator::{
-    Level1Metadata, Level2Metadata, Level3Metadata, Level6Metadata,
-};
+use crate::st2094_10::generate::{Level1Metadata, Level2Metadata, Level3Metadata, Level6Metadata};
 
 #[derive(Default, Debug)]
 pub struct CmXmlParser {
@@ -41,12 +40,12 @@ pub enum DynamicMeta {
 }
 
 impl CmXmlParser {
-    pub fn new(s: String) -> CmXmlParser {
+    pub fn new(s: String) -> Result<CmXmlParser> {
         let mut parser = CmXmlParser::default();
 
         let doc = roxmltree::Document::parse(&s).unwrap();
 
-        parser.cm_version = parser.parse_cm_version(&doc);
+        parser.cm_version = parser.parse_cm_version(&doc)?;
 
         parser.separator = if parser.is_cmv4() { ' ' } else { ',' };
 
@@ -65,7 +64,7 @@ impl CmXmlParser {
 
             parser.target_displays = parser.parse_target_displays(&video);
 
-            parser.shots = parser.parse_shots(&video);
+            parser.shots = parser.parse_shots(&video)?;
             parser.shots.sort_by_key(|s| s.start);
 
             let first_shot = parser.shots.first().unwrap();
@@ -73,13 +72,13 @@ impl CmXmlParser {
 
             parser.length = (last_shot.start + last_shot.duration) - first_shot.start;
         } else {
-            panic!("Could not find Video node");
+            bail!("Could not find Video node");
         }
 
-        parser
+        Ok(parser)
     }
 
-    fn parse_cm_version(&self, doc: &Document) -> String {
+    fn parse_cm_version(&self, doc: &Document) -> Result<String> {
         if let Some(node) = doc.descendants().find(|e| e.has_tag_name("DolbyLabsMDF")) {
             let version_attr = node.attribute("version");
             let version_node =
@@ -109,21 +108,21 @@ impl CmXmlParser {
 
             if version_node.is_some() || version_level254.is_some() {
                 if let Some(v) = version_node {
-                    v.to_string()
+                    Ok(v.to_string())
                 } else if let Some(v) = version_level254 {
-                    v.to_string()
+                    Ok(v.to_string())
                 } else if let Some(v) = version_attr {
-                    v.to_string()
+                    Ok(v.to_string())
                 } else {
-                    panic!("No CM version found!")
+                    bail!("No CM version found!");
                 }
             } else if let Some(v) = version_attr {
-                v.to_string()
+                Ok(v.to_string())
             } else {
-                panic!("No CM version found!")
+                bail!("No CM version found!");
             }
         } else {
-            panic!("Could not find DolbyLabsMDF root node.");
+            bail!("Could not find DolbyLabsMDF root node.");
         }
     }
 
@@ -210,7 +209,7 @@ impl CmXmlParser {
         targets
     }
 
-    fn parse_shots(&self, video: &Node) -> Vec<VideoShot> {
+    fn parse_shots(&self, video: &Node) -> Result<Vec<VideoShot>> {
         let shots = video
             .descendants()
             .filter(|e| e.has_tag_name("Shot"))
@@ -244,7 +243,7 @@ impl CmXmlParser {
                         .unwrap();
                 }
 
-                let trims = self.parse_shot_trims(&n);
+                let trims = self.parse_shot_trims(&n)?;
 
                 let mut l1_list = if let Some(Some(DynamicMeta::Level1(l1))) = trims.get("1") {
                     let mut list: Vec<Level1Metadata> = Vec::new();
@@ -276,57 +275,57 @@ impl CmXmlParser {
                     None
                 };
 
-                n.children()
-                    .filter(|e| e.has_tag_name("Frame"))
-                    .for_each(|frame| {
-                        let edit_offset = frame
-                            .children()
-                            .find(|e| e.has_tag_name("EditOffset"))
-                            .unwrap()
-                            .text()
-                            .unwrap()
-                            .parse::<usize>()
-                            .unwrap();
+                let frames = n.children().filter(|e| e.has_tag_name("Frame"));
 
-                        let trims = self.parse_shot_trims(&frame);
+                for frame in frames {
+                    let edit_offset = frame
+                        .children()
+                        .find(|e| e.has_tag_name("EditOffset"))
+                        .unwrap()
+                        .text()
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap();
 
-                        if let Some(list) = &mut l1_list {
-                            assert!(edit_offset < list.len());
+                    let trims = self.parse_shot_trims(&frame)?;
 
-                            if let Some(Some(DynamicMeta::Level1(new_l1))) = trims.get("1") {
-                                list[edit_offset] = new_l1.clone();
-                            }
+                    if let Some(list) = &mut l1_list {
+                        ensure!(edit_offset < list.len());
+
+                        if let Some(Some(DynamicMeta::Level1(new_l1))) = trims.get("1") {
+                            list[edit_offset] = new_l1.clone();
                         }
+                    }
 
-                        if let Some(list) = &mut l2_list {
-                            assert!(edit_offset < list.len());
+                    if let Some(list) = &mut l2_list {
+                        ensure!(edit_offset < list.len());
 
-                            if let Some(Some(DynamicMeta::Level2(new_l2))) = trims.get("2") {
-                                list[edit_offset] = new_l2.clone();
-                            }
+                        if let Some(Some(DynamicMeta::Level2(new_l2))) = trims.get("2") {
+                            list[edit_offset] = new_l2.clone();
                         }
+                    }
 
-                        if let Some(list) = &mut l3_list {
-                            assert!(edit_offset < list.len());
+                    if let Some(list) = &mut l3_list {
+                        ensure!(edit_offset < list.len());
 
-                            if let Some(Some(DynamicMeta::Level3(new_l3))) = trims.get("3") {
-                                list[edit_offset] = new_l3.clone();
-                            }
+                        if let Some(Some(DynamicMeta::Level3(new_l3))) = trims.get("3") {
+                            list[edit_offset] = new_l3.clone();
                         }
-                    });
+                    }
+                }
 
                 shot.level1 = l1_list;
                 shot.level2 = l2_list;
                 shot.level3 = l3_list;
 
-                shot
+                Ok(shot)
             })
             .collect();
 
         shots
     }
 
-    fn parse_shot_trims(&self, node: &Node) -> HashMap<&str, Option<DynamicMeta>> {
+    fn parse_shot_trims(&self, node: &Node) -> Result<HashMap<&str, Option<DynamicMeta>>> {
         let mut trims = HashMap::new();
 
         let dynamic_meta_tag = if self.is_cmv4() {
@@ -344,38 +343,40 @@ impl CmXmlParser {
             let mut default_l3 = None;
 
             if self.is_cmv4() {
-                defaults_node
+                let level_nodes = defaults_node
                     .children()
-                    .filter(|e| e.has_attribute("level"))
-                    .for_each(|level_node| {
-                        let level = level_node.attribute("level").unwrap();
-                        let (level1, level3) =
-                            self.parse_trim_levels(&level_node, level, &mut default_l2);
+                    .filter(|e| e.has_attribute("level"));
 
-                        if let Some(l1) = level1 {
-                            default_l1 = Some(l1);
-                        }
+                for level_node in level_nodes {
+                    let level = level_node.attribute("level").unwrap();
+                    let (level1, level3) =
+                        self.parse_trim_levels(&level_node, level, &mut default_l2)?;
 
-                        if let Some(l3) = level3 {
-                            default_l3 = Some(l3);
-                        }
-                    });
+                    if let Some(l1) = level1 {
+                        default_l1 = Some(l1);
+                    }
+
+                    if let Some(l3) = level3 {
+                        default_l3 = Some(l3);
+                    }
+                }
             } else {
-                defaults_node
+                let edr_nodes = defaults_node
                     .children()
-                    .filter(|e| e.has_tag_name("DolbyEDR") && e.has_attribute("level"))
-                    .for_each(|edr| {
-                        let level = edr.attribute("level").unwrap();
-                        let (level1, level3) = self.parse_trim_levels(&edr, level, &mut default_l2);
+                    .filter(|e| e.has_tag_name("DolbyEDR") && e.has_attribute("level"));
 
-                        if let Some(l1) = level1 {
-                            default_l1 = Some(l1);
-                        }
+                for edr in edr_nodes {
+                    let level = edr.attribute("level").unwrap();
+                    let (level1, level3) = self.parse_trim_levels(&edr, level, &mut default_l2)?;
 
-                        if let Some(l3) = level3 {
-                            default_l3 = Some(l3);
-                        }
-                    });
+                    if let Some(l1) = level1 {
+                        default_l1 = Some(l1);
+                    }
+
+                    if let Some(l3) = level3 {
+                        default_l3 = Some(l3);
+                    }
+                }
             };
 
             if let Some(level1) = default_l1 {
@@ -393,7 +394,7 @@ impl CmXmlParser {
             }
         }
 
-        trims
+        Ok(trims)
     }
 
     fn parse_trim_levels(
@@ -401,28 +402,28 @@ impl CmXmlParser {
         node: &Node,
         level: &str,
         mut default_l2: &mut Option<Vec<Level2Metadata>>,
-    ) -> (Option<Level1Metadata>, Option<Level3Metadata>) {
+    ) -> Result<(Option<Level1Metadata>, Option<Level3Metadata>)> {
         let mut default_l1 = None;
         let mut default_l3 = None;
 
         if level == "1" {
-            let level1 = self.parse_level1_trim(node);
+            let level1 = self.parse_level1_trim(node)?;
             default_l1 = Some(level1);
         } else if level == "2" {
-            let level2 = self.parse_level2_trim(node);
+            let level2 = self.parse_level2_trim(node)?;
 
             if let Some(l2_list) = &mut default_l2 {
                 l2_list.push(level2);
             }
         } else if level == "3" {
-            let level3 = self.parse_level3_trim(node);
+            let level3 = self.parse_level3_trim(node)?;
             default_l3 = Some(level3);
         }
 
-        (default_l1, default_l3)
+        Ok((default_l1, default_l3))
     }
 
-    pub fn parse_level1_trim(&self, node: &Node) -> Level1Metadata {
+    pub fn parse_level1_trim(&self, node: &Node) -> Result<Level1Metadata> {
         let measurements = node
             .children()
             .find(|e| e.has_tag_name("ImageCharacter"))
@@ -431,16 +432,19 @@ impl CmXmlParser {
             .unwrap();
         let measurements: Vec<&str> = measurements.split(self.separator).collect();
 
-        assert!(measurements.len() == 3);
+        ensure!(
+            measurements.len() == 3,
+            "invalid L1 trim: should be 3 values"
+        );
 
-        Level1Metadata {
+        Ok(Level1Metadata {
             min_pq: (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16,
             avg_pq: (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16,
             max_pq: (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16,
-        }
+        })
     }
 
-    pub fn parse_level2_trim(&self, node: &Node) -> Level2Metadata {
+    pub fn parse_level2_trim(&self, node: &Node) -> Result<Level2Metadata> {
         let target_id = node
             .children()
             .find(|e| e.has_tag_name("TID"))
@@ -459,7 +463,7 @@ impl CmXmlParser {
 
         let target_display = self.target_displays.get(&target_id).unwrap();
 
-        assert!(trim.len() == 9);
+        ensure!(trim.len() == 9, "invalid L2 trim: should be 9 values");
 
         let trim_slope = min(
             4095,
@@ -486,7 +490,7 @@ impl CmXmlParser {
             ((trim[8].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as i16,
         );
 
-        Level2Metadata {
+        Ok(Level2Metadata {
             target_nits: target_display.peak_nits,
             trim_slope,
             trim_offset,
@@ -494,10 +498,10 @@ impl CmXmlParser {
             trim_chroma_weight,
             trim_saturation_gain,
             ms_weight,
-        }
+        })
     }
 
-    pub fn parse_level3_trim(&self, node: &Node) -> Level3Metadata {
+    pub fn parse_level3_trim(&self, node: &Node) -> Result<Level3Metadata> {
         let measurements = node
             .children()
             .find(|e| e.has_tag_name("L1Offset"))
@@ -506,16 +510,19 @@ impl CmXmlParser {
             .unwrap();
         let measurements: Vec<&str> = measurements.split(self.separator).collect();
 
-        assert!(measurements.len() == 3);
+        ensure!(
+            measurements.len() == 3,
+            "invalid L3 trim: should be 3 values"
+        );
 
-        Level3Metadata {
+        Ok(Level3Metadata {
             min_pq_offset: ((measurements[0].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
             max_pq_offset: ((measurements[1].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
             avg_pq_offset: ((measurements[2].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
-        }
+        })
     }
 
     pub fn get_video_length(&self) -> usize {

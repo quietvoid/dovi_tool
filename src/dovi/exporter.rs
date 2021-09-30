@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::PathBuf;
 
+use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::Serializer;
 
@@ -16,7 +17,7 @@ pub struct Exporter {
 }
 
 impl Exporter {
-    pub fn export(input: PathBuf, output: Option<PathBuf>) {
+    pub fn export(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
         let out_path = if let Some(out_path) = output {
             out_path
         } else {
@@ -29,16 +30,15 @@ impl Exporter {
             rpus: None,
         };
 
-        exporter.rpus = parse_rpu_file(&exporter.input);
+        exporter.rpus = parse_rpu_file(&exporter.input)?;
+        exporter.execute()?;
 
-        if let Err(res) = exporter.execute() {
-            panic!("{:?}", res);
-        }
+        println!("Done.");
 
-        println!("Done.")
+        Ok(())
     }
 
-    fn execute(&self) -> Result<(), std::io::Error> {
+    fn execute(&self) -> Result<()> {
         println!("Exporting metadata...");
 
         if let Some(rpus) = &self.rpus {
