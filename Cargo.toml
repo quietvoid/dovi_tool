@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
-dolby_vision = { version = "1.0.0", path = "./dolby_vision", "features" = ["hevc_rpu", "xml", "serde_feature"] }
+dolby_vision = { path = "./dolby_vision", "features" = ["hevc_rpu", "xml", "serde_feature"] }
 structopt = "0.3.21"
 indicatif = "0.16.2"
 regex = "1.5.4"

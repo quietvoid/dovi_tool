@@ -215,7 +215,10 @@ impl ExtMetadataBlock {
                 ExtMetadataBlock::Level6(block)
             }
             _ => {
-                ensure!(false, "Reserved metadata block found, please open an issue.");
+                ensure!(
+                    false,
+                    "Reserved metadata block found, please open an issue."
+                );
 
                 let block = ReservedExtMetadataBlock::default();
                 ExtMetadataBlock::Reserved(block)

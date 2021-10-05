@@ -1,6 +1,6 @@
 [package]
 name = "dolby_vision"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["quietvoid"]
 edition = "2018"
 license = "MIT"
@@ -23,3 +23,6 @@ roxmltree = { version = "0.14.1", optional = true }
 hevc_rpu = ["hevc_parser", "crc"]
 xml = ["roxmltree"]
 serde_feature = ["serde", "serde_json"]
+
+[package.metadata.docs.rs]
+all-features = true

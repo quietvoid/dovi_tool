@@ -30,8 +30,8 @@ impl ST2094_10Meta {
         ensure!(itu_t_t35_country_code == 0xB5);
         ensure!(itu_t_t35_terminal_provider_code == 0x3B);
 
-        let itu_t_t35_terminal_provider_oriented_code: u32 = reader.get_n(32);
-        let data_type_code: u8 = reader.get_n(8);
+        let _itu_t_t35_terminal_provider_oriented_code: u32 = reader.get_n(32);
+        let _data_type_code: u8 = reader.get_n(8);
 
         let app_identifier: u64 = reader.get_ue();
         let app_version: u64 = reader.get_ue();
