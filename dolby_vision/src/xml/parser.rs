@@ -3,7 +3,9 @@ use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
 
-use crate::st2094_10::generate::{Level1Metadata, Level2Metadata, Level3Metadata, Level6Metadata};
+use crate::st2094_10::generate::{
+    Level1Metadata, Level2Metadata, Level3Metadata, Level5Metadata, Level6Metadata,
+};
 
 #[derive(Default, Debug)]
 pub struct CmXmlParser {
@@ -12,6 +14,7 @@ pub struct CmXmlParser {
 
     length: usize,
     target_displays: HashMap<String, TargetDisplay>,
+    level5: Option<Level5AspectRatios>,
     level6: Level6Metadata,
     shots: Vec<VideoShot>,
 }
@@ -30,6 +33,13 @@ pub struct VideoShot {
     pub level1: Option<Vec<Level1Metadata>>,
     pub level2: Option<Vec<Vec<Level2Metadata>>>,
     pub level3: Option<Vec<Level3Metadata>>,
+    pub level5: Option<Vec<Level5AspectRatios>>,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct Level5AspectRatios {
+    pub canvas: f32,
+    pub image: f32,
 }
 
 #[derive(Debug)]
@@ -37,6 +47,7 @@ pub enum DynamicMeta {
     Level1(Level1Metadata),
     Level2(Vec<Level2Metadata>),
     Level3(Level3Metadata),
+    Level5(Level5AspectRatios),
 }
 
 impl CmXmlParser {
@@ -49,30 +60,36 @@ impl CmXmlParser {
 
         parser.separator = if parser.is_cmv4() { ' ' } else { ',' };
 
-        if let Some(video) = doc.descendants().find(|e| e.has_tag_name("Video")) {
-            let (max_frame_average_light_level, max_content_light_level) =
-                parser.parse_level6(&video);
-            let (min_display_mastering_luminance, max_display_mastering_luminance) =
-                parser.parse_mastering_display_metadata(&video);
+        if let Some(output) = doc.descendants().find(|e| e.has_tag_name("Output")) {
+            parser.parse_global_level5(&output);
 
-            parser.level6 = Level6Metadata {
-                max_display_mastering_luminance,
-                min_display_mastering_luminance,
-                max_content_light_level,
-                max_frame_average_light_level,
-            };
+            if let Some(video) = output.descendants().find(|e| e.has_tag_name("Video")) {
+                let (max_frame_average_light_level, max_content_light_level) =
+                    parser.parse_level6(&video);
+                let (min_display_mastering_luminance, max_display_mastering_luminance) =
+                    parser.parse_mastering_display_metadata(&video);
 
-            parser.target_displays = parser.parse_target_displays(&video);
+                parser.level6 = Level6Metadata {
+                    max_display_mastering_luminance,
+                    min_display_mastering_luminance,
+                    max_content_light_level,
+                    max_frame_average_light_level,
+                };
 
-            parser.shots = parser.parse_shots(&video)?;
-            parser.shots.sort_by_key(|s| s.start);
+                parser.target_displays = parser.parse_target_displays(&video);
 
-            let first_shot = parser.shots.first().unwrap();
-            let last_shot = parser.shots.last().unwrap();
+                parser.shots = parser.parse_shots(&video)?;
+                parser.shots.sort_by_key(|s| s.start);
 
-            parser.length = (last_shot.start + last_shot.duration) - first_shot.start;
+                let first_shot = parser.shots.first().unwrap();
+                let last_shot = parser.shots.last().unwrap();
+
+                parser.length = (last_shot.start + last_shot.duration) - first_shot.start;
+            } else {
+                bail!("Could not find Video node");
+            }
         } else {
-            bail!("Could not find Video node");
+            bail!("Could not find Output node");
         }
 
         Ok(parser)
@@ -275,6 +292,16 @@ impl CmXmlParser {
                     None
                 };
 
+                let mut l5_list = if let Some(Some(DynamicMeta::Level5(l5))) = trims.get("5") {
+                    let mut list: Vec<Level5AspectRatios> = Vec::new();
+
+                    list.resize(shot.duration, l5.clone());
+
+                    Some(list)
+                } else {
+                    None
+                };
+
                 let frames = n.children().filter(|e| e.has_tag_name("Frame"));
 
                 for frame in frames {
@@ -312,11 +339,20 @@ impl CmXmlParser {
                             list[edit_offset] = new_l3.clone();
                         }
                     }
+
+                    if let Some(list) = &mut l5_list {
+                        ensure!(edit_offset < list.len());
+
+                        if let Some(Some(DynamicMeta::Level5(new_l5))) = trims.get("5") {
+                            list[edit_offset] = new_l5.clone();
+                        }
+                    }
                 }
 
                 shot.level1 = l1_list;
                 shot.level2 = l2_list;
                 shot.level3 = l3_list;
+                shot.level5 = l5_list;
 
                 Ok(shot)
             })
@@ -341,6 +377,7 @@ impl CmXmlParser {
             let mut default_l1 = None;
             let mut default_l2 = Some(Vec::new());
             let mut default_l3 = None;
+            let mut default_l5 = None;
 
             if self.is_cmv4() {
                 let level_nodes = defaults_node
@@ -349,16 +386,12 @@ impl CmXmlParser {
 
                 for level_node in level_nodes {
                     let level = level_node.attribute("level").unwrap();
-                    let (level1, level3) =
+                    let (level1, level3, level5) =
                         self.parse_trim_levels(&level_node, level, &mut default_l2)?;
 
-                    if let Some(l1) = level1 {
-                        default_l1 = Some(l1);
-                    }
-
-                    if let Some(l3) = level3 {
-                        default_l3 = Some(l3);
-                    }
+                    default_l1 = level1;
+                    default_l3 = level3;
+                    default_l5 = level5;
                 }
             } else {
                 let edr_nodes = defaults_node
@@ -367,15 +400,12 @@ impl CmXmlParser {
 
                 for edr in edr_nodes {
                     let level = edr.attribute("level").unwrap();
-                    let (level1, level3) = self.parse_trim_levels(&edr, level, &mut default_l2)?;
+                    let (level1, level3, level5) =
+                        self.parse_trim_levels(&edr, level, &mut default_l2)?;
 
-                    if let Some(l1) = level1 {
-                        default_l1 = Some(l1);
-                    }
-
-                    if let Some(l3) = level3 {
-                        default_l3 = Some(l3);
-                    }
+                    default_l1 = level1;
+                    default_l3 = level3;
+                    default_l5 = level5;
                 }
             };
 
@@ -392,6 +422,10 @@ impl CmXmlParser {
             if let Some(level3) = default_l3 {
                 trims.insert("3", Some(DynamicMeta::Level3(level3)));
             }
+
+            if let Some(level5) = default_l5 {
+                trims.insert("5", Some(DynamicMeta::Level5(level5)));
+            }
         }
 
         Ok(trims)
@@ -402,9 +436,14 @@ impl CmXmlParser {
         node: &Node,
         level: &str,
         mut default_l2: &mut Option<Vec<Level2Metadata>>,
-    ) -> Result<(Option<Level1Metadata>, Option<Level3Metadata>)> {
+    ) -> Result<(
+        Option<Level1Metadata>,
+        Option<Level3Metadata>,
+        Option<Level5AspectRatios>,
+    )> {
         let mut default_l1 = None;
         let mut default_l3 = None;
+        let mut default_l5 = None;
 
         if level == "1" {
             let level1 = self.parse_level1_trim(node)?;
@@ -418,9 +457,39 @@ impl CmXmlParser {
         } else if level == "3" {
             let level3 = self.parse_level3_trim(node)?;
             default_l3 = Some(level3);
+        } else if level == "5" {
+            let level5 = self.parse_level5_trim(node)?;
+            default_l5 = Some(level5);
         }
 
-        Ok((default_l1, default_l3))
+        Ok((default_l1, default_l3, default_l5))
+    }
+
+    pub fn parse_global_level5(&mut self, output: &Node) {
+        let canvas_ar = if let Some(canvas_ar) = output
+            .children()
+            .find(|e| e.has_tag_name("CanvasAspectRatio"))
+        {
+            canvas_ar.text().map_or(None, |v| v.parse::<f32>().ok())
+        } else {
+            None
+        };
+
+        let image_ar = if let Some(image_ar) = output
+            .children()
+            .find(|e| e.has_tag_name("ImageAspectRatio"))
+        {
+            image_ar.text().map_or(None, |v| v.parse::<f32>().ok())
+        } else {
+            None
+        };
+
+        if canvas_ar.is_some() && image_ar.is_some() {
+            self.level5 = Some(Level5AspectRatios {
+                canvas: canvas_ar.unwrap(),
+                image: image_ar.unwrap(),
+            });
+        }
     }
 
     pub fn parse_level1_trim(&self, node: &Node) -> Result<Level1Metadata> {
@@ -525,6 +594,58 @@ impl CmXmlParser {
         })
     }
 
+    pub fn parse_level5_trim(&self, node: &Node) -> Result<Level5AspectRatios> {
+        let ratios = node
+            .children()
+            .find(|e| e.has_tag_name("AspectRatios"))
+            .unwrap()
+            .text()
+            .unwrap();
+        let ratios: Vec<&str> = ratios.split(self.separator).collect();
+
+        ensure!(ratios.len() == 2, "invalid L5 trim: should be 2 values");
+
+        Ok(Level5AspectRatios {
+            canvas: ratios[0].parse::<f32>().unwrap(),
+            image: ratios[1].parse::<f32>().unwrap(),
+        })
+    }
+
+    pub fn calculate_level5_metadata(
+        ar: &Level5AspectRatios,
+        canvas_width: u16,
+        canvas_height: u16,
+    ) -> Option<Level5Metadata> {
+        let cw = canvas_width as f32;
+        let ch = canvas_height as f32;
+
+        if (ar.canvas - ar.image).abs() < f32::EPSILON {
+            None
+        } else {
+            let mut calculated_level5 = Level5Metadata::default();
+
+            if ar.image > ar.canvas {
+                let image_h = (ch * (ar.canvas / ar.image)).round();
+                let diff = ch - image_h;
+                let offset_top = (diff / 2.0).trunc();
+                let offset_bottom = diff - offset_top;
+
+                calculated_level5.active_area_top_offset = offset_top as u16;
+                calculated_level5.active_area_bottom_offset = offset_bottom as u16;
+            } else {
+                let image_w = (cw * (ar.image / ar.canvas)).round();
+                let diff = cw - image_w;
+                let offset_left = (diff / 2.0).trunc();
+                let offset_right = diff - offset_left;
+
+                calculated_level5.active_area_left_offset = offset_left as u16;
+                calculated_level5.active_area_right_offset = offset_right as u16;
+            }
+
+            Some(calculated_level5)
+        }
+    }
+
     pub fn get_video_length(&self) -> usize {
         self.length
     }
@@ -535,6 +656,22 @@ impl CmXmlParser {
 
     pub fn get_shots(&self) -> &Vec<VideoShot> {
         &self.shots
+    }
+
+    pub fn get_global_aspect_ratios(&self) -> Option<&Level5AspectRatios> {
+        self.level5.as_ref()
+    }
+
+    pub fn get_global_level5(
+        &self,
+        canvas_width: u16,
+        canvas_height: u16,
+    ) -> Option<Level5Metadata> {
+        if let Some(ar) = &self.level5 {
+            Self::calculate_level5_metadata(ar, canvas_width, canvas_height)
+        } else {
+            None
+        }
     }
 
     pub fn is_cmv4(&self) -> bool {

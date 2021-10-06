@@ -1,4 +1,5 @@
 use anyhow::Result;
+use dolby_vision::st2094_10::ExtMetadataBlock;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -16,6 +17,8 @@ pub struct Generator {
     rpu_out: PathBuf,
     hdr10plus_path: Option<PathBuf>,
     xml_path: Option<PathBuf>,
+    canvas_width: Option<u16>,
+    canvas_height: Option<u16>,
 }
 
 impl Generator {
@@ -24,6 +27,8 @@ impl Generator {
         rpu_out: Option<PathBuf>,
         hdr10plus_path: Option<PathBuf>,
         xml_path: Option<PathBuf>,
+        canvas_width: Option<u16>,
+        canvas_height: Option<u16>,
     ) -> Result<()> {
         let out_path = if let Some(out_path) = rpu_out {
             out_path
@@ -36,6 +41,8 @@ impl Generator {
             rpu_out: out_path,
             hdr10plus_path,
             xml_path,
+            canvas_width,
+            canvas_height,
         };
 
         println!("Generating metadata...");
@@ -116,10 +123,21 @@ impl Generator {
         let parser = CmXmlParser::new(s)?;
 
         let length = parser.get_video_length();
+
+        let level5 = if self.canvas_width.is_some() && self.canvas_height.is_some() {
+            let cw = self.canvas_width.unwrap();
+            let ch = self.canvas_height.unwrap();
+
+            parser.get_global_level5(cw, ch)
+        } else {
+            None
+        };
+
         let level6 = parser.get_hdr10_metadata();
 
         let config = GenerateConfig {
-            length: 0,
+            length: length as u64,
+            level5,
             level6: Some(level6.clone()),
             ..Default::default()
         };
@@ -175,6 +193,48 @@ impl Generator {
                                 meta.max_pq_offset,
                                 meta.avg_pq_offset,
                             );
+                        }
+                    }
+
+                    if let Some(l5_list) = &shot.level5 {
+                        if let Some(ar) = l5_list.get(i) {
+                            if self.canvas_width.is_some() && self.canvas_height.is_some() {
+                                let cw = self.canvas_width.unwrap();
+                                let ch = self.canvas_height.unwrap();
+
+                                let level5_block = dm_meta
+                                    .st2094_10_metadata
+                                    .ext_metadata_blocks
+                                    .iter_mut()
+                                    .find(|e| matches!(e, ExtMetadataBlock::Level5(_)));
+
+                                if let Some(ExtMetadataBlock::Level5(ref mut existing_l5)) =
+                                    level5_block
+                                {
+                                    // Existing L5 block to override
+                                    let (left, right, top, bottom) = if let Some(l5) =
+                                        CmXmlParser::calculate_level5_metadata(ar, cw, ch)
+                                    {
+                                        // AR requires an offset
+                                        l5.get_offsets()
+                                    } else {
+                                        // AR doesn't need an offset
+                                        (0, 0, 0, 0)
+                                    };
+
+                                    existing_l5.set_offsets(left, right, top, bottom);
+                                } else if let Some(l5) =
+                                    CmXmlParser::calculate_level5_metadata(ar, cw, ch)
+                                {
+                                    // No L5 block, add one
+                                    dm_meta.st2094_10_metadata.add_level5_metadata(
+                                        l5.active_area_left_offset,
+                                        l5.active_area_right_offset,
+                                        l5.active_area_top_offset,
+                                        l5.active_area_bottom_offset,
+                                    );
+                                }
+                            }
                         }
                     }
                 }

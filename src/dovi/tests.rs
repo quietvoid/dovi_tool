@@ -205,7 +205,7 @@ fn sets_offsets_to_zero() -> Result<()> {
 
     let mut dovi_rpu = DoviRpu::parse(&parsed_data).unwrap();
     if let Some(block) = dovi_rpu.get_level5_block_mut() {
-        assert_eq!(vec![0, 0, 0, 0], block._get_offsets());
+        assert_eq!(vec![0, 0, 0, 0], block.get_offsets_vec());
     }
 
     Ok(())

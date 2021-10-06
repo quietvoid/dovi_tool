@@ -83,7 +83,16 @@ fn main() -> Result<()> {
             rpu_out,
             hdr10plus_json,
             xml,
-        } => Generator::generate(json_file, rpu_out, hdr10plus_json, xml),
+            canvas_width,
+            canvas_height,
+        } => Generator::generate(
+            json_file,
+            rpu_out,
+            hdr10plus_json,
+            xml,
+            canvas_width,
+            canvas_height,
+        ),
         Command::Export { input, output } => Exporter::export(input, output),
     };
 

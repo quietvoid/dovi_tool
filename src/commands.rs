@@ -199,6 +199,12 @@ pub enum Command {
             parse(from_os_str)
         )]
         xml: Option<PathBuf>,
+
+        #[structopt(long, help = "Canvas width for L5 metadata generation")]
+        canvas_width: Option<u16>,
+
+        #[structopt(long, help = "Canvas height for L5 metadata generation")]
+        canvas_height: Option<u16>,
     },
 
     Export {

@@ -150,6 +150,17 @@ impl ST2094_10Meta {
     }
 }
 
+impl Level5Metadata {
+    pub fn get_offsets(&self) -> (u16, u16, u16, u16) {
+        (
+            self.active_area_left_offset,
+            self.active_area_right_offset,
+            self.active_area_top_offset,
+            self.active_area_bottom_offset,
+        )
+    }
+}
+
 #[cfg(feature = "serde_feature")]
 fn default_trim() -> u16 {
     2048

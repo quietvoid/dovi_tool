@@ -312,7 +312,16 @@ impl ExtMetadataBlock {
 }
 
 impl ExtMetadataBlockLevel5 {
-    pub fn _get_offsets(&self) -> Vec<u16> {
+    pub fn get_offsets(&self) -> (u16, u16, u16, u16) {
+        (
+            self.active_area_left_offset,
+            self.active_area_right_offset,
+            self.active_area_top_offset,
+            self.active_area_bottom_offset,
+        )
+    }
+
+    pub fn get_offsets_vec(&self) -> Vec<u16> {
         vec![
             self.active_area_left_offset,
             self.active_area_right_offset,
