@@ -389,9 +389,18 @@ impl CmXmlParser {
                     let (level1, level3, level5) =
                         self.parse_trim_levels(&level_node, level, &mut default_l2)?;
 
-                    default_l1 = level1;
-                    default_l3 = level3;
-                    default_l5 = level5;
+                    // Only replace if the shot has a default trim
+                    if let Some(l1) = level1 {
+                        default_l1 = Some(l1);
+                    }
+
+                    if let Some(l3) = level3 {
+                        default_l3 = Some(l3);
+                    }
+
+                    if let Some(l5) = level5 {
+                        default_l5 = Some(l5);
+                    }
                 }
             } else {
                 let edr_nodes = defaults_node
@@ -403,9 +412,18 @@ impl CmXmlParser {
                     let (level1, level3, level5) =
                         self.parse_trim_levels(&edr, level, &mut default_l2)?;
 
-                    default_l1 = level1;
-                    default_l3 = level3;
-                    default_l5 = level5;
+                    // Only replace if the shot has a default trim
+                    if let Some(l1) = level1 {
+                        default_l1 = Some(l1);
+                    }
+
+                    if let Some(l3) = level3 {
+                        default_l3 = Some(l3);
+                    }
+
+                    if let Some(l5) = level5 {
+                        default_l5 = Some(l5);
+                    }
                 }
             };
 
