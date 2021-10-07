@@ -1,9 +1,9 @@
 use anyhow::{bail, ensure, format_err, Result};
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read};
+use std::io::{BufReader, Cursor, Read, Write};
 use std::path::Path;
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 
 mod utils;
 use utils::nits_to_pq;
@@ -121,10 +121,27 @@ impl MadVRMeasurements {
 
         Ok(())
     }
+
+    pub fn write_measurements(&self) -> Result<Vec<u8>> {
+        let mut out = Vec::with_capacity(
+            (10 * 4) + (self.scenes.len() * (3 * 4)) + (self.frames.len() * (32 * 2)),
+        );
+
+        let magic = MAGIC_CODE.as_bytes().read_u32::<LE>()?;
+        out.write_u32::<LE>(magic)?;
+
+        self.header.write(&mut out)?;
+        MadVRScene::write_scenes(&self.scenes, &mut out)?;
+        MadVRFrame::write_frames(&self.header, &self.frames, &mut out)?;
+
+        out.flush()?;
+
+        Ok(out)
+    }
 }
 
 impl MadVRHeader {
-    fn parse(reader: &mut Cursor<&[u8]>) -> Result<MadVRHeader> {
+    fn parse(reader: &mut dyn Read) -> Result<MadVRHeader> {
         let mut header = MadVRHeader {
             version: reader.read_u32::<LE>()?,
             header_size: reader.read_u32::<LE>()?,
@@ -148,10 +165,32 @@ impl MadVRHeader {
 
         Ok(header)
     }
+
+    fn write(&self, writer: &mut dyn Write) -> Result<()> {
+        ensure!(self.flags == 1, "can only write complete measurement files");
+
+        writer.write_u32::<LE>(self.version)?;
+        writer.write_u32::<LE>(self.header_size)?;
+        writer.write_u32::<LE>(self.scene_count)?;
+        writer.write_u32::<LE>(self.frame_count)?;
+        writer.write_u32::<LE>(self.flags)?;
+        writer.write_u32::<LE>(self.maxcll)?;
+
+        if self.version >= 5 {
+            writer.write_u32::<LE>(self.maxfall)?;
+            writer.write_u32::<LE>(self.avgfall)?;
+
+            if self.version >= 6 {
+                writer.write_u32::<LE>(self.target_peak_nits)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl MadVRScene {
-    fn parse_scenes(header: &MadVRHeader, reader: &mut Cursor<&[u8]>) -> Result<Vec<MadVRScene>> {
+    fn parse_scenes(header: &MadVRHeader, reader: &mut dyn Read) -> Result<Vec<MadVRScene>> {
         let mut scenes: Vec<MadVRScene> = Vec::new();
 
         for _ in 0..header.scene_count {
@@ -177,10 +216,26 @@ impl MadVRScene {
 
         Ok(scenes)
     }
+
+    fn write_scenes(scenes: &[MadVRScene], writer: &mut dyn Write) -> Result<()> {
+        for s in scenes {
+            writer.write_u32::<LE>(s.start)?;
+        }
+
+        for s in scenes {
+            writer.write_u32::<LE>(s.end + 1)?;
+        }
+
+        for s in scenes {
+            writer.write_u32::<LE>(s.peak_nits)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl MadVRFrame {
-    fn parse_frames(header: &MadVRHeader, reader: &mut Cursor<&[u8]>) -> Result<Vec<MadVRFrame>> {
+    fn parse_frames(header: &MadVRHeader, reader: &mut dyn Read) -> Result<Vec<MadVRFrame>> {
         let mut frames = Vec::new();
 
         let sdr_peak_pq = nits_to_pq(100);
@@ -245,7 +300,7 @@ impl MadVRFrame {
         Ok(frames)
     }
 
-    fn parse_histogram(length: usize, reader: &mut Cursor<&[u8]>) -> Result<Vec<f64>> {
+    fn parse_histogram(length: usize, reader: &mut dyn Read) -> Result<Vec<f64>> {
         let mut histogram: Vec<f64> = Vec::new();
 
         for _ in 0..length {
@@ -254,5 +309,55 @@ impl MadVRFrame {
         }
 
         Ok(histogram)
+    }
+
+    fn write_frames(
+        header: &MadVRHeader,
+        frames: &[MadVRFrame],
+        writer: &mut dyn Write,
+    ) -> Result<()> {
+        for f in frames {
+            writer.write_u16::<LE>((f.peak_pq_2020 * 64000.0).round() as u16)?;
+
+            if header.version >= 6 {
+                ensure!(
+                    f.peak_pq_dcip3.is_some() && f.peak_pq_709.is_some(),
+                    "missing different gamut frame peaks for v6"
+                );
+
+                writer.write_u16::<LE>((f.peak_pq_dcip3.unwrap() * 64000.0).round() as u16)?;
+                writer.write_u16::<LE>((f.peak_pq_709.unwrap() * 64000.0).round() as u16)?;
+            }
+
+            if header.version >= 5 {
+                ensure!(
+                    f.lum_histogram.len() == 256,
+                    "lum histogram has to be size 256 for v5+"
+                );
+                ensure!(f.hue_histogram.is_some(), "missing hue histogram for v6");
+
+                let hue_histogram = f.hue_histogram.as_ref().unwrap();
+                ensure!(hue_histogram.len() == 31, "hue histogram has to be size 31");
+
+                MadVRFrame::write_histogram(&f.lum_histogram, writer)?;
+                MadVRFrame::write_histogram(hue_histogram, writer)?;
+            } else {
+                ensure!(
+                    f.lum_histogram.len() == 31,
+                    "lum histogram has to be size 31 for versions below 5"
+                );
+                MadVRFrame::write_histogram(&f.lum_histogram, writer)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn write_histogram(histogram: &[f64], writer: &mut dyn Write) -> Result<()> {
+        for v in histogram {
+            writer.write_u16::<LE>((v * 640.0).round() as u16)?;
+        }
+
+        Ok(())
     }
 }
