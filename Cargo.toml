@@ -6,17 +6,19 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
-dolby_vision = { path = "./dolby_vision", "features" = ["hevc_rpu", "xml", "serde_feature"] }
+bitvec_helpers = "0.1.0"
+hevc_parser = "0.2.0"
+dolby_vision = { path = "dolby_vision", "features" = ["hevc_rpu", "xml", "serde_feature"] }
+madvr_parse = { path = "madvr_parse" }
+
+anyhow = "1.0"
 structopt = "0.3.21"
 indicatif = "0.16.2"
 regex = "1.5.4"
 bitvec = "0.20.4"
-bitvec_helpers = "0.1.0"
-hevc_parser = "0.2.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }
 rayon = "1.5.0"
-anyhow = "1.0"
 
 [[bin]]
 name = "dovi_tool"

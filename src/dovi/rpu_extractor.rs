@@ -46,7 +46,7 @@ impl RpuExtractor {
     }
 
     fn process_input(&self, options: RpuOptions) -> Result<()> {
-        let pb = super::initialize_progress_bar(&self.format, &self.input);
+        let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
             Format::Matroska => bail!("unsupported"),

@@ -5,11 +5,11 @@ use std::{io::Read, path::PathBuf};
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
-    let mut f = File::open(input).unwrap();
-    let metadata = f.metadata().unwrap();
+    let mut f = File::open(input)?;
+    let metadata = f.metadata()?;
 
     let mut original_data = vec![0; metadata.len() as usize];
-    f.read_exact(&mut original_data).unwrap();
+    f.read_exact(&mut original_data)?;
 
     let dovi_rpu = DoviRpu::parse(&original_data)?;
 
@@ -203,7 +203,7 @@ fn sets_offsets_to_zero() -> Result<()> {
     dovi_rpu.crop();
     let parsed_data = dovi_rpu.write_rpu_data()?;
 
-    let mut dovi_rpu = DoviRpu::parse(&parsed_data).unwrap();
+    let mut dovi_rpu = DoviRpu::parse(&parsed_data)?;
     if let Some(block) = dovi_rpu.get_level5_block_mut() {
         assert_eq!(vec![0, 0, 0, 0], block.get_offsets_vec());
     }

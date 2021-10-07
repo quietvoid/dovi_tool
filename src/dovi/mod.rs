@@ -44,7 +44,7 @@ pub struct RpuOptions {
     pub discard_el: bool,
 }
 
-pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
+pub fn initialize_progress_bar(format: &Format, input: &Path) -> Result<ProgressBar> {
     let pb: ProgressBar;
     let bytes_count;
 
@@ -54,8 +54,8 @@ pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
         let file = File::open(input).expect("No file found");
 
         //Info for indicatif ProgressBar
-        let file_meta = file.metadata();
-        bytes_count = file_meta.unwrap().len() / 100_000_000;
+        let file_meta = file.metadata()?;
+        bytes_count = file_meta.len() / 100_000_000;
 
         pb = ProgressBar::new(bytes_count);
         pb.set_style(
@@ -63,7 +63,7 @@ pub fn initialize_progress_bar(format: &Format, input: &Path) -> ProgressBar {
         );
     }
 
-    pb
+    Ok(pb)
 }
 
 impl std::fmt::Display for Format {
@@ -80,8 +80,8 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
     println!("Parsing RPU file...");
     stdout().flush().ok();
 
-    let rpu_file = File::open(input).unwrap();
-    let metadata = rpu_file.metadata().unwrap();
+    let rpu_file = File::open(input)?;
+    let metadata = rpu_file.metadata()?;
 
     // Should never be this large, avoid mistakes
     if metadata.len() > 250_000_000 {
@@ -92,7 +92,7 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
 
     // Should be small enough to fit in the memory
     let mut data = vec![0; metadata.len() as usize];
-    reader.read_exact(&mut data).unwrap();
+    reader.read_exact(&mut data)?;
 
     let mut offsets = Vec::with_capacity(200_000);
     let mut parser = HevcParser::with_nalu_start_code(NALUStartCode::Length4);

@@ -1,0 +1,11 @@
+target
+**/*.rs.bk
+/*.mkv
+/*.hevc
+/*.txt
+/*.vpy
+/*.bin
+/*.ffindex
+/*.json
+/*.xml
+Cargo.lock

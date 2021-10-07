@@ -33,7 +33,7 @@ impl RpuInjector {
             let mut injector = RpuInjector::new(input, rpu_in, output)?;
             let mut parser = HevcParser::default();
 
-            injector.process_input(&mut parser, format);
+            injector.process_input(&mut parser, format)?;
             parser.finish();
 
             let frames = parser.ordered_frames();
@@ -45,14 +45,14 @@ impl RpuInjector {
         }
     }
 
-    fn process_input(&self, parser: &mut HevcParser, format: Format) {
+    fn process_input(&self, parser: &mut HevcParser, format: Format) -> Result<()> {
         println!("Processing input video for frame order info...");
         stdout().flush().ok();
 
-        let pb = super::initialize_progress_bar(&format, &self.input);
+        let pb = super::initialize_progress_bar(&format, &self.input)?;
 
         //BufReader & BufWriter
-        let file = File::open(&self.input).unwrap();
+        let file = File::open(&self.input)?;
         let mut reader = Box::new(BufReader::with_capacity(100_000, file));
 
         let chunk_size = 100_000;
@@ -113,6 +113,8 @@ impl RpuInjector {
         }
 
         pb.finish_and_clear();
+
+        Ok(())
     }
 
     pub fn new(input: PathBuf, rpu_in: PathBuf, output: PathBuf) -> Result<RpuInjector> {
@@ -175,7 +177,7 @@ impl RpuInjector {
             println!("Rewriting file with interleaved RPU NALs..");
             stdout().flush().ok();
 
-            let pb = super::initialize_progress_bar(&Format::Raw, &self.input);
+            let pb = super::initialize_progress_bar(&Format::Raw, &self.input)?;
             let mut parser = HevcParser::default();
 
             let chunk_size = 100_000;
@@ -186,7 +188,7 @@ impl RpuInjector {
             let mut end: Vec<u8> = Vec::with_capacity(chunk_size);
 
             //BufReader & BufWriter
-            let file = File::open(&self.input).unwrap();
+            let file = File::open(&self.input)?;
             let mut reader = Box::new(BufReader::with_capacity(100_000, file));
             let mut writer = BufWriter::with_capacity(
                 chunk_size,

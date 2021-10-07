@@ -2,7 +2,7 @@ use regex::Regex;
 use std::path::Path;
 use structopt::StructOpt;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, format_err, Result};
 use bitvec_helpers::bitvec_writer;
 
 mod commands;
@@ -78,21 +78,7 @@ fn main() -> Result<()> {
             output,
         } => RpuInjector::inject_rpu(input, rpu_in, output),
         Command::Info { input, frame } => RpuInfo::info(input, frame),
-        Command::Generate {
-            json_file,
-            rpu_out,
-            hdr10plus_json,
-            xml,
-            canvas_width,
-            canvas_height,
-        } => Generator::generate(
-            json_file,
-            rpu_out,
-            hdr10plus_json,
-            xml,
-            canvas_width,
-            canvas_height,
-        ),
+        Command::Generate { .. } => Generator::generate(opt.cmd),
         Command::Export { input, output } => Exporter::export(input, output),
     };
 
@@ -104,9 +90,11 @@ fn main() -> Result<()> {
 }
 
 pub fn input_format(input: &Path) -> Result<Format> {
-    let regex = Regex::new(r"\.(hevc|.?265|mkv)").unwrap();
+    let regex = Regex::new(r"\.(hevc|.?265|mkv)")?;
     let file_name = match input.file_name() {
-        Some(file_name) => file_name.to_str().unwrap(),
+        Some(file_name) => file_name
+            .to_str()
+            .ok_or_else(|| format_err!("Invalid file name"))?,
         None => "",
     };
 

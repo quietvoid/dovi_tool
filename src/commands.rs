@@ -205,6 +205,14 @@ pub enum Command {
 
         #[structopt(long, help = "Canvas height for L5 metadata generation")]
         canvas_height: Option<u16>,
+
+        #[structopt(
+            long,
+            help = "madVR measurement file to generate from (experimental)",
+            conflicts_with = "json_file",
+            parse(from_os_str)
+        )]
+        madvr_file: Option<PathBuf>,
     },
 
     Export {

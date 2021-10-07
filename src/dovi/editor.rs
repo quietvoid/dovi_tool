@@ -82,8 +82,8 @@ impl Editor {
             rpus: None,
         };
 
-        let json_file = File::open(&editor.json_path).unwrap();
-        let mut config: EditConfig = serde_json::from_reader(&json_file).unwrap();
+        let json_file = File::open(&editor.json_path)?;
+        let mut config: EditConfig = serde_json::from_reader(&json_file)?;
 
         println!("{:#?}", config);
 
