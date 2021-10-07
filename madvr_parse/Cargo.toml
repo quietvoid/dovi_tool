@@ -1,0 +1,14 @@
+[package]
+name = "madvr_parse"
+version = "0.1.0"
+authors = ["quietvoid"]
+edition = "2018"
+license = "MIT"
+description = "madVR measurement file library"
+repository = "https://github.com/quietvoid/dovi_tool"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+byteorder = "1.4.3"

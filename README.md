@@ -32,6 +32,10 @@
     The metadata is generated from a configuration JSON file, and the L1 metadata is derived from HDR10+ metadata.
     * The HDR10+ metadata has to contain scene information for proper scene cuts.
     * Example: `dovi_tool generate -j assets/generator_example.json --hdr10plus-json hdr10plus_metadata.json -o RPU_from_hdr10plus.bin`  
+
+    ##### From a madVR HDR measurement file
+    The metadata is generated from a configuration JSON file, and the L1 metadata is derived from the madVR measurements.
+    * Example: `dovi_tool generate -j assets/generator_example.json --madvr-file madmeasure-output.bin -o RPU_from_madVR.bin`  
 &nbsp;
 * #### editor
     Allows editing a binary RPU according to a JSON config.  
