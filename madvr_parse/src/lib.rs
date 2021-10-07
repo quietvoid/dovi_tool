@@ -284,6 +284,8 @@ impl MadVRFrame {
                     .sum();
             } else {
                 let step = hdr_peak_pq / 31.0;
+                let step = step + (step / 2.0);
+
                 frame.lum_histogram = MadVRFrame::parse_histogram(31, reader)?;
 
                 frame.avg_pq = frame
