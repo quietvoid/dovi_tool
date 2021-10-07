@@ -46,6 +46,8 @@ pub struct VdrDmData {
     pub source_min_pq: u16,
     pub source_max_pq: u16,
     source_diagonal: u16,
+
+    #[serde(flatten)]
     pub st2094_10_metadata: ST2094_10Meta,
 }
 
