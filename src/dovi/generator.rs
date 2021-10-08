@@ -52,8 +52,6 @@ impl Generator {
                 madvr_path: madvr_file,
             };
 
-            println!("Generating metadata...");
-
             if let Some(json_path) = &generator.json_path {
                 let json_file = File::open(json_path)?;
                 let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
@@ -106,6 +104,8 @@ impl Generator {
             config.length as usize
         };
 
+        println!("Generating metadata...");
+
         for i in 0..length {
             let mut rpu = DoviRpu::profile8_config(config);
 
@@ -143,6 +143,8 @@ impl Generator {
     }
 
     fn generate_from_xml(&self, xml_path: &Path) -> Result<()> {
+        println!("Parsing XML metadata...");
+
         let mut s = String::new();
         File::open(xml_path)?.read_to_string(&mut s)?;
 
@@ -172,6 +174,8 @@ impl Generator {
             100_000,
             File::create(&self.rpu_out).expect("Can't create file"),
         );
+
+        println!("Generating metadata...");
 
         let shots = parser.get_shots();
 
