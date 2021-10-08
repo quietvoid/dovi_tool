@@ -296,6 +296,10 @@ impl MadVRFrame {
                     .sum();
             }
 
+            // Adjust depending on the sum of histogram bars
+            let percent_sum: f64 = frame.lum_histogram.iter().sum();
+            frame.avg_pq = (frame.avg_pq * (100.0 / percent_sum)).min(1.0);
+
             frames.push(frame);
         }
 
