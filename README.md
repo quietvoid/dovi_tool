@@ -78,7 +78,9 @@ For working with an HEVC source file, there are multiple options that apply to m
     * Convert RPU to profile 8.1 while demuxing: `dovi_tool -m 2 demux file.hevc`  
 &nbsp;
 * #### extract-rpu
-    Extracts Dolby Vision RPU from an single track dual layer encoded file.  
+    Extracts Dolby Vision RPU from an HEVC file.  
+    This can be either a single track dual layer or an enhancement layer video file.  
+ 
     Supports profiles 4, 5, 7, and 8.
 
     Examples:
