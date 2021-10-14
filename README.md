@@ -79,7 +79,7 @@ For working with an HEVC source file, there are multiple options that apply to m
 &nbsp;
 * #### extract-rpu
     Extracts Dolby Vision RPU from an HEVC file.  
-    This can be either a single track dual layer or an enhancement layer video file.  
+    This can be either a single track (BL + RPU), single track dual layer (BL+EL+RPU) or an enhancement layer (EL+RPU) video file.  
  
     Supports profiles 4, 5, 7, and 8.
 
