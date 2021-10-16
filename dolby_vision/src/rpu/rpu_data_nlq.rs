@@ -57,20 +57,7 @@ impl NlqData {
             data.linear_deadzone_threshold_int.push(vec![0; num_cmps]);
             data.linear_deadzone_threshold.push(vec![0; num_cmps]);
 
-            let mut predictors = 0;
-
             for cmp in 0..num_cmps {
-                // Dolby pls. Guessing this is what they mean by "new parameters"
-                if cmp > 0
-                    && data.nlq_param_pred_flag[pivot_idx][cmp]
-                        != data.nlq_param_pred_flag[pivot_idx][cmp - 1]
-                {
-                    predictors += 1;
-                    data.num_nlq_param_predictors[pivot_idx][cmp] = predictors;
-                } else {
-                    predictors = 0;
-                }
-
                 if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
                     data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get();
                 } else {

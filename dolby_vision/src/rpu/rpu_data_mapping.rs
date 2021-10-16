@@ -60,7 +60,6 @@ impl VdrRpuData {
 
         for cmp in 0..num_cmps {
             let pivot_idx_count = (header.num_pivots_minus_2[cmp] + 1) as usize;
-            let mut predictors = 0;
 
             data.mapping_idc.push(vec![0; pivot_idx_count]);
             data.num_mapping_param_predictors
@@ -89,16 +88,6 @@ impl VdrRpuData {
 
             for pivot_idx in 0..pivot_idx_count {
                 data.mapping_idc[cmp][pivot_idx] = reader.get_ue();
-
-                // Dolby pls. Guessing this is what they mean by "new parameters"
-                if pivot_idx > 0
-                    && data.mapping_idc[cmp][pivot_idx] != data.mapping_idc[cmp][pivot_idx - 1]
-                {
-                    predictors += 1;
-                    data.num_mapping_param_predictors[cmp][pivot_idx] = predictors;
-                } else {
-                    predictors = 0;
-                }
 
                 if data.num_mapping_param_predictors[cmp][pivot_idx] > 0 {
                     data.mapping_param_pred_flag[cmp][pivot_idx] = reader.get();
