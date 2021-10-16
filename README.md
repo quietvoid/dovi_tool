@@ -11,7 +11,7 @@
     Prints the parsed RPU data as JSON for a specific frame.  
     Frame indices start at 0.
 
-    * Example to get metadata for frame 123: `dovi_tool info -i RPU.bin -f 124`  
+    * Example to get metadata for frame 124: `dovi_tool info -i RPU.bin -f 123`  
 &nbsp;
 * #### generate
     Allows generating a binary RPU from different sources.
