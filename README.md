@@ -34,7 +34,8 @@
     * Example: `dovi_tool generate -j assets/generator_example.json --hdr10plus-json hdr10plus_metadata.json -o RPU_from_hdr10plus.bin`  
     &nbsp;
     ##### From a madVR HDR measurement file
-    The metadata is generated from a configuration JSON file, and the L1 metadata is derived from the madVR measurements.
+    The metadata is generated from a configuration JSON file, and the L1 metadata is derived from the madVR measurements.  
+    Supports using custom targets nits from Soulnight's madMeasureHDR Optimizer, with flag `--use-custom-targets`.  
     * Example: `dovi_tool generate -j assets/generator_example.json --madvr-file madmeasure-output.bin -o RPU_from_madVR.bin`  
 &nbsp;
 * #### editor
