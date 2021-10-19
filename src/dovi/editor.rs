@@ -2,6 +2,8 @@ use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
+use dolby_vision::st2094_10::generate::Level6Metadata;
+use dolby_vision::st2094_10::ExtMetadataBlock;
 use serde::{Deserialize, Serialize};
 
 use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
@@ -33,6 +35,8 @@ pub struct EditConfig {
 
     #[serde(default)]
     max_pq: Option<u16>,
+
+    level6: Option<Level6Metadata>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -133,6 +137,10 @@ impl EditConfig {
             self.change_source_levels(rpus);
         }
 
+        if let Some(l6) = &self.level6 {
+            self.set_level6_metadata(rpus, l6);
+        }
+
         Ok(())
     }
 
@@ -229,6 +237,26 @@ impl EditConfig {
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 vdr_dm_data.change_source_levels(self.min_pq, self.max_pq)
+            }
+        });
+    }
+
+    fn set_level6_metadata(&self, rpus: &mut Vec<Option<DoviRpu>>, l6: &Level6Metadata) {
+        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                let level6_block = vdr_dm_data
+                    .st2094_10_metadata
+                    .ext_metadata_blocks
+                    .iter_mut()
+                    .find(|e| matches!(e, ExtMetadataBlock::Level6(_)));
+
+                if let Some(ExtMetadataBlock::Level6(ref mut block)) = level6_block {
+                    block.set_fields_from_generate_l6(l6);
+                } else {
+                    vdr_dm_data.st2094_10_metadata.add_level6_metadata(l6);
+                }
             }
         });
     }

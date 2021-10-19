@@ -251,7 +251,7 @@ fn generated_rpu() -> Result<()> {
         ..Default::default()
     };
 
-    let vdr_dm_data = VdrDmData::from_config(&config);
+    let vdr_dm_data = VdrDmData::from_config(&config)?;
     assert_eq!(vdr_dm_data.source_min_pq, 7);
     assert_eq!(vdr_dm_data.source_max_pq, 3079);
 

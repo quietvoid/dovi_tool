@@ -578,13 +578,14 @@ impl CmXmlParser {
         );
 
         Ok(Level2Metadata {
-            target_nits: target_display.peak_nits,
+            target_nits: Some(target_display.peak_nits),
             trim_slope,
             trim_offset,
             trim_power,
             trim_chroma_weight,
             trim_saturation_gain,
             ms_weight,
+            ..Default::default()
         })
     }
 

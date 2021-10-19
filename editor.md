@@ -50,6 +50,17 @@ The editor expects a JSON config like the example below:
 
     // Source min/max PQ values to override
     "min_pq": int,
-    "max_pq": int
+    "max_pq": int,
+
+    // Level 6, ST2086 fallback metadata
+    // Optional
+    //   Replaces existing L6 metadata values.
+    //   Otherwise, creates the L6 metadata block.
+    "level6": {
+        "max_display_mastering_luminance": int,
+        "min_display_mastering_luminance": int,
+        "max_content_light_level": int,
+        "max_frame_average_light_level": int,
+    }
 }
 ```

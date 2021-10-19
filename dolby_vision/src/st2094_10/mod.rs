@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
@@ -11,6 +11,8 @@ pub mod ext_metadata_blocks;
 pub mod generate;
 
 pub use ext_metadata_blocks::*;
+
+use generate::*;
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
@@ -87,6 +89,11 @@ impl ST2094_10Meta {
         })
     }
 
+    pub fn update_extension_block_info(&mut self) {
+        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
+        self.sort_extension_blocks();
+    }
+
     pub fn add_level1_metadata(&mut self, min_pq: u16, max_pq: u16, avg_pq: u16) {
         let ext_metadata_block_level1 = ExtMetadataBlockLevel1 {
             block_info: BlockInfo {
@@ -101,22 +108,17 @@ impl ST2094_10Meta {
 
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level1(ext_metadata_block_level1));
-        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
-
-        self.sort_extension_blocks();
+        self.update_extension_block_info();
     }
 
-    pub fn add_level2_metadata(
-        &mut self,
-        target_nits: u16,
-        trim_slope: u16,
-        trim_offset: u16,
-        trim_power: u16,
-        trim_chroma_weight: u16,
-        trim_saturation_gain: u16,
-        ms_weight: i16,
-    ) {
-        let target_max_pq = (nits_to_pq(target_nits) * 4095.0).round() as u16;
+    pub fn add_level2_metadata(&mut self, level2_config: &Level2Metadata) -> Result<()> {
+        let target_max_pq = if let Some(target_nits) = level2_config.target_nits {
+            (nits_to_pq(target_nits) * 4095.0).round() as u16
+        } else if let Some(target_pq) = level2_config.target_max_pq {
+            target_pq
+        } else {
+            bail!("Level2 metadata: peak brightness of the target display is required");
+        };
 
         let ext_metadata_block_level2 = ExtMetadataBlockLevel2 {
             block_info: BlockInfo {
@@ -125,18 +127,19 @@ impl ST2094_10Meta {
                 remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 3]),
             },
             target_max_pq,
-            trim_slope,
-            trim_offset,
-            trim_power,
-            trim_chroma_weight,
-            trim_saturation_gain,
-            ms_weight,
+            trim_slope: level2_config.trim_slope,
+            trim_offset: level2_config.trim_offset,
+            trim_power: level2_config.trim_power,
+            trim_chroma_weight: level2_config.trim_chroma_weight,
+            trim_saturation_gain: level2_config.trim_saturation_gain,
+            ms_weight: level2_config.ms_weight,
         };
 
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level2(ext_metadata_block_level2));
-        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
-        self.sort_extension_blocks();
+        self.update_extension_block_info();
+
+        Ok(())
     }
 
     pub fn add_level3_metadata(
@@ -158,9 +161,7 @@ impl ST2094_10Meta {
 
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level3(ext_metadata_block_level3));
-        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
-
-        self.sort_extension_blocks();
+        self.update_extension_block_info();
     }
 
     pub fn add_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
@@ -178,7 +179,24 @@ impl ST2094_10Meta {
 
         self.ext_metadata_blocks
             .push(ExtMetadataBlock::Level5(ext_metadata_block_level5));
-        self.num_ext_blocks = self.ext_metadata_blocks.len() as u64;
-        self.sort_extension_blocks();
+        self.update_extension_block_info();
+    }
+
+    pub fn add_level6_metadata(&mut self, level6_config: &Level6Metadata) {
+        let ext_metadata_block_level6 = ExtMetadataBlockLevel6 {
+            block_info: BlockInfo {
+                ext_block_length: 8,
+                ext_block_level: 6,
+                ..Default::default()
+            },
+            max_display_mastering_luminance: level6_config.max_display_mastering_luminance,
+            min_display_mastering_luminance: level6_config.min_display_mastering_luminance,
+            max_content_light_level: level6_config.max_content_light_level,
+            max_frame_average_light_level: level6_config.max_frame_average_light_level,
+        };
+
+        self.ext_metadata_blocks
+            .push(ExtMetadataBlock::Level6(ext_metadata_block_level6));
+        self.update_extension_block_info();
     }
 }

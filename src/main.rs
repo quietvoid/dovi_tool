@@ -83,7 +83,7 @@ fn main() -> Result<()> {
     };
 
     if let Err(e) = res {
-        panic!("{:?}", e);
+        println!("Error: {:?}", e);
     }
 
     Ok(())

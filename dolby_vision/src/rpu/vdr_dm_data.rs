@@ -208,7 +208,7 @@ impl VdrDmData {
         self.scene_refresh_flag = is_scene_cut as u64;
     }
 
-    pub fn from_config(config: &GenerateConfig) -> VdrDmData {
+    pub fn from_config(config: &GenerateConfig) -> Result<VdrDmData> {
         let mut vdr_dm_data = VdrDmData {
             affected_dm_metadata_id: 0,
             current_dm_metadata_id: 0,
@@ -248,10 +248,10 @@ impl VdrDmData {
 
         vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
 
-        vdr_dm_data.st2094_10_metadata.update_from_config(config);
+        vdr_dm_data.st2094_10_metadata.update_from_config(config)?;
         vdr_dm_data.update_source_levels();
 
-        vdr_dm_data
+        Ok(vdr_dm_data)
     }
 
     pub fn update_source_levels(&mut self) {

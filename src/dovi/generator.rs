@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use dolby_vision::st2094_10::ExtMetadataBlock;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{stdout, BufWriter, Read, Write};
@@ -7,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::st2094_10::generate::{GenerateConfig, Level1Metadata, Level6Metadata};
+use dolby_vision::st2094_10::ExtMetadataBlock;
 use dolby_vision::utils::nits_to_pq;
 use dolby_vision::xml::CmXmlParser;
 
@@ -107,7 +107,14 @@ impl Generator {
         println!("Generating metadata...");
 
         for i in 0..length {
-            let mut rpu = DoviRpu::profile8_config(config);
+            let mut rpu = DoviRpu::profile8_config(config)?;
+
+            // Set first frame as scene start
+            if i == 0 {
+                if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                    vdr_dm_data.set_scene_cut(true);
+                }
+            }
 
             let encoded_rpu = if let Some(l1_list) = &l1_meta {
                 if let Some(meta) = &l1_list.get(i) {
@@ -183,7 +190,7 @@ impl Generator {
             let end = shot.duration;
 
             for i in 0..end {
-                let mut rpu = DoviRpu::profile8_config(&config);
+                let mut rpu = DoviRpu::profile8_config(&config)?;
 
                 if let Some(dm_meta) = &mut rpu.vdr_dm_data {
                     if let Some(l1_list) = &shot.level1 {
@@ -203,15 +210,7 @@ impl Generator {
                     if let Some(l2_list) = &shot.level2 {
                         if let Some(meta) = l2_list.get(i) {
                             for l2 in meta {
-                                dm_meta.st2094_10_metadata.add_level2_metadata(
-                                    l2.target_nits,
-                                    l2.trim_slope,
-                                    l2.trim_offset,
-                                    l2.trim_power,
-                                    l2.trim_chroma_weight,
-                                    l2.trim_saturation_gain,
-                                    l2.ms_weight,
-                                )
+                                dm_meta.st2094_10_metadata.add_level2_metadata(l2)?;
                             }
                         }
                     }

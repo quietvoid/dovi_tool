@@ -5,6 +5,8 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
+use super::generate::Level6Metadata;
+
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub enum ExtMetadataBlock {
@@ -342,5 +344,14 @@ impl ExtMetadataBlockLevel5 {
         self.active_area_right_offset = 0;
         self.active_area_top_offset = 0;
         self.active_area_bottom_offset = 0;
+    }
+}
+
+impl ExtMetadataBlockLevel6 {
+    pub fn set_fields_from_generate_l6(&mut self, meta: &Level6Metadata) {
+        self.max_display_mastering_luminance = meta.max_display_mastering_luminance;
+        self.min_display_mastering_luminance = meta.min_display_mastering_luminance;
+        self.max_content_light_level = meta.max_content_light_level;
+        self.max_frame_average_light_level = meta.max_frame_average_light_level;
     }
 }

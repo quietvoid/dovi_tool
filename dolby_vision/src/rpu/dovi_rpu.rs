@@ -327,17 +327,17 @@ impl DoviRpu {
         Ok(())
     }
 
-    pub fn profile8_config(config: &GenerateConfig) -> Self {
-        DoviRpu {
+    pub fn profile8_config(config: &GenerateConfig) -> Result<Self> {
+        Ok(DoviRpu {
             dovi_profile: 8,
             modified: true,
             header: RpuDataHeader::p8_default(),
             vdr_rpu_data: Some(VdrRpuData::p8_default()),
             nlq_data: None,
-            vdr_dm_data: Some(VdrDmData::from_config(config)),
+            vdr_dm_data: Some(VdrDmData::from_config(config)?),
             last_byte: 0x80,
             ..Default::default()
-        }
+        })
     }
 
     pub fn get_level5_block_mut(&mut self) -> Option<&mut ExtMetadataBlockLevel5> {
