@@ -22,6 +22,7 @@ pub struct Generator {
     canvas_width: Option<u16>,
     canvas_height: Option<u16>,
     madvr_path: Option<PathBuf>,
+    use_custom_targets: bool,
 }
 
 impl Generator {
@@ -34,6 +35,7 @@ impl Generator {
             canvas_width,
             canvas_height,
             madvr_file,
+            use_custom_targets,
         } = cmd
         {
             let out_path = if let Some(out_path) = rpu_out {
@@ -50,6 +52,7 @@ impl Generator {
                 canvas_width,
                 canvas_height,
                 madvr_path: madvr_file,
+                use_custom_targets,
             };
 
             if let Some(json_path) = &generator.json_path {
@@ -75,7 +78,7 @@ impl Generator {
         let (l1_meta, scene_cuts) = if let Some(hdr10plus_path) = &self.hdr10plus_path {
             parse_hdr10plus_for_l1(hdr10plus_path)?
         } else if let Some(madvr_path) = &self.madvr_path {
-            let (l1, l6, scene_cuts) = generate_metadata_from_madvr(madvr_path)?;
+            let (l1, l6, scene_cuts) = generate_metadata_from_madvr(self, madvr_path)?;
 
             // Set MaxCLL and MaxFALL if not set in config
             if let Some(ref mut config_l6) = config.level6 {
@@ -343,6 +346,7 @@ fn parse_hdr10plus_for_l1(
 }
 
 pub fn generate_metadata_from_madvr(
+    generator: &Generator,
     madvr_path: &Path,
 ) -> Result<(Option<Vec<Level1Metadata>>, Level6Metadata, Vec<usize>)> {
     println!("Parsing madVR measurement file...");
@@ -360,16 +364,31 @@ pub fn generate_metadata_from_madvr(
     let scene_cuts: Vec<usize> = madvr_info.scenes.iter().map(|s| s.start as usize).collect();
 
     if let Some(ref mut meta) = l1_meta {
-        madvr_info.scenes.iter().for_each(|s| {
-            let shot_l1 = Level1Metadata {
-                min_pq: 0,
-                max_pq: (s.max_pq * 4095.0).round() as u16,
-                avg_pq: (s.avg_pq * 4095.0).round() as u16,
-            };
+        let frame_count = madvr_info.frames.len();
 
-            let l1_list = std::iter::repeat(shot_l1).take(s.length);
-            meta.extend(l1_list);
-        });
+        for s in madvr_info.scenes.iter() {
+            if generator.use_custom_targets && madvr_info.header.flags == 3 {
+                // Use peak per frame, average from scene
+                let frames = s.get_frames(frame_count, &madvr_info.frames)?;
+
+                let l1_list = frames.iter().map(|f| Level1Metadata {
+                    min_pq: 0,
+                    max_pq: (f.target_pq * 4095.0).round() as u16,
+                    avg_pq: (s.avg_pq * 4095.0).round() as u16,
+                });
+
+                meta.extend(l1_list);
+            } else {
+                let l1 = Level1Metadata {
+                    min_pq: 0,
+                    max_pq: (s.max_pq * 4095.0).round() as u16,
+                    avg_pq: (s.avg_pq * 4095.0).round() as u16,
+                };
+
+                let l1_list = std::iter::repeat(l1).take(s.length);
+                meta.extend(l1_list);
+            };
+        }
     }
 
     Ok((l1_meta, l6_meta, scene_cuts))

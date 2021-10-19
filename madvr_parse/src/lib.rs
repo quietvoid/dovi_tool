@@ -48,8 +48,10 @@ pub struct MadVRFrame {
     pub peak_pq_709: Option<f64>,
     pub lum_histogram: Vec<f64>,
     pub hue_histogram: Option<Vec<f64>>,
+    pub target_nits: Option<u16>,
 
     pub avg_pq: f64,
+    pub target_pq: f64,
 }
 
 impl MadVRMeasurements {
@@ -91,6 +93,16 @@ impl MadVRMeasurements {
         measurements.scenes = MadVRScene::parse_scenes(&measurements.header, &mut reader)?;
         measurements.frames = MadVRFrame::parse_frames(&measurements.header, &mut reader)?;
 
+        if measurements.header.flags == 3 {
+            let remaining = data[4..].len() - (reader.position() as usize);
+            ensure!(
+                remaining / 2 == measurements.frames.len(),
+                "madvr_parse: invalid remaining bytes for custom per-frame target nits"
+            );
+
+            MadVRFrame::parse_custom_frame_target_nits(&mut measurements.frames, &mut reader)?;
+        }
+
         measurements.compute_max_scene_avg()?;
 
         Ok(measurements)
@@ -100,16 +112,7 @@ impl MadVRMeasurements {
         let frame_count = self.frames.len();
 
         for s in self.scenes.iter_mut() {
-            let (start, end) = (s.start as usize, s.end as usize);
-
-            ensure!(
-                end < frame_count,
-                "scene end higher than frame count: {} > {}",
-                end,
-                frame_count
-            );
-
-            let frames = &self.frames[start..=end];
+            let frames = s.get_frames(frame_count, &self.frames)?;
 
             // Keep the max avg of all the frames in the scene
             s.avg_pq = frames
@@ -134,6 +137,10 @@ impl MadVRMeasurements {
         MadVRScene::write_scenes(&self.scenes, &mut out)?;
         MadVRFrame::write_frames(&self.header, &self.frames, &mut out)?;
 
+        if self.header.flags == 3 {
+            MadVRFrame::write_custom_frame_target_nits(&self.frames, &mut out)?;
+        }
+
         out.flush()?;
 
         Ok(out)
@@ -152,7 +159,7 @@ impl MadVRHeader {
             ..Default::default()
         };
 
-        ensure!(header.flags == 1, "incomplete measurement file");
+        ensure!(header.flags != 0, "incomplete measurement file");
 
         if header.version >= 5 {
             header.maxfall = reader.read_u32::<LE>()?;
@@ -167,7 +174,7 @@ impl MadVRHeader {
     }
 
     fn write(&self, writer: &mut dyn Write) -> Result<()> {
-        ensure!(self.flags == 1, "can only write complete measurement files");
+        ensure!(self.flags != 0, "can only write complete measurement files");
 
         writer.write_u32::<LE>(self.version)?;
         writer.write_u32::<LE>(self.header_size)?;
@@ -231,6 +238,23 @@ impl MadVRScene {
         }
 
         Ok(())
+    }
+
+    pub fn get_frames<'a>(
+        &self,
+        frame_count: usize,
+        frames: &'a [MadVRFrame],
+    ) -> Result<&'a [MadVRFrame]> {
+        let (start, end) = (self.start as usize, self.end as usize);
+
+        ensure!(
+            end < frame_count,
+            "scene end higher than frame count: {} > {}",
+            end,
+            frame_count
+        );
+
+        Ok(&frames[start..=end])
     }
 }
 
@@ -362,6 +386,34 @@ impl MadVRFrame {
     fn write_histogram(histogram: &[f64], writer: &mut dyn Write) -> Result<()> {
         for v in histogram {
             writer.write_u16::<LE>((v * 640.0).round() as u16)?;
+        }
+
+        Ok(())
+    }
+
+    fn parse_custom_frame_target_nits(
+        frames: &mut [MadVRFrame],
+        reader: &mut dyn Read,
+    ) -> Result<()> {
+        for f in frames.iter_mut() {
+            let target_nits = reader.read_u16::<LE>()?;
+
+            f.target_nits = Some(target_nits);
+            f.target_pq = nits_to_pq(target_nits as u32);
+        }
+
+        Ok(())
+    }
+
+    fn write_custom_frame_target_nits(frames: &[MadVRFrame], writer: &mut dyn Write) -> Result<()> {
+        for (i, f) in frames.iter().enumerate() {
+            ensure!(
+                f.target_nits.is_some(),
+                "madvr_parse: missing target nits for frame {}",
+                i
+            );
+
+            writer.write_u16::<LE>(f.target_nits.unwrap())?;
         }
 
         Ok(())

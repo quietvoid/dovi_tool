@@ -184,17 +184,13 @@ pub enum Command {
         )]
         rpu_out: Option<PathBuf>,
 
-        #[structopt(
-            long,
-            help = "HDR10+ JSON file to generate from (experimental)",
-            parse(from_os_str)
-        )]
+        #[structopt(long, help = "HDR10+ JSON file to generate from", parse(from_os_str))]
         hdr10plus_json: Option<PathBuf>,
 
         #[structopt(
             short = "xml",
             long,
-            help = "XML metadata file to generate from (experimental)",
+            help = "XML metadata file to generate from",
             conflicts_with = "json_file",
             parse(from_os_str)
         )]
@@ -208,11 +204,17 @@ pub enum Command {
 
         #[structopt(
             long,
-            help = "madVR measurement file to generate from (experimental)",
+            help = "madVR measurement file to generate from",
             conflicts_with = "json_file",
             parse(from_os_str)
         )]
         madvr_file: Option<PathBuf>,
+
+        #[structopt(
+            long,
+            help = "madVR source: use custom per-frame target nits if available"
+        )]
+        use_custom_targets: bool,
     },
 
     Export {
