@@ -1,5 +1,4 @@
 use anyhow::{bail, ensure, Result};
-use bitvec::prelude::*;
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
@@ -7,10 +6,10 @@ use serde::Serialize;
 
 use crate::utils::nits_to_pq;
 
-pub mod ext_metadata_blocks;
 pub mod generate;
+pub mod metadata_blocks;
 
-pub use ext_metadata_blocks::*;
+pub use metadata_blocks::*;
 
 use generate::*;
 
@@ -51,11 +50,11 @@ impl ST2094_10Meta {
 
         if meta.num_ext_blocks > 0 {
             while !reader.is_aligned() {
-                ensure!(!reader.get());
+                ensure!(!reader.get(), "dm_alignment_zero_bit != 0");
             }
 
             for _ in 0..meta.num_ext_blocks {
-                let ext_metadata_block = ExtMetadataBlock::parse(reader)?;
+                let ext_metadata_block = ext_metadata_block(reader)?;
                 meta.ext_metadata_blocks.push(ext_metadata_block);
             }
         }
@@ -67,26 +66,27 @@ impl ST2094_10Meta {
         writer.write_ue(self.num_ext_blocks);
 
         if self.num_ext_blocks > 0 {
+            // dm_alignment_zero_bit
             while !writer.is_aligned() {
                 writer.write(false);
             }
 
             for ext_metadata_block in &self.ext_metadata_blocks {
+                let remaining_bits = (8 * ext_metadata_block.length()) - ext_metadata_block.bits();
+
+                writer.write_ue(ext_metadata_block.length());
+                writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
+
                 ext_metadata_block.write(writer);
+
+                // ext_dm_alignment_zero_bit
+                (0..remaining_bits).for_each(|_| writer.write(false));
             }
         }
     }
 
     pub fn sort_extension_blocks(&mut self) {
-        self.ext_metadata_blocks.sort_by_key(|ext| match ext {
-            ExtMetadataBlock::Level1(b) => (b.block_info.ext_block_level, 0),
-            ExtMetadataBlock::Level2(b) => (b.block_info.ext_block_level, b.target_max_pq),
-            ExtMetadataBlock::Level3(b) => (b.block_info.ext_block_level, 0),
-            ExtMetadataBlock::Level4(b) => (b.block_info.ext_block_level, 0),
-            ExtMetadataBlock::Level5(b) => (b.block_info.ext_block_level, 0),
-            ExtMetadataBlock::Level6(b) => (b.block_info.ext_block_level, 0),
-            ExtMetadataBlock::Reserved(b) => (b.block_info.ext_block_level, 0),
-        })
+        self.ext_metadata_blocks.sort_by_key(|ext| ext.sort_key());
     }
 
     pub fn update_extension_block_info(&mut self) {
@@ -95,12 +95,7 @@ impl ST2094_10Meta {
     }
 
     pub fn add_level1_metadata(&mut self, min_pq: u16, max_pq: u16, avg_pq: u16) {
-        let ext_metadata_block_level1 = ExtMetadataBlockLevel1 {
-            block_info: BlockInfo {
-                ext_block_length: 5,
-                ext_block_level: 1,
-                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 4]),
-            },
+        let ext_metadata_block_level1 = level1::ExtMetadataBlockLevel1 {
             min_pq,
             max_pq,
             avg_pq,
@@ -120,12 +115,7 @@ impl ST2094_10Meta {
             bail!("Level2 metadata: peak brightness of the target display is required");
         };
 
-        let ext_metadata_block_level2 = ExtMetadataBlockLevel2 {
-            block_info: BlockInfo {
-                ext_block_length: 11,
-                ext_block_level: 2,
-                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 3]),
-            },
+        let ext_metadata_block_level2 = level2::ExtMetadataBlockLevel2 {
             target_max_pq,
             trim_slope: level2_config.trim_slope,
             trim_offset: level2_config.trim_offset,
@@ -148,12 +138,7 @@ impl ST2094_10Meta {
         max_pq_offset: u16,
         avg_pq_offset: u16,
     ) {
-        let ext_metadata_block_level3 = ExtMetadataBlockLevel3 {
-            block_info: BlockInfo {
-                ext_block_length: 2,
-                ext_block_level: 3,
-                remaining: BitVec::new(),
-            },
+        let ext_metadata_block_level3 = level3::ExtMetadataBlockLevel3 {
             min_pq_offset,
             max_pq_offset,
             avg_pq_offset,
@@ -164,13 +149,15 @@ impl ST2094_10Meta {
         self.update_extension_block_info();
     }
 
+    pub fn set_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
+        self.ext_metadata_blocks.retain(|b| b.level() != 5);
+
+        // Add it back with zero offsets
+        self.add_level5_metadata(left, right, top, bottom);
+    }
+
     pub fn add_level5_metadata(&mut self, left: u16, right: u16, top: u16, bottom: u16) {
-        let ext_metadata_block_level5 = ExtMetadataBlockLevel5 {
-            block_info: BlockInfo {
-                ext_block_length: 7,
-                ext_block_level: 5,
-                remaining: BitVec::from_bitslice(bits![Msb0, u8; 0; 4]),
-            },
+        let ext_metadata_block_level5 = level5::ExtMetadataBlockLevel5 {
             active_area_left_offset: left,
             active_area_right_offset: right,
             active_area_top_offset: top,
@@ -182,13 +169,15 @@ impl ST2094_10Meta {
         self.update_extension_block_info();
     }
 
+    pub fn set_level6_metadata(&mut self, level6_config: &Level6Metadata) {
+        self.ext_metadata_blocks.retain(|b| b.level() != 6);
+
+        // Add it back with zero offsets
+        self.add_level6_metadata(level6_config);
+    }
+
     pub fn add_level6_metadata(&mut self, level6_config: &Level6Metadata) {
-        let ext_metadata_block_level6 = ExtMetadataBlockLevel6 {
-            block_info: BlockInfo {
-                ext_block_length: 8,
-                ext_block_level: 6,
-                ..Default::default()
-            },
+        let ext_metadata_block_level6 = level6::ExtMetadataBlockLevel6 {
             max_display_mastering_luminance: level6_config.max_display_mastering_luminance,
             min_display_mastering_luminance: level6_config.min_display_mastering_luminance,
             max_content_light_level: level6_config.max_content_light_level,

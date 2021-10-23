@@ -210,7 +210,7 @@ impl DoviReader {
 
                 if nal.nal_type == NAL_UNSPEC62 {
                     if let Some(mode) = self.options.mode {
-                        match DoviRpu::parse(&chunk[nal.start..nal.end]) {
+                        match DoviRpu::parse_unspec62_nalu(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
                                 dovi_rpu.convert_with_mode(mode)?;
 
@@ -218,7 +218,7 @@ impl DoviReader {
                                     dovi_rpu.crop();
                                 }
 
-                                let modified_data = dovi_rpu.write_rpu_data()?;
+                                let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;
                                 sl_writer.write_all(&modified_data)?;
 
                                 continue;
@@ -250,7 +250,7 @@ impl DoviReader {
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
                     if let Some(mode) = self.options.mode {
-                        match DoviRpu::parse(&chunk[nal.start..nal.end]) {
+                        match DoviRpu::parse_unspec62_nalu(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
                                 dovi_rpu.convert_with_mode(mode)?;
 
@@ -258,14 +258,14 @@ impl DoviReader {
                                     dovi_rpu.crop();
                                 }
 
-                                let modified_data = dovi_rpu.write_rpu_data()?;
+                                let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
                                 if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                                     // RPU for x265, remove 0x7C01
                                     self.rpu_nals.push(RpuNal {
                                         decoded_index: self.rpu_nals.len(),
                                         presentation_number: 0,
-                                        data: modified_data[2..].to_vec(),
+                                        data: modified_data[2..].to_owned(),
                                     });
                                 } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
                                     el_writer.write_all(&modified_data)?;

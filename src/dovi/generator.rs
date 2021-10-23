@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::st2094_10::generate::{GenerateConfig, Level1Metadata, Level6Metadata};
-use dolby_vision::st2094_10::ExtMetadataBlock;
 use dolby_vision::utils::nits_to_pq;
 use dolby_vision::xml::CmXmlParser;
 
@@ -119,7 +118,7 @@ impl Generator {
                 }
             }
 
-            let encoded_rpu = if let Some(l1_list) = &l1_meta {
+            if let Some(l1_list) = &l1_meta {
                 if let Some(meta) = &l1_list.get(i) {
                     if let Some(dm_meta) = &mut rpu.vdr_dm_data {
                         dm_meta.st2094_10_metadata.add_level1_metadata(
@@ -133,11 +132,9 @@ impl Generator {
                         }
                     }
                 }
+            }
 
-                rpu.write_rpu_data()?
-            } else {
-                rpu.write_rpu_data()?
-            };
+            let encoded_rpu = rpu.write_hevc_unspec62_nalu()?;
 
             writer.write_all(OUT_NAL_HEADER)?;
 
@@ -234,44 +231,25 @@ impl Generator {
                                 let cw = self.canvas_width.unwrap();
                                 let ch = self.canvas_height.unwrap();
 
-                                let level5_block = dm_meta
-                                    .st2094_10_metadata
-                                    .ext_metadata_blocks
-                                    .iter_mut()
-                                    .find(|e| matches!(e, ExtMetadataBlock::Level5(_)));
-
-                                if let Some(ExtMetadataBlock::Level5(ref mut existing_l5)) =
-                                    level5_block
-                                {
-                                    // Existing L5 block to override
-                                    let (left, right, top, bottom) = if let Some(l5) =
-                                        CmXmlParser::calculate_level5_metadata(ar, cw, ch)
-                                    {
-                                        // AR requires an offset
-                                        l5.get_offsets()
-                                    } else {
-                                        // AR doesn't need an offset
-                                        (0, 0, 0, 0)
-                                    };
-
-                                    existing_l5.set_offsets(left, right, top, bottom);
-                                } else if let Some(l5) =
+                                let (left, right, top, bottom) = if let Some(l5) =
                                     CmXmlParser::calculate_level5_metadata(ar, cw, ch)
                                 {
-                                    // No L5 block, add one
-                                    dm_meta.st2094_10_metadata.add_level5_metadata(
-                                        l5.active_area_left_offset,
-                                        l5.active_area_right_offset,
-                                        l5.active_area_top_offset,
-                                        l5.active_area_bottom_offset,
-                                    );
-                                }
+                                    // AR requires an offset
+                                    l5.get_offsets()
+                                } else {
+                                    // AR doesn't need an offset
+                                    (0, 0, 0, 0)
+                                };
+
+                                dm_meta
+                                    .st2094_10_metadata
+                                    .set_level5_metadata(left, right, top, bottom);
                             }
                         }
                     }
                 }
 
-                let encoded_rpu = rpu.write_rpu_data()?;
+                let encoded_rpu = rpu.write_hevc_unspec62_nalu()?;
 
                 writer.write_all(OUT_NAL_HEADER)?;
 

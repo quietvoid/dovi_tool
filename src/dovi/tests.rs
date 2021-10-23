@@ -11,62 +11,62 @@ pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     let mut original_data = vec![0; metadata.len() as usize];
     f.read_exact(&mut original_data)?;
 
-    let dovi_rpu = DoviRpu::parse(&original_data)?;
+    let dovi_rpu = DoviRpu::parse_unspec62_nalu(&original_data)?;
 
     Ok((original_data, dovi_rpu))
 }
 
 #[test]
 fn profile4() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile4.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile4.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 4);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn profile5() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile5.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile5.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 5);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn profile8() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 8);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn fel() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_rpu.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn mel() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_rpu.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
@@ -75,48 +75,47 @@ fn mel() -> Result<()> {
 fn fel_conversions() -> Result<()> {
     let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_orig.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let mut parsed_data = dovi_rpu.write_rpu_data()?;
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     // FEL to MEL
     let (mel_data, mel_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_mel.bin"))?;
     assert_eq!(mel_rpu.dovi_profile, 7);
 
     dovi_rpu.convert_with_mode(1)?;
-    parsed_data = dovi_rpu.write_rpu_data()?;
-    assert_eq!(&mel_data, &parsed_data);
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&mel_data[4..], &parsed_data[2..]);
 
     // FEL to 8.1
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
     dovi_rpu.convert_with_mode(2)?;
-    parsed_data = dovi_rpu.write_rpu_data()?;
-    assert_eq!(&p81_data, &parsed_data);
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn fel_to_mel() -> Result<()> {
-    let (original_data, mut dovi_rpu) =
-        _parse_file(PathBuf::from("./assets/tests/fel_to_mel.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_mel.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn fel_to_profile8() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 8);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
@@ -125,87 +124,100 @@ fn fel_to_profile8() -> Result<()> {
 fn mel_conversions() -> Result<()> {
     let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_orig.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let mut parsed_data = dovi_rpu.write_rpu_data()?;
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     // MEL to MEL
     let (mel_data, mel_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_mel.bin"))?;
     assert_eq!(mel_rpu.dovi_profile, 7);
 
     dovi_rpu.convert_with_mode(1)?;
-    parsed_data = dovi_rpu.write_rpu_data()?;
-    assert_eq!(&mel_data, &parsed_data);
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&mel_data[4..], &parsed_data[2..]);
 
     // MEL to 8.1
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
     dovi_rpu.convert_with_mode(2)?;
-    parsed_data = dovi_rpu.write_rpu_data()?;
-    assert_eq!(&p81_data, &parsed_data);
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn data_before_crc32() -> Result<()> {
-    let (original_data, mut dovi_rpu) =
+    let (original_data, dovi_rpu) =
         _parse_file(PathBuf::from("./assets/tests/data_before_crc32.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn fix_se_write() -> Result<()> {
-    let (original_data, mut dovi_rpu) =
-        _parse_file(PathBuf::from("./assets/tests/fix_se_write.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fix_se_write.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn eof_rpu() -> Result<()> {
-    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/eof_rpu.bin"))?;
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/eof_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn poly_coef_int_logic_rpu() -> Result<()> {
-    let (original_data, mut dovi_rpu) =
+    let (original_data, dovi_rpu) =
         _parse_file(PathBuf::from("./assets/tests/poly_coef_int_logic.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    assert_eq!(&original_data, &parsed_data);
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
 }
 
 #[test]
 fn sets_offsets_to_zero() -> Result<()> {
+    use dolby_vision::st2094_10::ExtMetadataBlock;
+
     let (_original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_orig.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
 
     dovi_rpu.crop();
-    let parsed_data = dovi_rpu.write_rpu_data()?;
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-    let mut dovi_rpu = DoviRpu::parse(&parsed_data)?;
-    if let Some(block) = dovi_rpu.get_level5_block_mut() {
-        assert_eq!(vec![0, 0, 0, 0], block.get_offsets_vec());
+    let dovi_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
+    if let Some(vdr_dm_data) = dovi_rpu.vdr_dm_data {
+        let block = vdr_dm_data
+            .st2094_10_metadata
+            .ext_metadata_blocks
+            .iter()
+            .find(|b| matches!(b, ExtMetadataBlock::Level5(_)));
+
+        assert!(block.is_some());
+
+        if let Some(ExtMetadataBlock::Level5(b)) = block {
+            assert_eq!(vec![0, 0, 0, 0], b.get_offsets_vec());
+        }
+    } else {
+        panic!("No DM metadata");
     }
 
     Ok(())
@@ -231,7 +243,7 @@ fn profile8_001_end_crc32() -> Result<()> {
 #[test]
 fn generated_rpu() -> Result<()> {
     use dolby_vision::rpu::rpu_data_header::RpuDataHeader;
-    use dolby_vision::rpu::rpu_data_mapping::VdrRpuData;
+    use dolby_vision::rpu::rpu_data_mapping::RpuDataMapping;
     use dolby_vision::rpu::vdr_dm_data::VdrDmData;
     use dolby_vision::st2094_10::generate::{GenerateConfig, Level6Metadata};
     use dolby_vision::st2094_10::ExtMetadataBlock;
@@ -271,20 +283,20 @@ fn generated_rpu() -> Result<()> {
         assert_eq!(b.target_max_pq, 2851);
     }
 
-    let mut rpu = DoviRpu {
+    let rpu = DoviRpu {
         dovi_profile: 8,
         modified: true,
         header: RpuDataHeader::p8_default(),
-        vdr_rpu_data: Some(VdrRpuData::p8_default()),
-        nlq_data: None,
+        rpu_data_mapping: Some(RpuDataMapping::p8_default()),
+        rpu_data_nlq: None,
         vdr_dm_data: Some(vdr_dm_data),
         last_byte: 0x80,
         ..Default::default()
     };
 
-    let encoded_rpu = rpu.write_rpu_data()?;
+    let encoded_rpu = rpu.write_rpu()?;
 
-    let reparsed_rpu = DoviRpu::parse(&encoded_rpu[2..]);
+    let reparsed_rpu = DoviRpu::parse_rpu(&encoded_rpu);
     assert!(reparsed_rpu.is_ok());
 
     Ok(())
