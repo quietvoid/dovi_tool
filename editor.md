@@ -60,7 +60,7 @@ The editor expects a JSON config like the example below:
         "max_display_mastering_luminance": int,
         "min_display_mastering_luminance": int,
         "max_content_light_level": int,
-        "max_frame_average_light_level": int,
+        "max_frame_average_light_level": int
     }
 }
 ```
