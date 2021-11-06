@@ -46,6 +46,11 @@ fn main() -> Result<()> {
         discard_el: false,
     };
 
+    // Set mode 0 by default if cropping, otherwise it has no effect
+    if rpu_options.mode.is_none() && rpu_options.crop {
+        rpu_options.mode = Some(0);
+    }
+
     let res = match opt.cmd {
         Command::Demux {
             input,

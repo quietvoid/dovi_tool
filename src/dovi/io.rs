@@ -249,6 +249,7 @@ impl DoviReader {
                     // Mode 0: Parse, untouched
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
+                    // Mode 3: 5 to 8.1
                     if let Some(mode) = self.options.mode {
                         match DoviRpu::parse_unspec62_nalu(&chunk[nal.start..nal.end]) {
                             Ok(mut dovi_rpu) => {
