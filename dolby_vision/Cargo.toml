@@ -1,28 +1,44 @@
 [package]
 name = "dolby_vision"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["quietvoid"]
 edition = "2018"
 license = "MIT"
 description = "Dolby Vision metadata parsing and writing"
 repository = "https://github.com/quietvoid/dovi_tool"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 bitvec_helpers = "0.1.0"
 anyhow = "1.0"
 bitvec = "0.20.4"
-crc = { version = "2.0.0", "optional" = true }
-hevc_parser = { version = "0.2.0", "optional" = true }
+crc = "2.0.0"
 serde = { version = "1.0.126", features = ["derive"], "optional" = true }
 serde_json = { version = "1.0.64", features = ["preserve_order"], "optional" = true }
 roxmltree = { version = "0.14.1", optional = true }
 
+libc = { version = "0.2", optional = true }
+
 [features]
-hevc_rpu = ["hevc_parser", "crc"]
 xml = ["roxmltree"]
 serde_feature = ["serde", "serde_json"]
+capi = ["libc"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[workspace]
+members = ["."]
+
+[package.metadata.capi.header]
+subdirectory = "libdovi"
+name = "rpu_parser"
+
+[package.metadata.capi.pkg_config]
+strip_include_path_components = 1
+subdirectory = false
+name = "dovi"
+filename = "dovi"
+
+[package.metadata.capi.library]
+rustflags = "-Cpanic=abort"
+name = "dovi"

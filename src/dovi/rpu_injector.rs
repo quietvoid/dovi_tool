@@ -260,7 +260,7 @@ impl RpuInjector {
                         // Otherwise, write the same data as previous
                         if rpu_index < rpus.len() {
                             let dovi_rpu = &mut rpus[rpu_index];
-                            let data = dovi_rpu.write_rpu_data()?;
+                            let data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
                             writer.write_all(OUT_NAL_HEADER)?;
                             writer.write_all(&data)?;

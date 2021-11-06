@@ -3,7 +3,6 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
 use dolby_vision::st2094_10::generate::Level6Metadata;
-use dolby_vision::st2094_10::ExtMetadataBlock;
 use serde::{Deserialize, Serialize};
 
 use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
@@ -246,17 +245,7 @@ impl EditConfig {
             rpu.modified = true;
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
-                let level6_block = vdr_dm_data
-                    .st2094_10_metadata
-                    .ext_metadata_blocks
-                    .iter_mut()
-                    .find(|e| matches!(e, ExtMetadataBlock::Level6(_)));
-
-                if let Some(ExtMetadataBlock::Level6(ref mut block)) = level6_block {
-                    block.set_fields_from_generate_l6(l6);
-                } else {
-                    vdr_dm_data.st2094_10_metadata.add_level6_metadata(l6);
-                }
+                vdr_dm_data.st2094_10_metadata.set_level6_metadata(l6);
             }
         });
     }
@@ -279,9 +268,9 @@ impl ActiveArea {
 
     fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) {
         println!("Cropping...");
-        rpus.iter_mut()
-            .filter_map(|e| e.as_mut())
-            .for_each(|rpu| rpu.crop());
+        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+            rpu.crop();
+        });
     }
 
     fn do_edits(
@@ -320,12 +309,10 @@ impl ActiveArea {
                                 active_area_offsets.bottom,
                             );
 
-                            if let Some(block) = rpu.get_level5_block_mut() {
-                                block.set_offsets(left, right, top, bottom);
-                            } else if let Some(ref mut dm_data) = rpu.vdr_dm_data {
-                                dm_data
+                            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                                vdr_dm_data
                                     .st2094_10_metadata
-                                    .add_level5_metadata(left, right, top, bottom);
+                                    .set_level5_metadata(left, right, top, bottom);
                             }
                         });
                 } else {

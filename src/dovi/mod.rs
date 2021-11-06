@@ -115,7 +115,7 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
             let start = *offset;
             let end = start + size;
 
-            DoviRpu::parse(&data[start..end])
+            DoviRpu::parse_unspec62_nalu(&data[start..end])
         })
         .filter_map(Result::ok)
         .collect();
@@ -137,7 +137,7 @@ pub fn encode_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
     let encoded_rpus = rpus
         .iter_mut()
         .filter_map(|e| e.as_mut())
-        .map(|e| e.write_rpu_data())
+        .map(|e| e.write_hevc_unspec62_nalu())
         .filter_map(Result::ok)
         .collect();
 

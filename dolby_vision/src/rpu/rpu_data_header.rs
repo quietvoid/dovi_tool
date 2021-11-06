@@ -4,6 +4,8 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
+use super::{dovi_rpu::DoviRpu, NUM_COMPONENTS};
+
 #[derive(Default, Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataHeader {
@@ -31,12 +33,18 @@ pub struct RpuDataHeader {
     pub vdr_rpu_id: u64,
     pub mapping_color_space: u64,
     pub mapping_chroma_format_idc: u64,
-    pub num_pivots_minus_2: [u64; 3],
-    pub pred_pivot_value: Vec<Vec<u64>>,
+    pub num_pivots_minus_2: [u64; NUM_COMPONENTS],
+    pub pred_pivot_value: [Vec<u64>; NUM_COMPONENTS],
     pub nlq_method_idc: Option<u8>,
     pub nlq_num_pivots_minus2: Option<u8>,
     pub num_x_partitions_minus1: u64,
     pub num_y_partitions_minus1: u64,
+}
+
+pub fn rpu_data_header(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+    dovi_rpu.header = RpuDataHeader::parse(reader);
+
+    Ok(())
 }
 
 impl RpuDataHeader {
@@ -88,12 +96,13 @@ impl RpuDataHeader {
                     rpu_nal.mapping_color_space = reader.get_ue();
                     rpu_nal.mapping_chroma_format_idc = reader.get_ue();
 
-                    for cmp in 0..3 {
+                    for cmp in 0..NUM_COMPONENTS {
                         rpu_nal.num_pivots_minus_2[cmp] = reader.get_ue();
 
                         let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp] + 2) as usize;
+                        rpu_nal.pred_pivot_value[cmp]
+                            .resize_with(pivot_idx_count, Default::default);
 
-                        rpu_nal.pred_pivot_value.push(vec![0; pivot_idx_count]);
                         for pivot_idx in 0..pivot_idx_count {
                             rpu_nal.pred_pivot_value[cmp][pivot_idx] =
                                 reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
@@ -259,7 +268,7 @@ impl RpuDataHeader {
                     writer.write_ue(self.mapping_color_space);
                     writer.write_ue(self.mapping_chroma_format_idc);
 
-                    for cmp in 0..3 {
+                    for cmp in 0..NUM_COMPONENTS {
                         writer.write_ue(self.num_pivots_minus_2[cmp]);
 
                         let pivot_idx_count = (self.num_pivots_minus_2[cmp] + 2) as usize;
@@ -312,7 +321,7 @@ impl RpuDataHeader {
             mapping_color_space: 0,
             mapping_chroma_format_idc: 0,
             num_pivots_minus_2: [0, 0, 0],
-            pred_pivot_value: vec![vec![0, 1023], vec![0, 1023], vec![0, 1023]],
+            pred_pivot_value: [vec![0, 1023], vec![0, 1023], vec![0, 1023]],
             nlq_method_idc: None,
             nlq_num_pivots_minus2: None,
             num_x_partitions_minus1: 0,

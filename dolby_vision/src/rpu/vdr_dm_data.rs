@@ -4,51 +4,57 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
-use crate::st2094_10::{
-    ext_metadata_blocks::ExtMetadataBlock, generate::GenerateConfig, ST2094_10Meta,
-};
+use crate::st2094_10::{generate::GenerateConfig, ExtMetadataBlock, ST2094_10Meta};
+
+use super::dovi_rpu::DoviRpu;
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct VdrDmData {
-    affected_dm_metadata_id: u64,
-    current_dm_metadata_id: u64,
-    scene_refresh_flag: u64,
-    ycc_to_rgb_coef0: i16,
-    ycc_to_rgb_coef1: i16,
-    ycc_to_rgb_coef2: i16,
-    ycc_to_rgb_coef3: i16,
-    ycc_to_rgb_coef4: i16,
-    ycc_to_rgb_coef5: i16,
-    ycc_to_rgb_coef6: i16,
-    ycc_to_rgb_coef7: i16,
-    ycc_to_rgb_coef8: i16,
-    ycc_to_rgb_offset0: u32,
-    ycc_to_rgb_offset1: u32,
-    ycc_to_rgb_offset2: u32,
-    rgb_to_lms_coef0: i16,
-    rgb_to_lms_coef1: i16,
-    rgb_to_lms_coef2: i16,
-    rgb_to_lms_coef3: i16,
-    rgb_to_lms_coef4: i16,
-    rgb_to_lms_coef5: i16,
-    rgb_to_lms_coef6: i16,
-    rgb_to_lms_coef7: i16,
-    rgb_to_lms_coef8: i16,
-    signal_eotf: u16,
-    signal_eotf_param0: u16,
-    signal_eotf_param1: u16,
-    signal_eotf_param2: u32,
-    signal_bit_depth: u8,
-    signal_color_space: u8,
-    signal_chroma_format: u8,
-    signal_full_range_flag: u8,
+    pub affected_dm_metadata_id: u64,
+    pub current_dm_metadata_id: u64,
+    pub scene_refresh_flag: u64,
+    pub ycc_to_rgb_coef0: i16,
+    pub ycc_to_rgb_coef1: i16,
+    pub ycc_to_rgb_coef2: i16,
+    pub ycc_to_rgb_coef3: i16,
+    pub ycc_to_rgb_coef4: i16,
+    pub ycc_to_rgb_coef5: i16,
+    pub ycc_to_rgb_coef6: i16,
+    pub ycc_to_rgb_coef7: i16,
+    pub ycc_to_rgb_coef8: i16,
+    pub ycc_to_rgb_offset0: u32,
+    pub ycc_to_rgb_offset1: u32,
+    pub ycc_to_rgb_offset2: u32,
+    pub rgb_to_lms_coef0: i16,
+    pub rgb_to_lms_coef1: i16,
+    pub rgb_to_lms_coef2: i16,
+    pub rgb_to_lms_coef3: i16,
+    pub rgb_to_lms_coef4: i16,
+    pub rgb_to_lms_coef5: i16,
+    pub rgb_to_lms_coef6: i16,
+    pub rgb_to_lms_coef7: i16,
+    pub rgb_to_lms_coef8: i16,
+    pub signal_eotf: u16,
+    pub signal_eotf_param0: u16,
+    pub signal_eotf_param1: u16,
+    pub signal_eotf_param2: u32,
+    pub signal_bit_depth: u8,
+    pub signal_color_space: u8,
+    pub signal_chroma_format: u8,
+    pub signal_full_range_flag: u8,
     pub source_min_pq: u16,
     pub source_max_pq: u16,
-    source_diagonal: u16,
+    pub source_diagonal: u16,
 
-    #[serde(flatten)]
+    #[cfg_attr(feature = "serde_feature", serde(flatten))]
     pub st2094_10_metadata: ST2094_10Meta,
+}
+
+pub fn vdr_dm_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+    dovi_rpu.vdr_dm_data = Some(VdrDmData::parse(reader)?);
+
+    Ok(())
 }
 
 impl VdrDmData {

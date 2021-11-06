@@ -6,31 +6,32 @@ use serde::Serialize;
 
 use super::rpu_data_header::RpuDataHeader;
 
+use super::NUM_COMPONENTS;
+
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
-pub struct NlqData {
-    num_nlq_param_predictors: Vec<Vec<u64>>,
-    nlq_param_pred_flag: Vec<Vec<bool>>,
-    diff_pred_part_idx_nlq_minus1: Vec<Vec<u64>>,
-    nlq_offset: Vec<Vec<u64>>,
-    vdr_in_max_int: Vec<Vec<u64>>,
-    vdr_in_max: Vec<Vec<u64>>,
-    linear_deadzone_slope_int: Vec<Vec<u64>>,
-    linear_deadzone_slope: Vec<Vec<u64>>,
-    linear_deadzone_threshold_int: Vec<Vec<u64>>,
-    linear_deadzone_threshold: Vec<Vec<u64>>,
+pub struct RpuDataNlq {
+    pub num_nlq_param_predictors: Vec<[u64; NUM_COMPONENTS]>,
+    pub nlq_param_pred_flag: Vec<[bool; NUM_COMPONENTS]>,
+    pub diff_pred_part_idx_nlq_minus1: Vec<[u64; NUM_COMPONENTS]>,
+    pub nlq_offset: Vec<[u64; NUM_COMPONENTS]>,
+    pub vdr_in_max_int: Vec<[u64; NUM_COMPONENTS]>,
+    pub vdr_in_max: Vec<[u64; NUM_COMPONENTS]>,
+    pub linear_deadzone_slope_int: Vec<[u64; NUM_COMPONENTS]>,
+    pub linear_deadzone_slope: Vec<[u64; NUM_COMPONENTS]>,
+    pub linear_deadzone_threshold_int: Vec<[u64; NUM_COMPONENTS]>,
+    pub linear_deadzone_threshold: Vec<[u64; NUM_COMPONENTS]>,
 }
 
-impl NlqData {
-    pub fn rpu_data_nlq(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<NlqData> {
-        let num_cmps = 3;
+impl RpuDataNlq {
+    pub fn parse(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<RpuDataNlq> {
         let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
             nlq_num_pivots_minus2 as usize + 1
         } else {
             bail!("Shouldn't be in NLQ if not profile 7!");
         };
 
-        let mut data = NlqData::default();
+        let mut data = RpuDataNlq::default();
 
         let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
             header.coefficient_log2_denom as usize
@@ -43,21 +44,10 @@ impl NlqData {
             );
         };
 
+        data.initialize_lists(pivot_idx_count);
+
         for pivot_idx in 0..pivot_idx_count {
-            data.num_nlq_param_predictors.push(vec![0; num_cmps]);
-            data.nlq_param_pred_flag.push(vec![false; num_cmps]);
-            data.diff_pred_part_idx_nlq_minus1.push(vec![0; num_cmps]);
-
-            data.nlq_offset.push(vec![0; num_cmps]);
-            data.vdr_in_max_int.push(vec![0; num_cmps]);
-            data.vdr_in_max.push(vec![0; num_cmps]);
-
-            data.linear_deadzone_slope_int.push(vec![0; num_cmps]);
-            data.linear_deadzone_slope.push(vec![0; num_cmps]);
-            data.linear_deadzone_threshold_int.push(vec![0; num_cmps]);
-            data.linear_deadzone_threshold.push(vec![0; num_cmps]);
-
-            for cmp in 0..num_cmps {
+            for cmp in 0..NUM_COMPONENTS {
                 if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
                     data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get();
                 } else {
@@ -138,7 +128,6 @@ impl NlqData {
     }
 
     pub fn write(&self, writer: &mut BitVecWriter, header: &RpuDataHeader) -> Result<()> {
-        let num_cmps = 3;
         let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
             nlq_num_pivots_minus2 as usize + 1
         } else {
@@ -156,7 +145,7 @@ impl NlqData {
         };
 
         for pivot_idx in 0..pivot_idx_count {
-            for cmp in 0..num_cmps {
+            for cmp in 0..NUM_COMPONENTS {
                 if self.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
                     writer.write(self.nlq_param_pred_flag[pivot_idx][cmp]);
                 }
@@ -207,5 +196,27 @@ impl NlqData {
         }
 
         Ok(())
+    }
+
+    fn initialize_lists(&mut self, count: usize) {
+        self.num_nlq_param_predictors
+            .resize_with(count, Default::default);
+        self.nlq_param_pred_flag
+            .resize_with(count, Default::default);
+        self.diff_pred_part_idx_nlq_minus1
+            .resize_with(count, Default::default);
+
+        self.nlq_offset.resize_with(count, Default::default);
+        self.vdr_in_max_int.resize_with(count, Default::default);
+        self.vdr_in_max.resize_with(count, Default::default);
+
+        self.linear_deadzone_slope_int
+            .resize_with(count, Default::default);
+        self.linear_deadzone_slope
+            .resize_with(count, Default::default);
+        self.linear_deadzone_threshold_int
+            .resize_with(count, Default::default);
+        self.linear_deadzone_threshold
+            .resize_with(count, Default::default);
     }
 }

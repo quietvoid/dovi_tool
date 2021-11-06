@@ -1,0 +1,15 @@
+header = "// SPDX-License-Identifier: MIT"
+sys_includes = ["stddef.h", "stdint.h", "stdlib.h", "stdbool.h"]
+no_includes = true
+include_guard = "DOVI_H"
+tab_width = 4
+style = "Type"
+language = "C"
+cpp_compat = true
+
+[parse]
+parse_deps = false
+
+[export]
+item_types = ["constants", "enums", "structs", "unions", "typedefs", "opaque", "functions"]
+prefix = "Dovi"

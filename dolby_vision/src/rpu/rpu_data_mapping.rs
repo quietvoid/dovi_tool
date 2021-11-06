@@ -6,47 +6,43 @@ use serde::Serialize;
 
 use super::dovi_rpu::DoviRpu;
 use super::rpu_data_header::RpuDataHeader;
-use super::rpu_data_nlq::NlqData;
+use super::rpu_data_nlq::RpuDataNlq;
+
+use super::NUM_COMPONENTS;
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
-pub struct VdrRpuData {
-    mapping_idc: Vec<Vec<u64>>,
-    mapping_param_pred_flag: Vec<Vec<bool>>,
-    num_mapping_param_predictors: Vec<Vec<u64>>,
-    diff_pred_part_idx_mapping_minus1: Vec<Vec<u64>>,
-    poly_order_minus1: Vec<Vec<u64>>,
-    linear_interp_flag: Vec<Vec<bool>>,
-    pred_linear_interp_value_int: Vec<Vec<u64>>,
-    pred_linear_interp_value: Vec<Vec<u64>>,
-    poly_coef_int: Vec<Vec<Vec<i64>>>,
-    poly_coef: Vec<Vec<Vec<u64>>>,
-    mmr_order_minus1: Vec<Vec<u8>>,
-    mmr_constant_int: Vec<Vec<i64>>,
-    mmr_constant: Vec<Vec<u64>>,
-    mmr_coef_int: Vec<Vec<Vec<Vec<i64>>>>,
-    mmr_coef: Vec<Vec<Vec<Vec<u64>>>>,
+pub struct RpuDataMapping {
+    pub mapping_idc: [Vec<u64>; NUM_COMPONENTS],
+    pub mapping_param_pred_flag: [Vec<bool>; NUM_COMPONENTS],
+    pub num_mapping_param_predictors: [Vec<u64>; NUM_COMPONENTS],
+    pub diff_pred_part_idx_mapping_minus1: [Vec<u64>; NUM_COMPONENTS],
+    pub poly_order_minus1: [Vec<u64>; NUM_COMPONENTS],
+    pub linear_interp_flag: [Vec<bool>; NUM_COMPONENTS],
+    pub pred_linear_interp_value_int: [Vec<u64>; NUM_COMPONENTS],
+    pub pred_linear_interp_value: [Vec<u64>; NUM_COMPONENTS],
+    pub poly_coef_int: [Vec<Vec<i64>>; NUM_COMPONENTS],
+    pub poly_coef: [Vec<Vec<u64>>; NUM_COMPONENTS],
+    pub mmr_order_minus1: [Vec<u8>; NUM_COMPONENTS],
+    pub mmr_constant_int: [Vec<i64>; NUM_COMPONENTS],
+    pub mmr_constant: [Vec<u64>; NUM_COMPONENTS],
+    pub mmr_coef_int: [Vec<Vec<Vec<i64>>>; NUM_COMPONENTS],
+    pub mmr_coef: [Vec<Vec<Vec<u64>>>; NUM_COMPONENTS],
 }
 
-impl VdrRpuData {
-    pub fn parse(dovi_rpu: &mut DoviRpu) -> Result<()> {
-        let reader = &mut dovi_rpu.reader;
-        dovi_rpu.vdr_rpu_data = Some(VdrRpuData::rpu_data_mapping(reader, &mut dovi_rpu.header)?);
+pub fn vdr_rpu_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+    dovi_rpu.rpu_data_mapping = Some(RpuDataMapping::parse(reader, &mut dovi_rpu.header)?);
 
-        if dovi_rpu.header.nlq_method_idc.is_some() {
-            dovi_rpu.nlq_data = Some(NlqData::rpu_data_nlq(reader, &mut dovi_rpu.header)?);
-        }
-
-        Ok(())
+    if dovi_rpu.header.nlq_method_idc.is_some() {
+        dovi_rpu.rpu_data_nlq = Some(RpuDataNlq::parse(reader, &mut dovi_rpu.header)?);
     }
 
-    pub fn rpu_data_mapping(
-        reader: &mut BitVecReader,
-        header: &mut RpuDataHeader,
-    ) -> Result<VdrRpuData> {
-        let num_cmps = 3;
+    Ok(())
+}
 
-        let mut data = VdrRpuData::default();
+impl RpuDataMapping {
+    pub fn parse(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<RpuDataMapping> {
+        let mut data = RpuDataMapping::default();
 
         let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
             header.coefficient_log2_denom as usize
@@ -58,33 +54,10 @@ impl VdrRpuData {
 
         // rpu_data_mapping_param
 
-        for cmp in 0..num_cmps {
+        for cmp in 0..NUM_COMPONENTS {
             let pivot_idx_count = (header.num_pivots_minus_2[cmp] + 1) as usize;
 
-            data.mapping_idc.push(vec![0; pivot_idx_count]);
-            data.num_mapping_param_predictors
-                .push(vec![0; pivot_idx_count]);
-            data.mapping_param_pred_flag
-                .push(vec![false; pivot_idx_count]);
-            data.diff_pred_part_idx_mapping_minus1
-                .push(vec![0; pivot_idx_count]);
-
-            // rpu_data_mapping_param()
-            data.poly_order_minus1.push(vec![0; pivot_idx_count]);
-            data.linear_interp_flag.push(vec![false; pivot_idx_count]);
-
-            data.poly_coef_int.push(vec![vec![]; pivot_idx_count]);
-            data.poly_coef.push(vec![vec![]; pivot_idx_count]);
-
-            data.pred_linear_interp_value_int
-                .push(vec![0; pivot_idx_count]);
-            data.pred_linear_interp_value.push(vec![0; pivot_idx_count]);
-            data.mmr_order_minus1.push(vec![0; pivot_idx_count]);
-            data.mmr_constant_int.push(vec![0; pivot_idx_count]);
-            data.mmr_constant.push(vec![0; pivot_idx_count]);
-
-            data.mmr_coef_int.push(vec![vec![]; pivot_idx_count]);
-            data.mmr_coef.push(vec![vec![]; pivot_idx_count]);
+            data.initialize_lists(cmp, pivot_idx_count);
 
             for pivot_idx in 0..pivot_idx_count {
                 data.mapping_idc[cmp][pivot_idx] = reader.get_ue();
@@ -391,23 +364,45 @@ impl VdrRpuData {
         });
     }
 
-    pub fn p8_default() -> VdrRpuData {
-        VdrRpuData {
-            mapping_idc: vec![vec![0], vec![0], vec![0]],
-            mapping_param_pred_flag: vec![vec![false], vec![false], vec![false]],
-            num_mapping_param_predictors: vec![vec![0], vec![0], vec![0]],
-            diff_pred_part_idx_mapping_minus1: vec![vec![0], vec![0], vec![0]],
-            poly_order_minus1: vec![vec![0], vec![0], vec![0]],
-            linear_interp_flag: vec![vec![false], vec![false], vec![false]],
-            pred_linear_interp_value_int: vec![vec![0], vec![0], vec![0]],
-            pred_linear_interp_value: vec![vec![0], vec![0], vec![0]],
-            poly_coef_int: vec![vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
-            poly_coef: vec![vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
-            mmr_order_minus1: vec![vec![0], vec![0], vec![0]],
-            mmr_constant_int: vec![vec![0], vec![0], vec![0]],
-            mmr_constant: vec![vec![0], vec![0], vec![0]],
-            mmr_coef_int: vec![vec![vec![]], vec![vec![]], vec![vec![]]],
-            mmr_coef: vec![vec![vec![]], vec![vec![]], vec![vec![]]],
+    pub fn p8_default() -> RpuDataMapping {
+        RpuDataMapping {
+            mapping_idc: [vec![0], vec![0], vec![0]],
+            mapping_param_pred_flag: [vec![false], vec![false], vec![false]],
+            num_mapping_param_predictors: [vec![0], vec![0], vec![0]],
+            diff_pred_part_idx_mapping_minus1: [vec![0], vec![0], vec![0]],
+            poly_order_minus1: [vec![0], vec![0], vec![0]],
+            linear_interp_flag: [vec![false], vec![false], vec![false]],
+            pred_linear_interp_value_int: [vec![0], vec![0], vec![0]],
+            pred_linear_interp_value: [vec![0], vec![0], vec![0]],
+            poly_coef_int: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            poly_coef: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            mmr_order_minus1: [vec![0], vec![0], vec![0]],
+            mmr_constant_int: [vec![0], vec![0], vec![0]],
+            mmr_constant: [vec![0], vec![0], vec![0]],
+            mmr_coef_int: [vec![vec![]], vec![vec![]], vec![vec![]]],
+            mmr_coef: [vec![vec![]], vec![vec![]], vec![vec![]]],
         }
+    }
+
+    fn initialize_lists(&mut self, cmp: usize, count: usize) {
+        self.mapping_idc[cmp].resize_with(count, Default::default);
+        self.num_mapping_param_predictors[cmp].resize_with(count, Default::default);
+        self.mapping_param_pred_flag[cmp].resize_with(count, Default::default);
+        self.diff_pred_part_idx_mapping_minus1[cmp].resize_with(count, Default::default);
+
+        self.poly_order_minus1[cmp].resize_with(count, Default::default);
+        self.linear_interp_flag[cmp].resize_with(count, Default::default);
+
+        self.poly_coef_int[cmp].resize_with(count, Default::default);
+        self.poly_coef[cmp].resize_with(count, Default::default);
+
+        self.pred_linear_interp_value_int[cmp].resize_with(count, Default::default);
+        self.pred_linear_interp_value[cmp].resize_with(count, Default::default);
+        self.mmr_order_minus1[cmp].resize_with(count, Default::default);
+        self.mmr_constant_int[cmp].resize_with(count, Default::default);
+        self.mmr_constant[cmp].resize_with(count, Default::default);
+
+        self.mmr_coef_int[cmp].resize_with(count, Default::default);
+        self.mmr_coef[cmp].resize_with(count, Default::default);
     }
 }
