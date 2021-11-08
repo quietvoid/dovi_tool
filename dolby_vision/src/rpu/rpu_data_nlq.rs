@@ -219,4 +219,19 @@ impl RpuDataNlq {
         self.linear_deadzone_threshold
             .resize_with(count, Default::default);
     }
+
+    pub fn mel_default() -> Self {
+        Self {
+            num_nlq_param_predictors: vec![[0; NUM_COMPONENTS]],
+            nlq_param_pred_flag: vec![[false; NUM_COMPONENTS]],
+            diff_pred_part_idx_nlq_minus1: vec![[0; NUM_COMPONENTS]],
+            nlq_offset: vec![[0; NUM_COMPONENTS]],
+            vdr_in_max_int: vec![[1; NUM_COMPONENTS]],
+            vdr_in_max: vec![[0; NUM_COMPONENTS]],
+            linear_deadzone_slope_int: vec![[0; NUM_COMPONENTS]],
+            linear_deadzone_slope: vec![[0; NUM_COMPONENTS]],
+            linear_deadzone_threshold_int: vec![[0; NUM_COMPONENTS]],
+            linear_deadzone_threshold: vec![[0; NUM_COMPONENTS]],
+        }
+    }
 }

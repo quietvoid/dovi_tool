@@ -263,18 +263,34 @@ impl DoviRpu {
             };
         } else if self.dovi_profile == 5 && mode == 3 {
             self.p5_to_p81()?;
+        } else if self.dovi_profile == 8 && mode == 1 {
+            self.convert_to_mel()?;
         } else if mode != 0 {
             bail!("Invalid profile for mode {} conversion!", mode);
         }
+
+        // Update profile value
+        self.dovi_profile = self.header.get_dovi_profile();
 
         Ok(())
     }
 
     fn convert_to_mel(&mut self) -> Result<()> {
+        let header = &mut self.header;
+
+        header.el_spatial_resampling_filter_flag = true;
+        header.disable_residual_flag = false;
+
+        header.nlq_method_idc = Some(0);
+        header.nlq_num_pivots_minus2 = Some(0);
+        header.num_x_partitions_minus1 = 2046;
+
         if let Some(ref mut rpu_data_nlq) = self.rpu_data_nlq {
             rpu_data_nlq.convert_to_mel();
+        } else if self.dovi_profile == 8 {
+            self.rpu_data_nlq = Some(RpuDataNlq::mel_default());
         } else {
-            bail!("Not profile 7, cannot convert to MEL!");
+            bail!("Not profile 7 or 8, cannot convert to MEL!");
         }
 
         Ok(())

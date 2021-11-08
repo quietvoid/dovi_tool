@@ -301,3 +301,31 @@ fn generated_rpu() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn p8_to_mel() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_orig.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    // MEL to 8.1
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_81.bin"))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    dovi_rpu.convert_with_mode(2)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+
+    // 8.1 to MEL
+    dovi_rpu.convert_with_mode(1)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+
+    Ok(())
+}
