@@ -7,19 +7,19 @@ rust-version = "1.51.0"
 license = "MIT"
 
 [dependencies]
-bitvec_helpers = "0.1.0"
-hevc_parser = "0.2.0"
+bitvec_helpers = "0.1.1"
+hevc_parser = "0.2.1"
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
-anyhow = "1.0"
+anyhow = "1.0.45"
 structopt = "0.3.21"
 indicatif = "0.16.2"
 regex = "1.5.4"
-bitvec = "0.20.4"
+bitvec = "0.22.3"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }
-rayon = "1.5.0"
+rayon = "1.5.1"
 
 [[bin]]
 name = "dovi_tool"
