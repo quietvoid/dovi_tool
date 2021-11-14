@@ -71,7 +71,8 @@ For working with an HEVC source file, there are multiple options that apply to m
 &nbsp;
 * #### demux
     Rust port of yusesope's python tool. Credits goes to them.  
-    Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files.
+    Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files.  
+    Also can be used to remove the RPUs from an HEVC file.
         
     Examples:
     * `dovi_tool demux file.hevc`
