@@ -106,7 +106,7 @@ pub fn input_format(input: &Path) -> Result<Format> {
     if file_name == "-" {
         Ok(Format::RawStdin)
     } else if regex.is_match(file_name) && input.is_file() {
-        if file_name.contains("mkv") {
+        if file_name.ends_with(".mkv") {
             Ok(Format::Matroska)
         } else {
             Ok(Format::Raw)
