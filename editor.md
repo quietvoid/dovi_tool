@@ -10,6 +10,11 @@ The editor expects a JSON config like the example below:
         // Should be set to true when final video has no letterbox bars
         "crop": boolean,
 
+        // Optional, specifies whether to drop some or all L5 metadata
+        // Possible options: "all", "zeroes"
+        //   "zeroes" drops the L5 metadata blocks which have all offsets set to zero.
+        "drop_l5": string,
+
         // List of presets to add letterbox bars
         "presets": [
             {

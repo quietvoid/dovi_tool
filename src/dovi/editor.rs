@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
 use dolby_vision::st2094_10::generate::Level6Metadata;
+use dolby_vision::st2094_10::ExtMetadataBlock;
 use serde::{Deserialize, Serialize};
 
 use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
@@ -42,6 +43,9 @@ pub struct EditConfig {
 pub struct ActiveArea {
     #[serde(default)]
     crop: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    drop_l5: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     presets: Option<Vec<ActiveAreaOffsets>>,
@@ -257,6 +261,10 @@ impl ActiveArea {
             self.crop(rpus);
         }
 
+        if let Some(drop_opt) = &self.drop_l5 {
+            self.drop_specific_l5(drop_opt, rpus)?;
+        }
+
         if let Some(edits) = &self.edits {
             if !edits.is_empty() {
                 self.do_edits(edits, rpus)?;
@@ -320,6 +328,48 @@ impl ActiveArea {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    fn drop_specific_l5(&self, drop_opt: &str, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+        let param = drop_opt.to_lowercase();
+
+        println!("Dropping L5 metadata with opt '{}'", param);
+
+        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                let drop_it = if param == "zeroes" {
+                    let level5_block = vdr_dm_data
+                        .st2094_10_metadata
+                        .ext_metadata_blocks
+                        .iter()
+                        .find(|e| matches!(e, ExtMetadataBlock::Level5(_)));
+
+                    if let Some(ExtMetadataBlock::Level5(m)) = level5_block {
+                        m.active_area_left_offset == 0
+                            && m.active_area_right_offset == 0
+                            && m.active_area_top_offset == 0
+                            && m.active_area_bottom_offset == 0
+                    } else {
+                        false
+                    }
+                } else {
+                    param == "all"
+                };
+
+                if drop_it {
+                    rpu.modified = true;
+
+                    vdr_dm_data
+                        .st2094_10_metadata
+                        .ext_metadata_blocks
+                        .retain(|b| b.level() != 5);
+                    vdr_dm_data.st2094_10_metadata.update_extension_block_info();
+                }
+            }
+        });
 
         Ok(())
     }
