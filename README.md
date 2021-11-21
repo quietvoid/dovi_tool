@@ -1,6 +1,14 @@
 # dovi_tool [![Tests](https://github.com/quietvoid/dovi_tool/workflows/Tests/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3ATests) [![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3AArtifacts)
 
-`dovi_tool` is a CLI tool combining multiple utilities for working with Dolby Vision.
+`dovi_tool` is a CLI tool combining multiple utilities for working with Dolby Vision.  
+
+The `dolby_vision` crate is also hosted in this repo, see [README](dolby_vision/README.md) for use as a Rust/C lib.
+
+&nbsp;
+
+### Toolchain
+
+The minimum Rust version to build `dovi_tool` is 1.51.0.
 
 &nbsp;
 

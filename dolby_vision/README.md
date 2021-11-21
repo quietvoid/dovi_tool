@@ -1,4 +1,14 @@
-Library to read & write Dolby Vision metadata.
+Library to read & write Dolby Vision metadata.  
+Comes as a Rust crate and C compatible library.  
+
+&nbsp;
+
+### Toolchain
+
+For use as a Rust crate, Rust 1.51.0 can be used.  
+To build the C-API library, the minimum Rust version is 1.55.0.  
+
+&nbsp;
 
 ### Building the C-API
 
