@@ -5,15 +5,15 @@ use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
 use std::{fs::File, path::Path};
 
 use hevc_parser::hevc::NALUnit;
-use hevc_parser::hevc::{NAL_UNSPEC62, NAL_UNSPEC63};
+use hevc_parser::hevc::{NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::HevcParser;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
-use super::{Format, RpuOptions, OUT_NAL_HEADER};
+use super::{CliOptions, Format, HDR10PLUS_SEI_HEADER, OUT_NAL_HEADER};
 
 pub struct DoviReader {
-    options: RpuOptions,
+    options: CliOptions,
     rpu_nals: Vec<RpuNal>,
 }
 
@@ -77,7 +77,7 @@ impl DoviWriter {
 }
 
 impl DoviReader {
-    pub fn new(options: RpuOptions) -> DoviReader {
+    pub fn new(options: CliOptions) -> DoviReader {
         DoviReader {
             options,
             rpu_nals: Vec::new(),
@@ -201,6 +201,12 @@ impl DoviReader {
         nals: &[NALUnit],
     ) -> Result<()> {
         for nal in nals {
+            if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
+                if let HDR10PLUS_SEI_HEADER = &chunk[nal.start..nal.start + 3] {
+                    continue;
+                }
+            }
+
             if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;

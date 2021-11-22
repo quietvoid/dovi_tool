@@ -12,7 +12,7 @@ mod dovi;
 use dovi::{
     converter::Converter, demuxer::Demuxer, editor::Editor, exporter::Exporter,
     generator::Generator, rpu_extractor::RpuExtractor, rpu_info::RpuInfo,
-    rpu_injector::RpuInjector, Format, RpuOptions,
+    rpu_injector::RpuInjector, CliOptions, Format,
 };
 
 #[derive(StructOpt, Debug)]
@@ -33,6 +33,9 @@ struct Opt {
     )]
     crop: bool,
 
+    #[structopt(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
+    drop_hdr10plus: bool,
+
     #[structopt(subcommand)]
     cmd: Command,
 }
@@ -40,15 +43,16 @@ struct Opt {
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let mut rpu_options = RpuOptions {
+    let mut cli_options = CliOptions {
         mode: opt.mode,
         crop: opt.crop,
         discard_el: false,
+        drop_hdr10plus: opt.drop_hdr10plus,
     };
 
     // Set mode 0 by default if cropping, otherwise it has no effect
-    if rpu_options.mode.is_none() && rpu_options.crop {
-        rpu_options.mode = Some(0);
+    if cli_options.mode.is_none() && cli_options.crop {
+        cli_options.mode = Some(0);
     }
 
     let res = match opt.cmd {
@@ -57,7 +61,7 @@ fn main() -> Result<()> {
             stdin,
             bl_out,
             el_out,
-        } => Demuxer::demux(input, stdin, bl_out, el_out, rpu_options),
+        } => Demuxer::demux(input, stdin, bl_out, el_out, cli_options),
         Command::Editor {
             input,
             json_file,
@@ -69,19 +73,19 @@ fn main() -> Result<()> {
             output,
             discard,
         } => {
-            rpu_options.discard_el = discard;
-            Converter::convert(input, stdin, output, rpu_options)
+            cli_options.discard_el = discard;
+            Converter::convert(input, stdin, output, cli_options)
         }
         Command::ExtractRpu {
             input,
             stdin,
             rpu_out,
-        } => RpuExtractor::extract_rpu(input, stdin, rpu_out, rpu_options),
+        } => RpuExtractor::extract_rpu(input, stdin, rpu_out, cli_options),
         Command::InjectRpu {
             input,
             rpu_in,
             output,
-        } => RpuInjector::inject_rpu(input, rpu_in, output),
+        } => RpuInjector::inject_rpu(input, rpu_in, output, cli_options),
         Command::Info { input, frame } => RpuInfo::info(input, frame),
         Command::Generate { .. } => Generator::generate(opt.cmd),
         Command::Export { input, output } => Exporter::export(input, output),

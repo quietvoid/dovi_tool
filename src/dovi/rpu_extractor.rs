@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{input_format, io, Format, RpuOptions};
+use super::{input_format, io, CliOptions, Format};
 use io::{DoviReader, DoviWriter};
 
 pub struct RpuExtractor {
@@ -24,7 +24,7 @@ impl RpuExtractor {
         input: Option<PathBuf>,
         stdin: Option<PathBuf>,
         rpu_out: Option<PathBuf>,
-        options: RpuOptions,
+        options: CliOptions,
     ) -> Result<()> {
         let input = match input {
             Some(input) => input,
@@ -45,7 +45,7 @@ impl RpuExtractor {
         parser.process_input(options)
     }
 
-    fn process_input(&self, options: RpuOptions) -> Result<()> {
+    fn process_input(&self, options: CliOptions) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
@@ -54,7 +54,7 @@ impl RpuExtractor {
         }
     }
 
-    fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>, options: RpuOptions) -> Result<()> {
+    fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
         let mut dovi_reader = DoviReader::new(options);
         let mut dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out), None);
 

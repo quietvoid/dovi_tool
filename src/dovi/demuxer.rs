@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{input_format, io, Format, RpuOptions};
+use super::{input_format, io, CliOptions, Format};
 
 use io::{DoviReader, DoviWriter};
 
@@ -28,7 +28,7 @@ impl Demuxer {
         stdin: Option<PathBuf>,
         bl_out: Option<PathBuf>,
         el_out: Option<PathBuf>,
-        options: RpuOptions,
+        options: CliOptions,
     ) -> Result<()> {
         let input = match input {
             Some(input) => input,
@@ -54,7 +54,7 @@ impl Demuxer {
         demuxer.process_input(options)
     }
 
-    fn process_input(&self, options: RpuOptions) -> Result<()> {
+    fn process_input(&self, options: CliOptions) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
@@ -63,7 +63,7 @@ impl Demuxer {
         }
     }
 
-    fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: RpuOptions) -> Result<()> {
+    fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
         let mut dovi_reader = DoviReader::new(options);
         let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None, None);
 

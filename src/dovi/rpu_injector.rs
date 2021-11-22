@@ -10,18 +10,26 @@ use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
 
 //use crate::dovi::get_aud;
-use super::{input_format, parse_rpu_file, DoviRpu, Format, OUT_NAL_HEADER};
+use super::{
+    input_format, parse_rpu_file, CliOptions, DoviRpu, Format, HDR10PLUS_SEI_HEADER, OUT_NAL_HEADER,
+};
 
 pub struct RpuInjector {
     input: PathBuf,
     rpu_in: PathBuf,
     output: PathBuf,
+    options: CliOptions,
 
     rpus: Option<Vec<DoviRpu>>,
 }
 
 impl RpuInjector {
-    pub fn inject_rpu(input: PathBuf, rpu_in: PathBuf, output: Option<PathBuf>) -> Result<()> {
+    pub fn inject_rpu(
+        input: PathBuf,
+        rpu_in: PathBuf,
+        output: Option<PathBuf>,
+        cli_options: CliOptions,
+    ) -> Result<()> {
         let format = input_format(&input)?;
 
         if let Format::Raw = format {
@@ -30,7 +38,7 @@ impl RpuInjector {
                 None => PathBuf::from("injected_output.hevc"),
             };
 
-            let mut injector = RpuInjector::new(input, rpu_in, output)?;
+            let mut injector = RpuInjector::new(input, rpu_in, output, cli_options)?;
             let mut parser = HevcParser::default();
 
             injector.process_input(&mut parser, format)?;
@@ -117,11 +125,17 @@ impl RpuInjector {
         Ok(())
     }
 
-    pub fn new(input: PathBuf, rpu_in: PathBuf, output: PathBuf) -> Result<RpuInjector> {
+    pub fn new(
+        input: PathBuf,
+        rpu_in: PathBuf,
+        output: PathBuf,
+        cli_options: CliOptions,
+    ) -> Result<RpuInjector> {
         let mut injector = RpuInjector {
             input,
             rpu_in,
             output,
+            options: cli_options,
             rpus: None,
         };
 
@@ -238,6 +252,12 @@ impl RpuInjector {
                 let nals = parser.split_nals(&chunk, &offsets, last, true);
 
                 for (cur_index, nal) in nals.iter().enumerate() {
+                    if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
+                        if let HDR10PLUS_SEI_HEADER = &chunk[nal.start..nal.start + 3] {
+                            continue;
+                        }
+                    }
+
                     // AUDs
                     //if nal.nal_type == NAL_AUD {
                     //    continue;

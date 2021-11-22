@@ -29,6 +29,7 @@ use hevc_parser::{
 use rpu::dovi_rpu::DoviRpu;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
+const HDR10PLUS_SEI_HEADER: &[u8] = &[78, 1, 4];
 
 #[derive(Debug, PartialEq)]
 pub enum Format {
@@ -38,10 +39,11 @@ pub enum Format {
 }
 
 #[derive(Debug)]
-pub struct RpuOptions {
+pub struct CliOptions {
     pub mode: Option<u8>,
     pub crop: bool,
     pub discard_el: bool,
+    pub drop_hdr10plus: bool,
 }
 
 pub fn initialize_progress_bar(format: &Format, input: &Path) -> Result<ProgressBar> {

@@ -338,7 +338,6 @@ impl ActiveArea {
         println!("Dropping L5 metadata with opt '{}'", param);
 
         rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
-
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 let drop_it = if param == "zeroes" {
                     let level5_block = vdr_dm_data
