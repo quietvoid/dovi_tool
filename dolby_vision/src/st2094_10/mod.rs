@@ -7,6 +7,7 @@ use serde::Serialize;
 use crate::utils::nits_to_pq;
 
 pub mod generate;
+pub mod itu_t35;
 pub mod metadata_blocks;
 
 pub use metadata_blocks::*;
@@ -21,27 +22,6 @@ pub struct ST2094_10Meta {
 }
 
 impl ST2094_10Meta {
-    pub fn parse_itu_t35(data: Vec<u8>) -> Result<ST2094_10Meta> {
-        let _meta = ST2094_10Meta::default();
-        let mut reader = BitVecReader::new(data);
-
-        let itu_t_t35_country_code: u8 = reader.get_n(8);
-        let itu_t_t35_terminal_provider_code: u16 = reader.get_n(16);
-
-        ensure!(itu_t_t35_country_code == 0xB5);
-        ensure!(itu_t_t35_terminal_provider_code == 0x3B);
-
-        let _itu_t_t35_terminal_provider_oriented_code: u32 = reader.get_n(32);
-        let _data_type_code: u8 = reader.get_n(8);
-
-        let app_identifier: u64 = reader.get_ue();
-        let app_version: u64 = reader.get_ue();
-
-        println!("App {} version {}", app_identifier, app_version);
-
-        todo!()
-    }
-
     pub fn parse(reader: &mut BitVecReader) -> Result<ST2094_10Meta> {
         let mut meta = ST2094_10Meta {
             num_ext_blocks: reader.get_ue(),
