@@ -60,10 +60,10 @@ impl RpuDataMapping {
             data.initialize_lists(cmp, pivot_idx_count);
 
             for pivot_idx in 0..pivot_idx_count {
-                data.mapping_idc[cmp][pivot_idx] = reader.get_ue();
+                data.mapping_idc[cmp][pivot_idx] = reader.get_ue()?;
 
                 if data.num_mapping_param_predictors[cmp][pivot_idx] > 0 {
-                    data.mapping_param_pred_flag[cmp][pivot_idx] = reader.get();
+                    data.mapping_param_pred_flag[cmp][pivot_idx] = reader.get()?;
                 } else {
                     data.mapping_param_pred_flag[cmp][pivot_idx] = false;
                 }
@@ -74,10 +74,10 @@ impl RpuDataMapping {
 
                     // MAPPING_POLYNOMIAL
                     if data.mapping_idc[cmp][pivot_idx] == 0 {
-                        data.poly_order_minus1[cmp][pivot_idx] = reader.get_ue();
+                        data.poly_order_minus1[cmp][pivot_idx] = reader.get_ue()?;
 
                         if data.poly_order_minus1[cmp][pivot_idx] == 0 {
-                            data.linear_interp_flag[cmp][pivot_idx] = reader.get();
+                            data.linear_interp_flag[cmp][pivot_idx] = reader.get()?;
                         }
 
                         // Linear interpolation
@@ -85,7 +85,8 @@ impl RpuDataMapping {
                             && data.linear_interp_flag[cmp][pivot_idx]
                         {
                             if header.coefficient_data_type == 0 {
-                                data.pred_linear_interp_value_int[cmp][pivot_idx] = reader.get_ue();
+                                data.pred_linear_interp_value_int[cmp][pivot_idx] =
+                                    reader.get_ue()?;
                             }
 
                             data.pred_linear_interp_value[cmp][pivot_idx] =
@@ -94,7 +95,7 @@ impl RpuDataMapping {
                             if pivot_idx as u64 == header.num_pivots_minus_2[cmp] {
                                 if header.coefficient_data_type == 0 {
                                     data.pred_linear_interp_value_int[cmp][pivot_idx + 1] =
-                                        reader.get_ue();
+                                        reader.get_ue()?;
                                 }
 
                                 data.pred_linear_interp_value[cmp][pivot_idx + 1] =
@@ -109,7 +110,7 @@ impl RpuDataMapping {
 
                             for i in 0..=poly_coef_count {
                                 if header.coefficient_data_type == 0 {
-                                    data.poly_coef_int[cmp][pivot_idx][i] = reader.get_se();
+                                    data.poly_coef_int[cmp][pivot_idx][i] = reader.get_se()?;
                                 }
 
                                 data.poly_coef[cmp][pivot_idx][i] =
@@ -128,7 +129,7 @@ impl RpuDataMapping {
                             vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
 
                         if header.coefficient_data_type == 0 {
-                            data.mmr_constant_int[cmp][pivot_idx] = reader.get_se();
+                            data.mmr_constant_int[cmp][pivot_idx] = reader.get_se()?;
                         }
 
                         data.mmr_constant[cmp][pivot_idx] =
@@ -137,7 +138,7 @@ impl RpuDataMapping {
                         for i in 1..=data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
                             for j in 0..7_usize {
                                 if header.coefficient_data_type == 0 {
-                                    data.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se();
+                                    data.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se()?;
                                 }
 
                                 data.mmr_coef[cmp][pivot_idx][i][j] =
@@ -146,7 +147,7 @@ impl RpuDataMapping {
                         }
                     }
                 } else if data.num_mapping_param_predictors[cmp][pivot_idx] > 1 {
-                    data.diff_pred_part_idx_mapping_minus1[cmp][pivot_idx] = reader.get_ue();
+                    data.diff_pred_part_idx_mapping_minus1[cmp][pivot_idx] = reader.get_ue()?;
                 }
             }
         }

@@ -42,18 +42,18 @@ impl ST2094_10CmData {
         let mut meta = ST2094_10CmData {
             ccm_profile: reader.get_n(4),
             ccm_level: reader.get_n(4),
-            coefficient_log2_denom: reader.get_ue(),
-            bl_bit_depth_minus8: reader.get_ue(),
-            el_bit_depth_minus8: reader.get_ue(),
-            hdr_bit_depth_minus8: reader.get_ue(),
-            disable_residual_flag: reader.get(),
+            coefficient_log2_denom: reader.get_ue()?,
+            bl_bit_depth_minus8: reader.get_ue()?,
+            el_bit_depth_minus8: reader.get_ue()?,
+            hdr_bit_depth_minus8: reader.get_ue()?,
+            disable_residual_flag: reader.get()?,
             ..Default::default()
         };
 
         let coefficient_log2_denom_length = meta.coefficient_log2_denom as usize;
 
         for cmp in 0..NUM_COMPONENTS {
-            meta.num_pivots_minus2[cmp] = reader.get_ue();
+            meta.num_pivots_minus2[cmp] = reader.get_ue()?;
 
             meta.pred_pivot_value[cmp]
                 .resize_with((meta.num_pivots_minus2[cmp] as usize) + 2, Default::default);
@@ -86,11 +86,11 @@ impl ST2094_10CmData {
                 .resize_with((meta.num_pivots_minus2[cmp] as usize) + 1, Default::default);
 
             for pivot_idx in 0..(meta.num_pivots_minus2[cmp] as usize) + 1 {
-                meta.mapping_idc[cmp][pivot_idx] = reader.get_ue();
+                meta.mapping_idc[cmp][pivot_idx] = reader.get_ue()?;
 
                 // MAPPING_POLYNOMIAL
                 if meta.mapping_idc[cmp][pivot_idx] == 0 {
-                    meta.poly_order_minus1[cmp][pivot_idx] = reader.get_ue();
+                    meta.poly_order_minus1[cmp][pivot_idx] = reader.get_ue()?;
 
                     meta.poly_coef_int[cmp][pivot_idx].resize_with(
                         (meta.poly_order_minus1[cmp][pivot_idx] as usize) + 2,
@@ -102,7 +102,7 @@ impl ST2094_10CmData {
                     );
 
                     for i in 0..=(meta.poly_order_minus1[cmp][pivot_idx] as usize) + 1 {
-                        meta.poly_coef_int[cmp][pivot_idx][i] = reader.get_se();
+                        meta.poly_coef_int[cmp][pivot_idx][i] = reader.get_se()?;
                         meta.poly_coef[cmp][pivot_idx][i] =
                             reader.get_n(coefficient_log2_denom_length);
                     }
@@ -110,7 +110,7 @@ impl ST2094_10CmData {
                     // MAPPING_MMR
 
                     meta.mmr_order_minus1[cmp][pivot_idx] = reader.get_n(2);
-                    meta.mmr_constant_int[cmp][pivot_idx] = reader.get_se();
+                    meta.mmr_constant_int[cmp][pivot_idx] = reader.get_se()?;
                     meta.mmr_constant[cmp][pivot_idx] = reader.get_n(coefficient_log2_denom_length);
 
                     meta.mmr_coef_int[cmp][pivot_idx].resize_with(
@@ -127,7 +127,7 @@ impl ST2094_10CmData {
                         meta.mmr_coef[cmp][pivot_idx][i].resize_with(8, Default::default);
 
                         for j in 0..7_usize {
-                            meta.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se();
+                            meta.mmr_coef_int[cmp][pivot_idx][i][j] = reader.get_se()?;
                             meta.mmr_coef[cmp][pivot_idx][i][j] =
                                 reader.get_n(coefficient_log2_denom_length);
                         }
@@ -139,11 +139,11 @@ impl ST2094_10CmData {
         if !meta.disable_residual_flag {
             for cmp in 0..NUM_COMPONENTS {
                 meta.nlq_offset[cmp] = reader.get_n((meta.el_bit_depth_minus8 as usize) + 8);
-                meta.hdr_in_max_int[cmp] = reader.get_ue();
+                meta.hdr_in_max_int[cmp] = reader.get_ue()?;
                 meta.hdr_in_max[cmp] = reader.get_n(coefficient_log2_denom_length);
-                meta.linear_deadzone_slope_int[cmp] = reader.get_ue();
+                meta.linear_deadzone_slope_int[cmp] = reader.get_ue()?;
                 meta.linear_deadzone_slope[cmp] = reader.get_n(coefficient_log2_denom_length);
-                meta.linear_deadzone_threshold_int[cmp] = reader.get_ue();
+                meta.linear_deadzone_threshold_int[cmp] = reader.get_ue()?;
                 meta.linear_deadzone_threshold[cmp] = reader.get_n(coefficient_log2_denom_length);
             }
         }

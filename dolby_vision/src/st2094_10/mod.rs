@@ -24,13 +24,13 @@ pub struct ST2094_10Meta {
 impl ST2094_10Meta {
     pub fn parse(reader: &mut BitVecReader) -> Result<ST2094_10Meta> {
         let mut meta = ST2094_10Meta {
-            num_ext_blocks: reader.get_ue(),
+            num_ext_blocks: reader.get_ue()?,
             ..Default::default()
         };
 
         if meta.num_ext_blocks > 0 {
             while !reader.is_aligned() {
-                ensure!(!reader.get(), "dm_alignment_zero_bit != 0");
+                ensure!(!reader.get()?, "dm_alignment_zero_bit != 0");
             }
 
             for _ in 0..meta.num_ext_blocks {

@@ -60,9 +60,9 @@ pub fn vdr_dm_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) ->
 impl VdrDmData {
     pub fn parse(reader: &mut BitVecReader) -> Result<VdrDmData> {
         let data = VdrDmData {
-            affected_dm_metadata_id: reader.get_ue(),
-            current_dm_metadata_id: reader.get_ue(),
-            scene_refresh_flag: reader.get_ue(),
+            affected_dm_metadata_id: reader.get_ue()?,
+            current_dm_metadata_id: reader.get_ue()?,
+            scene_refresh_flag: reader.get_ue()?,
 
             ycc_to_rgb_coef0: reader.get_n::<u16>(16) as i16,
             ycc_to_rgb_coef1: reader.get_n::<u16>(16) as i16,

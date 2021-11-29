@@ -132,7 +132,7 @@ impl DoviRpu {
 
             // rpu_alignment_zero_bit
             while !reader.is_aligned() {
-                dovi_rpu.remaining.push(reader.get());
+                dovi_rpu.remaining.push(reader.get()?);
             }
 
             // EOF case
@@ -141,7 +141,7 @@ impl DoviRpu {
             // CRC32 is at the end, apparently sometimes there is more unknown data
             if reader.available() != final_len {
                 while reader.available() != final_len {
-                    dovi_rpu.remaining.push(reader.get());
+                    dovi_rpu.remaining.push(reader.get()?);
                 }
             }
 

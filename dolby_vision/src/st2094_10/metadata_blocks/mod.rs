@@ -25,7 +25,7 @@ pub enum ExtMetadataBlock {
 }
 
 pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
-    let ext_block_length = reader.get_ue();
+    let ext_block_length = reader.get_ue()?;
     let ext_block_level = reader.get_n(8);
 
     let ext_metadata_block = match ext_block_level {
@@ -68,14 +68,14 @@ pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock>
                 "Reserved metadata block found, please open an issue."
             );
 
-            reserved::ReservedExtMetadataBlock::parse(ext_block_length, ext_block_level, reader)
+            reserved::ReservedExtMetadataBlock::parse(ext_block_length, ext_block_level, reader)?
         }
     };
 
     let ext_block_use_bits = (8 * ext_block_length) - ext_metadata_block.bits();
 
     for _ in 0..ext_block_use_bits {
-        ensure!(!reader.get(), "ext_dm_alignment_zero_bit != 0");
+        ensure!(!reader.get()?, "ext_dm_alignment_zero_bit != 0");
     }
 
     Ok(ext_metadata_block)

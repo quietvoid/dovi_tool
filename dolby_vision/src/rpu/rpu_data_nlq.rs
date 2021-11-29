@@ -49,7 +49,7 @@ impl RpuDataNlq {
         for pivot_idx in 0..pivot_idx_count {
             for cmp in 0..NUM_COMPONENTS {
                 if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
-                    data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get();
+                    data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get()?;
                 } else {
                     data.nlq_param_pred_flag[pivot_idx][cmp] = false;
                 }
@@ -61,7 +61,7 @@ impl RpuDataNlq {
                         reader.get_n((header.el_bit_depth_minus8 + 8) as usize);
 
                     if header.coefficient_data_type == 0 {
-                        data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue();
+                        data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue()?;
                     }
 
                     data.vdr_in_max[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
@@ -70,7 +70,7 @@ impl RpuDataNlq {
                     if let Some(nlq_method_idc) = header.nlq_method_idc {
                         if nlq_method_idc == 0 {
                             if header.coefficient_data_type == 0 {
-                                data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue();
+                                data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue()?;
                             }
 
                             data.linear_deadzone_slope[pivot_idx][cmp] =
@@ -78,7 +78,7 @@ impl RpuDataNlq {
 
                             if header.coefficient_data_type == 0 {
                                 data.linear_deadzone_threshold_int[pivot_idx][cmp] =
-                                    reader.get_ue();
+                                    reader.get_ue()?;
                             }
 
                             data.linear_deadzone_threshold[pivot_idx][cmp] =
@@ -86,7 +86,7 @@ impl RpuDataNlq {
                         }
                     }
                 } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
-                    data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue();
+                    data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue()?;
                 }
             }
         }

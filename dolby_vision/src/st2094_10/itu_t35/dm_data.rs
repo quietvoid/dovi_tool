@@ -14,9 +14,9 @@ pub struct ST2094_10DmData {
 impl ST2094_10DmData {
     pub fn parse(reader: &mut BitVecReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10DmData {
-            app_identifier: reader.get_ue(),
-            app_version: reader.get_ue(),
-            metadata_refresh_flag: reader.get(),
+            app_identifier: reader.get_ue()?,
+            app_version: reader.get_ue()?,
+            metadata_refresh_flag: reader.get()?,
             ..Default::default()
         };
 

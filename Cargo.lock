@@ -71,6 +71,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitvec_helpers"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "278069868c52e9231e05ad5f2f854608480cc90ff85ff101956fa6e55949c820"
+dependencies = [
+ "anyhow",
+ "bitvec",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -171,11 +181,11 @@ dependencies = [
 
 [[package]]
 name = "dolby_vision"
-version = "1.2.1"
+version = "1.3.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers",
+ "bitvec_helpers 1.0.0",
  "crc",
  "roxmltree",
  "serde",
@@ -184,11 +194,11 @@ dependencies = [
 
 [[package]]
 name = "dovi_tool"
-version = "1.2.1"
+version = "1.3.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers",
+ "bitvec_helpers 1.0.0",
  "dolby_vision",
  "hevc_parser",
  "indicatif",
@@ -249,7 +259,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ca0043feeef620907560842caa868113202a3f3198ed0352234e5de2d8e43d3"
 dependencies = [
  "anyhow",
- "bitvec_helpers",
+ "bitvec_helpers 0.1.1",
  "nom",
 ]
 

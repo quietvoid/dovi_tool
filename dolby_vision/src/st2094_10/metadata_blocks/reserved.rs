@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
@@ -24,17 +26,19 @@ impl ReservedExtMetadataBlock {
         ext_block_length: u64,
         ext_block_level: u8,
         reader: &mut BitVecReader,
-    ) -> ExtMetadataBlock {
+    ) -> Result<ExtMetadataBlock> {
         let bits = 8 * ext_block_length;
         let mut data = BitVec::new();
 
-        (0..bits).for_each(|_| data.push(reader.get()));
+        for _ in 0..bits {
+            data.push(reader.get()?);
+        }
 
-        ExtMetadataBlock::Reserved(Self {
+        Ok(ExtMetadataBlock::Reserved(Self {
             ext_block_length,
             ext_block_level,
             data,
-        })
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) {

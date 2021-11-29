@@ -42,13 +42,13 @@ pub struct RpuDataHeader {
 }
 
 pub fn rpu_data_header(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
-    dovi_rpu.header = RpuDataHeader::parse(reader);
+    dovi_rpu.header = RpuDataHeader::parse(reader)?;
 
     Ok(())
 }
 
 impl RpuDataHeader {
-    pub fn parse(reader: &mut BitVecReader) -> RpuDataHeader {
+    pub fn parse(reader: &mut BitVecReader) -> Result<RpuDataHeader> {
         let mut rpu_nal = RpuDataHeader {
             rpu_nal_prefix: reader.get_n(8),
             ..Default::default()
@@ -62,42 +62,42 @@ impl RpuDataHeader {
                 rpu_nal.vdr_rpu_profile = reader.get_n(4);
 
                 rpu_nal.vdr_rpu_level = reader.get_n(4);
-                rpu_nal.vdr_seq_info_present_flag = reader.get();
+                rpu_nal.vdr_seq_info_present_flag = reader.get()?;
 
                 if rpu_nal.vdr_seq_info_present_flag {
-                    rpu_nal.chroma_resampling_explicit_filter_flag = reader.get();
+                    rpu_nal.chroma_resampling_explicit_filter_flag = reader.get()?;
                     rpu_nal.coefficient_data_type = reader.get_n(2);
 
                     if rpu_nal.coefficient_data_type == 0 {
-                        rpu_nal.coefficient_log2_denom = reader.get_ue();
+                        rpu_nal.coefficient_log2_denom = reader.get_ue()?;
                     }
 
                     rpu_nal.vdr_rpu_normalized_idc = reader.get_n(2);
-                    rpu_nal.bl_video_full_range_flag = reader.get();
+                    rpu_nal.bl_video_full_range_flag = reader.get()?;
 
                     if rpu_nal.rpu_format & 0x700 == 0 {
-                        rpu_nal.bl_bit_depth_minus8 = reader.get_ue();
-                        rpu_nal.el_bit_depth_minus8 = reader.get_ue();
-                        rpu_nal.vdr_bit_depth_minus_8 = reader.get_ue();
-                        rpu_nal.spatial_resampling_filter_flag = reader.get();
+                        rpu_nal.bl_bit_depth_minus8 = reader.get_ue()?;
+                        rpu_nal.el_bit_depth_minus8 = reader.get_ue()?;
+                        rpu_nal.vdr_bit_depth_minus_8 = reader.get_ue()?;
+                        rpu_nal.spatial_resampling_filter_flag = reader.get()?;
                         rpu_nal.reserved_zero_3bits = reader.get_n(3);
-                        rpu_nal.el_spatial_resampling_filter_flag = reader.get();
-                        rpu_nal.disable_residual_flag = reader.get();
+                        rpu_nal.el_spatial_resampling_filter_flag = reader.get()?;
+                        rpu_nal.disable_residual_flag = reader.get()?;
                     }
                 }
 
-                rpu_nal.vdr_dm_metadata_present_flag = reader.get();
-                rpu_nal.use_prev_vdr_rpu_flag = reader.get();
+                rpu_nal.vdr_dm_metadata_present_flag = reader.get()?;
+                rpu_nal.use_prev_vdr_rpu_flag = reader.get()?;
 
                 if rpu_nal.use_prev_vdr_rpu_flag {
-                    rpu_nal.prev_vdr_rpu_id = reader.get_ue();
+                    rpu_nal.prev_vdr_rpu_id = reader.get_ue()?;
                 } else {
-                    rpu_nal.vdr_rpu_id = reader.get_ue();
-                    rpu_nal.mapping_color_space = reader.get_ue();
-                    rpu_nal.mapping_chroma_format_idc = reader.get_ue();
+                    rpu_nal.vdr_rpu_id = reader.get_ue()?;
+                    rpu_nal.mapping_color_space = reader.get_ue()?;
+                    rpu_nal.mapping_chroma_format_idc = reader.get_ue()?;
 
                     for cmp in 0..NUM_COMPONENTS {
-                        rpu_nal.num_pivots_minus_2[cmp] = reader.get_ue();
+                        rpu_nal.num_pivots_minus_2[cmp] = reader.get_ue()?;
 
                         let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp] + 2) as usize;
                         rpu_nal.pred_pivot_value[cmp]
@@ -115,13 +115,13 @@ impl RpuDataHeader {
                         rpu_nal.nlq_num_pivots_minus2 = Some(0);
                     }
 
-                    rpu_nal.num_x_partitions_minus1 = reader.get_ue();
-                    rpu_nal.num_y_partitions_minus1 = reader.get_ue();
+                    rpu_nal.num_x_partitions_minus1 = reader.get_ue()?;
+                    rpu_nal.num_y_partitions_minus1 = reader.get_ue()?;
                 }
             }
         }
 
-        rpu_nal
+        Ok(rpu_nal)
     }
 
     pub fn validate(&self, profile: u8) -> Result<()> {
