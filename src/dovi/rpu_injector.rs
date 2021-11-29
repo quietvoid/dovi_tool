@@ -103,7 +103,7 @@ impl RpuInjector {
                 last
             };
 
-            parser.split_nals(&chunk, &offsets, last, true);
+            parser.split_nals(&chunk, &offsets, last, true)?;
 
             chunk.clear();
 
@@ -249,7 +249,7 @@ impl RpuInjector {
                     last
                 };
 
-                let nals = parser.split_nals(&chunk, &offsets, last, true);
+                let nals = parser.split_nals(&chunk, &offsets, last, true)?;
 
                 for (cur_index, nal) in nals.iter().enumerate() {
                     if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {

@@ -63,15 +63,6 @@ dependencies = [
 
 [[package]]
 name = "bitvec_helpers"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "922da07b90f8225cebd34a5cd1cc8095c85b076c61471a72bc0f63911643ad95"
-dependencies = [
- "bitvec",
-]
-
-[[package]]
-name = "bitvec_helpers"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "278069868c52e9231e05ad5f2f854608480cc90ff85ff101956fa6e55949c820"
@@ -185,7 +176,7 @@ version = "1.3.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers 1.0.0",
+ "bitvec_helpers",
  "crc",
  "roxmltree",
  "serde",
@@ -198,7 +189,7 @@ version = "1.3.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers 1.0.0",
+ "bitvec_helpers",
  "dolby_vision",
  "hevc_parser",
  "indicatif",
@@ -254,12 +245,12 @@ dependencies = [
 
 [[package]]
 name = "hevc_parser"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca0043feeef620907560842caa868113202a3f3198ed0352234e5de2d8e43d3"
+checksum = "c8908c1eeab0ec24137eef997f13359b492ca1fe7c3fad4ea032e4b18ae0b000"
 dependencies = [
  "anyhow",
- "bitvec_helpers 0.1.1",
+ "bitvec_helpers",
  "nom",
 ]
 

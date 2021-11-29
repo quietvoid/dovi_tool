@@ -165,7 +165,7 @@ impl DoviReader {
                 last
             };
 
-            let nals: Vec<NALUnit> = parser.split_nals(&chunk, &offsets, last, parse_nals);
+            let nals: Vec<NALUnit> = parser.split_nals(&chunk, &offsets, last, parse_nals)?;
             self.write_nals(&chunk, dovi_writer, &nals)?;
 
             chunk.clear();
