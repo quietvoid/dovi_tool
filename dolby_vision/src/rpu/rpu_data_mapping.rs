@@ -410,7 +410,7 @@ impl RpuDataMapping {
             pred_linear_interp_value_int: [vec![0], vec![0], vec![0]],
             pred_linear_interp_value: [vec![0], vec![0], vec![0]],
             poly_coef_int: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
-            poly_coef: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            poly_coef: [vec![vec![0, 0]], vec![vec![0, 0]], vec![vec![0, 0]]],
             mmr_order_minus1: [vec![0], vec![0], vec![0]],
             mmr_constant_int: [vec![0], vec![0], vec![0]],
             mmr_constant: [vec![0], vec![0], vec![0]],
