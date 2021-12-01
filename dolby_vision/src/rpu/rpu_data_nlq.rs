@@ -44,7 +44,12 @@ impl RpuDataNlq {
             );
         };
 
-        data.initialize_lists(pivot_idx_count);
+        data.num_nlq_param_predictors
+            .resize_with(pivot_idx_count, Default::default);
+        data.nlq_param_pred_flag
+            .resize_with(pivot_idx_count, Default::default);
+        data.diff_pred_part_idx_nlq_minus1
+            .resize_with(pivot_idx_count, Default::default);
 
         for pivot_idx in 0..pivot_idx_count {
             for cmp in 0..NUM_COMPONENTS {
@@ -57,10 +62,22 @@ impl RpuDataNlq {
                 if !data.nlq_param_pred_flag[pivot_idx][cmp] {
                     // rpu_data_nlq_param
 
+                    if data.nlq_offset.is_empty() {
+                        data.nlq_offset
+                            .resize_with(pivot_idx_count, Default::default);
+                        data.vdr_in_max
+                            .resize_with(pivot_idx_count, Default::default);
+                    }
+
                     data.nlq_offset[pivot_idx][cmp] =
                         reader.get_n((header.el_bit_depth_minus8 + 8) as usize);
 
                     if header.coefficient_data_type == 0 {
+                        if data.vdr_in_max_int.is_empty() {
+                            data.vdr_in_max_int
+                                .resize_with(pivot_idx_count, Default::default);
+                        }
+
                         data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue()?;
                     }
 
@@ -69,7 +86,19 @@ impl RpuDataNlq {
                     // NLQ_LINEAR_DZ
                     if let Some(nlq_method_idc) = header.nlq_method_idc {
                         if nlq_method_idc == 0 {
+                            if data.linear_deadzone_slope.is_empty() {
+                                data.linear_deadzone_slope
+                                    .resize_with(pivot_idx_count, Default::default);
+                                data.linear_deadzone_threshold
+                                    .resize_with(pivot_idx_count, Default::default);
+                            }
+
                             if header.coefficient_data_type == 0 {
+                                if data.linear_deadzone_slope_int.is_empty() {
+                                    data.linear_deadzone_slope_int
+                                        .resize_with(pivot_idx_count, Default::default);
+                                }
+
                                 data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue()?;
                             }
 
@@ -77,6 +106,11 @@ impl RpuDataNlq {
                                 reader.get_n(coefficient_log2_denom_length);
 
                             if header.coefficient_data_type == 0 {
+                                if data.linear_deadzone_threshold_int.is_empty() {
+                                    data.linear_deadzone_threshold_int
+                                        .resize_with(pivot_idx_count, Default::default);
+                                }
+
                                 data.linear_deadzone_threshold_int[pivot_idx][cmp] =
                                     reader.get_ue()?;
                             }
@@ -196,28 +230,6 @@ impl RpuDataNlq {
         }
 
         Ok(())
-    }
-
-    fn initialize_lists(&mut self, count: usize) {
-        self.num_nlq_param_predictors
-            .resize_with(count, Default::default);
-        self.nlq_param_pred_flag
-            .resize_with(count, Default::default);
-        self.diff_pred_part_idx_nlq_minus1
-            .resize_with(count, Default::default);
-
-        self.nlq_offset.resize_with(count, Default::default);
-        self.vdr_in_max_int.resize_with(count, Default::default);
-        self.vdr_in_max.resize_with(count, Default::default);
-
-        self.linear_deadzone_slope_int
-            .resize_with(count, Default::default);
-        self.linear_deadzone_slope
-            .resize_with(count, Default::default);
-        self.linear_deadzone_threshold_int
-            .resize_with(count, Default::default);
-        self.linear_deadzone_threshold
-            .resize_with(count, Default::default);
     }
 
     pub fn mel_default() -> Self {

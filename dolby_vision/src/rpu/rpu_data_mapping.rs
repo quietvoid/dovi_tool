@@ -57,7 +57,11 @@ impl RpuDataMapping {
         for cmp in 0..NUM_COMPONENTS {
             let pivot_idx_count = (header.num_pivots_minus_2[cmp] + 1) as usize;
 
-            data.initialize_lists(cmp, pivot_idx_count);
+            data.mapping_idc[cmp].resize_with(pivot_idx_count, Default::default);
+            data.num_mapping_param_predictors[cmp].resize_with(pivot_idx_count, Default::default);
+            data.mapping_param_pred_flag[cmp].resize_with(pivot_idx_count, Default::default);
+            data.diff_pred_part_idx_mapping_minus1[cmp]
+                .resize_with(pivot_idx_count, Default::default);
 
             for pivot_idx in 0..pivot_idx_count {
                 data.mapping_idc[cmp][pivot_idx] = reader.get_ue()?;
@@ -74,6 +78,13 @@ impl RpuDataMapping {
 
                     // MAPPING_POLYNOMIAL
                     if data.mapping_idc[cmp][pivot_idx] == 0 {
+                        if data.poly_order_minus1[cmp].is_empty() {
+                            data.poly_order_minus1[cmp]
+                                .resize_with(pivot_idx_count, Default::default);
+                            data.linear_interp_flag[cmp]
+                                .resize_with(pivot_idx_count, Default::default);
+                        }
+
                         data.poly_order_minus1[cmp][pivot_idx] = reader.get_ue()?;
 
                         if data.poly_order_minus1[cmp][pivot_idx] == 0 {
@@ -84,6 +95,13 @@ impl RpuDataMapping {
                         if data.poly_order_minus1[cmp][pivot_idx] == 0
                             && data.linear_interp_flag[cmp][pivot_idx]
                         {
+                            if data.pred_linear_interp_value[cmp].is_empty() {
+                                data.pred_linear_interp_value_int[cmp]
+                                    .resize_with(pivot_idx_count, Default::default);
+                                data.pred_linear_interp_value[cmp]
+                                    .resize_with(pivot_idx_count, Default::default);
+                            }
+
                             if header.coefficient_data_type == 0 {
                                 data.pred_linear_interp_value_int[cmp][pivot_idx] =
                                     reader.get_ue()?;
@@ -102,6 +120,12 @@ impl RpuDataMapping {
                                     reader.get_n(coefficient_log2_denom_length);
                             }
                         } else {
+                            if data.poly_coef_int[cmp].is_empty() {
+                                data.poly_coef_int[cmp]
+                                    .resize_with(pivot_idx_count, Default::default);
+                                data.poly_coef[cmp].resize_with(pivot_idx_count, Default::default);
+                            }
+
                             let poly_coef_count =
                                 data.poly_order_minus1[cmp][pivot_idx] as usize + 1;
 
@@ -119,13 +143,23 @@ impl RpuDataMapping {
                         }
                     } else if data.mapping_idc[cmp][pivot_idx] == 1 {
                         // MAPPING_MMR
+                        if data.mmr_order_minus1[cmp].is_empty() {
+                            data.mmr_order_minus1[cmp]
+                                .resize_with(pivot_idx_count, Default::default);
+                            data.mmr_constant_int[cmp]
+                                .resize_with(pivot_idx_count, Default::default);
+                            data.mmr_constant[cmp].resize_with(pivot_idx_count, Default::default);
+                            data.mmr_coef_int[cmp].resize_with(pivot_idx_count, Default::default);
+                            data.mmr_coef[cmp].resize_with(pivot_idx_count, Default::default);
+                        }
+
                         data.mmr_order_minus1[cmp][pivot_idx] = reader.get_n(2);
 
                         ensure!(data.mmr_order_minus1[cmp][pivot_idx] <= 2);
 
-                        data.mmr_coef[cmp][pivot_idx] =
-                            vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
                         data.mmr_coef_int[cmp][pivot_idx] =
+                            vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
+                        data.mmr_coef[cmp][pivot_idx] =
                             vec![vec![0; 7]; data.mmr_order_minus1[cmp][pivot_idx] as usize + 2];
 
                         if header.coefficient_data_type == 0 {
@@ -383,27 +417,5 @@ impl RpuDataMapping {
             mmr_coef_int: [vec![vec![]], vec![vec![]], vec![vec![]]],
             mmr_coef: [vec![vec![]], vec![vec![]], vec![vec![]]],
         }
-    }
-
-    fn initialize_lists(&mut self, cmp: usize, count: usize) {
-        self.mapping_idc[cmp].resize_with(count, Default::default);
-        self.num_mapping_param_predictors[cmp].resize_with(count, Default::default);
-        self.mapping_param_pred_flag[cmp].resize_with(count, Default::default);
-        self.diff_pred_part_idx_mapping_minus1[cmp].resize_with(count, Default::default);
-
-        self.poly_order_minus1[cmp].resize_with(count, Default::default);
-        self.linear_interp_flag[cmp].resize_with(count, Default::default);
-
-        self.poly_coef_int[cmp].resize_with(count, Default::default);
-        self.poly_coef[cmp].resize_with(count, Default::default);
-
-        self.pred_linear_interp_value_int[cmp].resize_with(count, Default::default);
-        self.pred_linear_interp_value[cmp].resize_with(count, Default::default);
-        self.mmr_order_minus1[cmp].resize_with(count, Default::default);
-        self.mmr_constant_int[cmp].resize_with(count, Default::default);
-        self.mmr_constant[cmp].resize_with(count, Default::default);
-
-        self.mmr_coef_int[cmp].resize_with(count, Default::default);
-        self.mmr_coef[cmp].resize_with(count, Default::default);
     }
 }

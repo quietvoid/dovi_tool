@@ -23,7 +23,7 @@ impl RpuInfo {
 
         if let Some(ref rpus) = info.rpus {
             if let Some(f) = info.frame {
-                ensure!(f < rpus.len(), "info: invalid frame");
+                ensure!(f < rpus.len(), "info: invalid frame number (out of range)");
 
                 let rpu = &rpus[f];
 
@@ -31,7 +31,7 @@ impl RpuInfo {
                     println!("{}", rpu_serialized);
                 }
             } else {
-                bail!("No frame to look up");
+                bail!("No frame number to look up");
             }
         }
 
