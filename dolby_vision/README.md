@@ -1,6 +1,8 @@
 Library to read & write Dolby Vision metadata.  
 Comes as a Rust crate and C compatible library.  
 
+See [changelog](CHANGELOG.md) for API changes.
+
 &nbsp;
 
 ### Toolchain

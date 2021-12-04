@@ -50,6 +50,8 @@ int do_something(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header) {
     if (header->rpu_type != 2)
         return 0;
 
+    printf("Guessed profile: %i\n", header->guessed_profile);
+
     // We have new rpu_data_mapping metadata
     if (!header->use_prev_vdr_rpu_flag) {
         ret = process_rpu_data_mapping(rpu, header);
@@ -60,10 +62,12 @@ int do_something(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header) {
         ret = process_dm_metadata(rpu, header);
     }
 
-    // Convert FEL to MEL
-    ret = dovi_convert_rpu_with_mode(rpu, 1);
-    if (ret < 0) {
-        return -1;
+    if (header->guessed_profile == 7) {
+        // Convert FEL to MEL
+        ret = dovi_convert_rpu_with_mode(rpu, 1);
+        if (ret < 0) {
+            return -1;
+        }
     }
 
     const DoviData *data = dovi_write_unspec62_nalu(rpu);

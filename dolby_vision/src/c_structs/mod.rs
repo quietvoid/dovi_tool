@@ -19,6 +19,9 @@ use libc::size_t;
 /// C struct for rpu_data_header()
 #[repr(C)]
 pub struct RpuDataHeader {
+    /// Profile guessed from the values in the header
+    pub guessed_profile: u8,
+
     pub rpu_nal_prefix: u8,
     pub rpu_type: u8,
     pub rpu_format: u16,
@@ -157,6 +160,7 @@ pub struct Level2BlockList {
 impl From<&RuRpuDataHeader> for RpuDataHeader {
     fn from(header: &RuRpuDataHeader) -> Self {
         Self {
+            guessed_profile: header.get_dovi_profile(),
             rpu_nal_prefix: header.rpu_nal_prefix,
             rpu_type: header.rpu_type,
             rpu_format: header.rpu_format,
