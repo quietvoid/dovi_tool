@@ -48,8 +48,6 @@ impl RpuDataNlq {
             .resize_with(pivot_idx_count, Default::default);
         data.nlq_param_pred_flag
             .resize_with(pivot_idx_count, Default::default);
-        data.diff_pred_part_idx_nlq_minus1
-            .resize_with(pivot_idx_count, Default::default);
 
         for pivot_idx in 0..pivot_idx_count {
             for cmp in 0..NUM_COMPONENTS {
@@ -120,6 +118,11 @@ impl RpuDataNlq {
                         }
                     }
                 } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
+                    if data.diff_pred_part_idx_nlq_minus1.is_empty() {
+                        data.diff_pred_part_idx_nlq_minus1
+                            .resize_with(pivot_idx_count, Default::default);
+                    }
+
                     data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue()?;
                 }
             }

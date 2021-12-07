@@ -60,8 +60,6 @@ impl RpuDataMapping {
             data.mapping_idc[cmp].resize_with(pivot_idx_count, Default::default);
             data.num_mapping_param_predictors[cmp].resize_with(pivot_idx_count, Default::default);
             data.mapping_param_pred_flag[cmp].resize_with(pivot_idx_count, Default::default);
-            data.diff_pred_part_idx_mapping_minus1[cmp]
-                .resize_with(pivot_idx_count, Default::default);
 
             for pivot_idx in 0..pivot_idx_count {
                 data.mapping_idc[cmp][pivot_idx] = reader.get_ue()?;
@@ -81,13 +79,16 @@ impl RpuDataMapping {
                         if data.poly_order_minus1[cmp].is_empty() {
                             data.poly_order_minus1[cmp]
                                 .resize_with(pivot_idx_count, Default::default);
-                            data.linear_interp_flag[cmp]
-                                .resize_with(pivot_idx_count, Default::default);
                         }
 
                         data.poly_order_minus1[cmp][pivot_idx] = reader.get_ue()?;
 
                         if data.poly_order_minus1[cmp][pivot_idx] == 0 {
+                            if data.linear_interp_flag[cmp].is_empty() {
+                                data.linear_interp_flag[cmp]
+                                    .resize_with(pivot_idx_count, Default::default);
+                            }
+
                             data.linear_interp_flag[cmp][pivot_idx] = reader.get()?;
                         }
 
@@ -181,6 +182,11 @@ impl RpuDataMapping {
                         }
                     }
                 } else if data.num_mapping_param_predictors[cmp][pivot_idx] > 1 {
+                    if data.diff_pred_part_idx_mapping_minus1[cmp].is_empty() {
+                        data.diff_pred_part_idx_mapping_minus1[cmp]
+                            .resize_with(pivot_idx_count, Default::default);
+                    }
+
                     data.diff_pred_part_idx_mapping_minus1[cmp][pivot_idx] = reader.get_ue()?;
                 }
             }
