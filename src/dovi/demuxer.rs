@@ -11,15 +11,23 @@ pub struct Demuxer {
     input: PathBuf,
     bl_out: PathBuf,
     el_out: PathBuf,
+    el_only: bool,
 }
 
 impl Demuxer {
-    pub fn new(format: Format, input: PathBuf, bl_out: PathBuf, el_out: PathBuf) -> Self {
+    pub fn new(
+        format: Format,
+        input: PathBuf,
+        bl_out: PathBuf,
+        el_out: PathBuf,
+        el_only: bool,
+    ) -> Self {
         Self {
             format,
             input,
             bl_out,
             el_out,
+            el_only,
         }
     }
 
@@ -28,6 +36,7 @@ impl Demuxer {
         stdin: Option<PathBuf>,
         bl_out: Option<PathBuf>,
         el_out: Option<PathBuf>,
+        el_only: bool,
         options: CliOptions,
     ) -> Result<()> {
         let input = match input {
@@ -50,7 +59,7 @@ impl Demuxer {
             None => PathBuf::from("EL.hevc"),
         };
 
-        let demuxer = Demuxer::new(format, input, bl_out, el_out);
+        let demuxer = Demuxer::new(format, input, bl_out, el_out, el_only);
         demuxer.process_input(options)
     }
 
@@ -65,7 +74,14 @@ impl Demuxer {
 
     fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
         let mut dovi_reader = DoviReader::new(options);
-        let mut dovi_writer = DoviWriter::new(Some(&self.bl_out), Some(&self.el_out), None, None);
+
+        let bl_out = if self.el_only {
+            None
+        } else {
+            Some(self.bl_out.as_path())
+        };
+
+        let mut dovi_writer = DoviWriter::new(bl_out, Some(self.el_out.as_path()), None, None);
 
         dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer)
     }

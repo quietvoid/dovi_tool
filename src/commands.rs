@@ -37,6 +37,9 @@ pub enum Command {
             parse(from_os_str)
         )]
         el_out: Option<PathBuf>,
+
+        #[structopt(long, help = "Output the EL file only")]
+        el_only: bool,
     },
 
     ExtractRpu {

@@ -61,7 +61,8 @@ fn main() -> Result<()> {
             stdin,
             bl_out,
             el_out,
-        } => Demuxer::demux(input, stdin, bl_out, el_out, cli_options),
+            el_only,
+        } => Demuxer::demux(input, stdin, bl_out, el_out, el_only, cli_options),
         Command::Editor {
             input,
             json_file,
