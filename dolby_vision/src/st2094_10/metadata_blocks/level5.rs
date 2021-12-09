@@ -3,7 +3,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
-use super::ExtMetadataBlock;
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Active area of the picture (letterbox, aspect ratio)
 #[repr(C)]
@@ -63,5 +63,19 @@ impl ExtMetadataBlockLevel5 {
         self.active_area_right_offset = 0;
         self.active_area_top_offset = 0;
         self.active_area_bottom_offset = 0;
+    }
+}
+
+impl ExtMetadataBlockInfo for ExtMetadataBlockLevel5 {
+    fn level(&self) -> u8 {
+        5
+    }
+
+    fn bytes_size(&self) -> u64 {
+        7
+    }
+
+    fn required_bits(&self) -> u64 {
+        52
     }
 }

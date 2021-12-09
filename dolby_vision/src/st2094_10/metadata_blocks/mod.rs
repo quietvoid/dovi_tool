@@ -24,44 +24,31 @@ pub enum ExtMetadataBlock {
     Reserved(reserved::ReservedExtMetadataBlock),
 }
 
+pub trait ExtMetadataBlockInfo {
+    fn level(&self) -> u8;
+    fn bytes_size(&self) -> u64;
+    fn required_bits(&self) -> u64;
+
+    fn bits_size(&self) -> u64 {
+        self.bytes_size() * 8
+    }
+
+    fn sort_key(&self) -> (u8, u16) {
+        (self.level(), 0)
+    }
+}
+
 pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
     let ext_block_length = reader.get_ue()?;
     let ext_block_level = reader.get_n(8);
 
     let ext_metadata_block = match ext_block_level {
-        1 => {
-            ensure!(ext_block_length == 5, "level 1 block should have length 5");
-
-            level1::ExtMetadataBlockLevel1::parse(reader)
-        }
-        2 => {
-            ensure!(
-                ext_block_length == 11,
-                "level 2 block should have length 11"
-            );
-
-            level2::ExtMetadataBlockLevel2::parse(reader)
-        }
-        3 => {
-            ensure!(ext_block_length == 2, "level 3 block should have length 2");
-
-            level3::ExtMetadataBlockLevel3::parse(reader)
-        }
-        4 => {
-            ensure!(ext_block_length == 3, "level 4 block should have length 4");
-
-            level4::ExtMetadataBlockLevel4::parse(reader)
-        }
-        5 => {
-            ensure!(ext_block_length == 7, "level 5 block should have length 7");
-
-            level5::ExtMetadataBlockLevel5::parse(reader)
-        }
-        6 => {
-            ensure!(ext_block_length == 8, "level 6 block should have length 8");
-
-            level6::ExtMetadataBlockLevel6::parse(reader)
-        }
+        1 => level1::ExtMetadataBlockLevel1::parse(reader),
+        2 => level2::ExtMetadataBlockLevel2::parse(reader),
+        3 => level3::ExtMetadataBlockLevel3::parse(reader),
+        4 => level4::ExtMetadataBlockLevel4::parse(reader),
+        5 => level5::ExtMetadataBlockLevel5::parse(reader),
+        6 => level6::ExtMetadataBlockLevel6::parse(reader),
         _ => {
             ensure!(
                 false,
@@ -72,7 +59,16 @@ pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock>
         }
     };
 
-    let ext_block_use_bits = (8 * ext_block_length) - ext_metadata_block.bits();
+    ensure!(
+        ext_block_length == ext_metadata_block.length_bytes(),
+        format!(
+            "level {} block should have length {}",
+            ext_block_level,
+            ext_metadata_block.length_bytes()
+        )
+    );
+
+    let ext_block_use_bits = ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
 
     for _ in 0..ext_block_use_bits {
         ensure!(!reader.get()?, "ext_dm_alignment_zero_bit != 0");
@@ -82,51 +78,63 @@ pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock>
 }
 
 impl ExtMetadataBlock {
-    pub fn length(&self) -> u64 {
+    pub fn length_bytes(&self) -> u64 {
         match self {
-            ExtMetadataBlock::Level1(_) => 5,
-            ExtMetadataBlock::Level2(_) => 11,
-            ExtMetadataBlock::Level3(_) => 2,
-            ExtMetadataBlock::Level4(_) => 3,
-            ExtMetadataBlock::Level5(_) => 7,
-            ExtMetadataBlock::Level6(_) => 8,
-            ExtMetadataBlock::Reserved(b) => b.ext_block_length,
+            ExtMetadataBlock::Level1(b) => b.bytes_size(),
+            ExtMetadataBlock::Level2(b) => b.bytes_size(),
+            ExtMetadataBlock::Level3(b) => b.bytes_size(),
+            ExtMetadataBlock::Level4(b) => b.bytes_size(),
+            ExtMetadataBlock::Level5(b) => b.bytes_size(),
+            ExtMetadataBlock::Level6(b) => b.bytes_size(),
+            ExtMetadataBlock::Reserved(b) => b.bytes_size(),
         }
     }
 
-    pub fn bits(&self) -> u64 {
+    pub fn length_bits(&self) -> u64 {
         match self {
-            ExtMetadataBlock::Level1(_) => 36,
-            ExtMetadataBlock::Level2(_) => 85,
-            ExtMetadataBlock::Level3(_) => 36,
-            ExtMetadataBlock::Level4(_) => 24,
-            ExtMetadataBlock::Level5(_) => 52,
-            ExtMetadataBlock::Level6(_) => 64,
-            ExtMetadataBlock::Reserved(b) => b.data.len() as u64,
+            ExtMetadataBlock::Level1(b) => b.bits_size(),
+            ExtMetadataBlock::Level2(b) => b.bits_size(),
+            ExtMetadataBlock::Level3(b) => b.bits_size(),
+            ExtMetadataBlock::Level4(b) => b.bits_size(),
+            ExtMetadataBlock::Level5(b) => b.bits_size(),
+            ExtMetadataBlock::Level6(b) => b.bits_size(),
+            ExtMetadataBlock::Reserved(b) => b.bits_size(),
+        }
+    }
+
+    pub fn required_bits(&self) -> u64 {
+        match self {
+            ExtMetadataBlock::Level1(b) => b.required_bits(),
+            ExtMetadataBlock::Level2(b) => b.required_bits(),
+            ExtMetadataBlock::Level3(b) => b.required_bits(),
+            ExtMetadataBlock::Level4(b) => b.required_bits(),
+            ExtMetadataBlock::Level5(b) => b.required_bits(),
+            ExtMetadataBlock::Level6(b) => b.required_bits(),
+            ExtMetadataBlock::Reserved(b) => b.required_bits(),
         }
     }
 
     pub fn level(&self) -> u8 {
         match self {
-            ExtMetadataBlock::Level1(_) => 1,
-            ExtMetadataBlock::Level2(_) => 2,
-            ExtMetadataBlock::Level3(_) => 3,
-            ExtMetadataBlock::Level4(_) => 4,
-            ExtMetadataBlock::Level5(_) => 5,
-            ExtMetadataBlock::Level6(_) => 6,
-            ExtMetadataBlock::Reserved(_) => 255,
+            ExtMetadataBlock::Level1(b) => b.level(),
+            ExtMetadataBlock::Level2(b) => b.level(),
+            ExtMetadataBlock::Level3(b) => b.level(),
+            ExtMetadataBlock::Level4(b) => b.level(),
+            ExtMetadataBlock::Level5(b) => b.level(),
+            ExtMetadataBlock::Level6(b) => b.level(),
+            ExtMetadataBlock::Reserved(b) => b.level(),
         }
     }
 
     pub fn sort_key(&self) -> (u8, u16) {
         match self {
-            ExtMetadataBlock::Level1(_) => (1, 0),
-            ExtMetadataBlock::Level2(b) => (2, b.target_max_pq),
-            ExtMetadataBlock::Level3(_) => (3, 0),
-            ExtMetadataBlock::Level4(_) => (4, 0),
-            ExtMetadataBlock::Level5(_) => (5, 0),
-            ExtMetadataBlock::Level6(_) => (6, 0),
-            ExtMetadataBlock::Reserved(_) => (255, 0),
+            ExtMetadataBlock::Level1(b) => b.sort_key(),
+            ExtMetadataBlock::Level2(b) => b.sort_key(),
+            ExtMetadataBlock::Level3(b) => b.sort_key(),
+            ExtMetadataBlock::Level4(b) => b.sort_key(),
+            ExtMetadataBlock::Level5(b) => b.sort_key(),
+            ExtMetadataBlock::Level6(b) => b.sort_key(),
+            ExtMetadataBlock::Reserved(b) => b.sort_key(),
         }
     }
 

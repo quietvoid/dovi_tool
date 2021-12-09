@@ -1,3 +1,11 @@
+## 1.4.0
+
+Fixed L3/L4 metadata block sizes.
+
+Renamed `ExtMetadataBlock` functions:
+- `length` -> `length_bytes`
+- `bits` -> `length_bits`
+
 ## 1.3.1
 
 Conditional initializations of `Vec`s in `RpuDataMapping` and `RpuDataNlq` structs.  

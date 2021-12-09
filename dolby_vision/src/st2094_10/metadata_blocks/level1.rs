@@ -3,7 +3,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
-use super::ExtMetadataBlock;
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Statistical analysis of the frame: min, max, avg brightness.
 #[repr(C)]
@@ -28,5 +28,19 @@ impl ExtMetadataBlockLevel1 {
         writer.write_n(&self.min_pq.to_be_bytes(), 12);
         writer.write_n(&self.max_pq.to_be_bytes(), 12);
         writer.write_n(&self.avg_pq.to_be_bytes(), 12);
+    }
+}
+
+impl ExtMetadataBlockInfo for ExtMetadataBlockLevel1 {
+    fn level(&self) -> u8 {
+        1
+    }
+
+    fn bytes_size(&self) -> u64 {
+        5
+    }
+
+    fn required_bits(&self) -> u64 {
+        36
     }
 }

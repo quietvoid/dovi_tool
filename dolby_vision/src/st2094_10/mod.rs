@@ -52,9 +52,10 @@ impl ST2094_10Meta {
             }
 
             for ext_metadata_block in &self.ext_metadata_blocks {
-                let remaining_bits = (8 * ext_metadata_block.length()) - ext_metadata_block.bits();
+                let remaining_bits =
+                    ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
 
-                writer.write_ue(ext_metadata_block.length());
+                writer.write_ue(ext_metadata_block.length_bytes());
                 writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
 
                 ext_metadata_block.write(writer);

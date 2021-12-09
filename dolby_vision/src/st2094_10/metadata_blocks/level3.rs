@@ -3,7 +3,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
-use super::ExtMetadataBlock;
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Level 1 offsets.
 #[repr(C)]
@@ -28,5 +28,19 @@ impl ExtMetadataBlockLevel3 {
         writer.write_n(&self.min_pq_offset.to_be_bytes(), 12);
         writer.write_n(&self.max_pq_offset.to_be_bytes(), 12);
         writer.write_n(&self.avg_pq_offset.to_be_bytes(), 12);
+    }
+}
+
+impl ExtMetadataBlockInfo for ExtMetadataBlockLevel3 {
+    fn level(&self) -> u8 {
+        3
+    }
+
+    fn bytes_size(&self) -> u64 {
+        5
+    }
+
+    fn required_bits(&self) -> u64 {
+        36
     }
 }

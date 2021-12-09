@@ -6,7 +6,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
 
-use super::ExtMetadataBlock;
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize, Deserialize))]
@@ -43,5 +43,19 @@ impl ReservedExtMetadataBlock {
 
     pub fn write(&self, writer: &mut BitVecWriter) {
         self.data.iter().for_each(|b| writer.write(*b));
+    }
+}
+
+impl ExtMetadataBlockInfo for ReservedExtMetadataBlock {
+    fn level(&self) -> u8 {
+        255
+    }
+
+    fn bytes_size(&self) -> u64 {
+        self.ext_block_length
+    }
+
+    fn required_bits(&self) -> u64 {
+        self.data.len() as u64
     }
 }

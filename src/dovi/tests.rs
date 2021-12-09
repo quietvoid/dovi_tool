@@ -393,3 +393,35 @@ fn profile5_to_p81_2() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn st2094_10_level3() -> Result<()> {
+    use dolby_vision::st2094_10::ExtMetadataBlock;
+
+    let (original_data, dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/st2094_10_level3.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+
+    if let Some(vdr_dm_data) = &dovi_rpu.vdr_dm_data {
+        let block = vdr_dm_data
+            .st2094_10_metadata
+            .ext_metadata_blocks
+            .iter()
+            .find(|b| matches!(b, ExtMetadataBlock::Level3(_)));
+
+        assert!(block.is_some());
+
+        if let Some(ExtMetadataBlock::Level3(b)) = block {
+            assert_eq!(b.min_pq_offset, 2048);
+            assert_eq!(b.max_pq_offset, 1434);
+            assert_eq!(b.avg_pq_offset, 1007);
+        }
+    } else {
+        panic!("No DM metadata");
+    }
+
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
