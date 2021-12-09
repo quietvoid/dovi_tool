@@ -6,7 +6,7 @@ edition = "2018"
 rust-version = "1.55.0"
 license = "MIT"
 description = "Dolby Vision metadata parsing and writing"
-repository = "https://github.com/quietvoid/dovi_tool/dolby_vision"
+repository = "https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision"
 
 [dependencies]
 bitvec_helpers = "1.0.0"
