@@ -16,6 +16,25 @@ pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     Ok((original_data, dovi_rpu))
 }
 
+fn _debug(data: &[u8]) -> Result<()> {
+    use crate::dovi::OUT_NAL_HEADER;
+    use std::fs::OpenOptions;
+    use std::io::Write;
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open("test.bin")?;
+
+    file.write_all(OUT_NAL_HEADER)?;
+    file.write_all(&data[2..])?;
+
+    file.flush()?;
+
+    Ok(())
+}
+
 #[test]
 fn profile4() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile4.bin"))?;
@@ -326,6 +345,51 @@ fn p8_to_mel() -> Result<()> {
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     assert_eq!(dovi_rpu.dovi_profile, 7);
+
+    Ok(())
+}
+
+#[test]
+fn profile5_to_p81() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile5.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    // Profile 5 to 8.1
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    dovi_rpu.convert_with_mode(3)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+
+    Ok(())
+}
+
+#[test]
+fn profile5_to_p81_2() -> Result<()> {
+    let (original_data, mut dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/profile5-02.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    // Profile 5 to 8.1
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from(
+        "./assets/tests/profile8_from_profile5-02.bin",
+    ))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    dovi_rpu.convert_with_mode(3)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 8);
 
     Ok(())
 }

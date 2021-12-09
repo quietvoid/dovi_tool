@@ -324,15 +324,10 @@ impl DoviRpu {
             self.header.bl_video_full_range_flag = false;
 
             self.header.num_pivots_minus_2 = [0, 0, 0];
-            self.header
-                .pred_pivot_value
-                .iter_mut()
-                .filter(|v| !v.is_empty())
-                .for_each(|v| {
-                    v.truncate(2);
-                    v[0] = 0;
-                    v[1] = 1023;
-                });
+            self.header.pred_pivot_value.iter_mut().for_each(|v| {
+                v.clear();
+                v.extend(&[0, 1023]);
+            });
 
             if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
                 rpu_data_mapping.p5_to_p81();
