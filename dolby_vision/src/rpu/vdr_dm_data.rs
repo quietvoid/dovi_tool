@@ -170,7 +170,7 @@ impl VdrDmData {
         self.st2094_10_metadata.write(writer);
     }
 
-    pub fn p5_to_p81(&mut self) {
+    pub fn set_p81_coeffs(&mut self) {
         self.ycc_to_rgb_coef0 = 9574;
         self.ycc_to_rgb_coef1 = 0;
         self.ycc_to_rgb_coef2 = 13802;

@@ -310,6 +310,10 @@ impl DoviRpu {
         header.num_y_partitions_minus1 = 0;
 
         self.rpu_data_nlq = None;
+
+        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+            vdr_dm_data.set_p81_coeffs();
+        }
     }
 
     fn p5_to_p81(&mut self) -> Result<()> {
@@ -323,18 +327,10 @@ impl DoviRpu {
             self.header.vdr_rpu_profile = 1;
             self.header.bl_video_full_range_flag = false;
 
-            self.header.num_pivots_minus_2 = [0, 0, 0];
-            self.header.pred_pivot_value.iter_mut().for_each(|v| {
-                v.clear();
-                v.extend(&[0, 1023]);
-            });
-
-            if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
-                rpu_data_mapping.p5_to_p81();
-            }
+            self.remove_mapping();
 
             if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
-                vdr_dm_data.p5_to_p81();
+                vdr_dm_data.set_p81_coeffs();
             }
         } else {
             bail!("Attempt to convert profile 5: RPU is not profile 5!");
@@ -363,6 +359,20 @@ impl DoviRpu {
             vdr_dm_data
                 .st2094_10_metadata
                 .set_level5_metadata(0, 0, 0, 0);
+        }
+    }
+
+    pub fn remove_mapping(&mut self) {
+        self.modified = true;
+
+        self.header.num_pivots_minus_2 = [0, 0, 0];
+        self.header.pred_pivot_value.iter_mut().for_each(|v| {
+            v.clear();
+            v.extend(&[0, 1023]);
+        });
+
+        if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
+            rpu_data_mapping.set_empty_p81_mapping();
         }
     }
 }

@@ -318,7 +318,7 @@ impl RpuDataMapping {
         Ok(())
     }
 
-    pub fn p5_to_p81(&mut self) {
+    pub fn set_empty_p81_mapping(&mut self) {
         self.mapping_idc.iter_mut().for_each(|v| {
             v.clear();
             v.push(0);

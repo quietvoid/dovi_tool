@@ -21,6 +21,9 @@ pub struct EditConfig {
     #[serde(default)]
     mode: u8,
 
+    #[serde(default)]
+    remove_mapping: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     active_area: Option<ActiveArea>,
 
@@ -153,6 +156,10 @@ impl EditConfig {
 
         for rpu in list {
             rpu.convert_with_mode(self.mode)?;
+
+            if self.remove_mapping {
+                rpu.remove_mapping();
+            }
         }
 
         Ok(())

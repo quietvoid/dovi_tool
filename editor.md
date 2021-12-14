@@ -3,7 +3,10 @@ The editor expects a JSON config like the example below:
 {
     // Mode to convert the RPU (refer to README)
     "mode": int,
-    
+
+    // Whether to remove polynomial/MMR mapping coefficients from the metadata
+    "remove_mapping": boolean,
+
     // Configuration for active area edits
     // If no L5 metadata is present in the RPU, L5 metadata is inserted
     "active_area": {
