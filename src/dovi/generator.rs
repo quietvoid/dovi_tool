@@ -1,5 +1,9 @@
 use anyhow::{bail, Result};
+use dolby_vision::st2094_10::level1::{
+    L1_AVG_PQ_MIN_VALUE, L1_MAX_PQ_MAX_VALUE, L1_MAX_PQ_MIN_VALUE,
+};
 use serde_json::Value;
+use std::cmp::{max, min};
 use std::fs::File;
 use std::io::{stdout, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
@@ -305,12 +309,22 @@ fn parse_hdr10plus_for_l1(
                             scene_cuts.push(sequence_frame_index);
                         }
 
+                        let min_pq = 0;
+                        let mut max_pq = (nits_to_pq((max_rgb as f64 / 10.0).round() as u16)
+                            * 4095.0)
+                            .round() as u16;
+                        let mut avg_pq = (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16)
+                            * 4095.0)
+                            .round() as u16;
+
+                        // Clamp
+                        max_pq = min(max(max_pq, L1_MAX_PQ_MIN_VALUE), L1_MAX_PQ_MAX_VALUE);
+                        avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq);
+
                         Level1Metadata {
-                            min_pq: 0,
-                            max_pq: (nits_to_pq((max_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                                .round() as u16,
-                            avg_pq: (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                                .round() as u16,
+                            min_pq,
+                            max_pq,
+                            avg_pq,
                         }
                     })
                     .collect();
@@ -349,18 +363,36 @@ pub fn generate_metadata_from_madvr(
                 // Use peak per frame, average from scene
                 let frames = s.get_frames(frame_count, &madvr_info.frames)?;
 
-                let l1_list = frames.iter().map(|f| Level1Metadata {
-                    min_pq: 0,
-                    max_pq: (f.target_pq * 4095.0).round() as u16,
-                    avg_pq: (s.avg_pq * 4095.0).round() as u16,
+                let l1_list = frames.iter().map(|f| {
+                    let min_pq = 0;
+                    let mut max_pq = (f.target_pq * 4095.0).round() as u16;
+                    let mut avg_pq = (s.avg_pq * 4095.0).round() as u16;
+
+                    // Clamp
+                    max_pq = min(max(max_pq, L1_MAX_PQ_MIN_VALUE), L1_MAX_PQ_MAX_VALUE);
+                    avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq - 1);
+
+                    Level1Metadata {
+                        min_pq,
+                        max_pq,
+                        avg_pq,
+                    }
                 });
 
                 meta.extend(l1_list);
             } else {
+                let min_pq = 0;
+                let mut max_pq = (s.max_pq * 4095.0).round() as u16;
+                let mut avg_pq = (s.avg_pq * 4095.0).round() as u16;
+
+                // Clamp
+                max_pq = min(max(max_pq, L1_MAX_PQ_MIN_VALUE), L1_MAX_PQ_MAX_VALUE);
+                avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq - 1);
+
                 let l1 = Level1Metadata {
-                    min_pq: 0,
-                    max_pq: (s.max_pq * 4095.0).round() as u16,
-                    avg_pq: (s.avg_pq * 4095.0).round() as u16,
+                    min_pq,
+                    max_pq,
+                    avg_pq,
                 };
 
                 let l1_list = std::iter::repeat(l1).take(s.length);

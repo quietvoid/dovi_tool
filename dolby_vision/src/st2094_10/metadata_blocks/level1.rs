@@ -5,6 +5,13 @@ use serde::Serialize;
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
+pub const L1_MIN_PQ_MAX_VALUE: u16 = 12;
+
+pub const L1_MAX_PQ_MIN_VALUE: u16 = 2081;
+pub const L1_MAX_PQ_MAX_VALUE: u16 = 4095;
+
+pub const L1_AVG_PQ_MIN_VALUE: u16 = 819;
+
 /// Statistical analysis of the frame: min, max, avg brightness.
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
