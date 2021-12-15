@@ -28,7 +28,7 @@ impl ExtMetadataBlockLevel2 {
             trim_power: reader.get_n(12),
             trim_chroma_weight: reader.get_n(12),
             trim_saturation_gain: reader.get_n(12),
-            ms_weight: reader.get_n::<u16>(13) as i16,
+            ms_weight: |i| -> i16 {if i > 4095 {-1} else {i}} (reader.get_n::<u16>(13) as i16),
         })
     }
 

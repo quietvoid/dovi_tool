@@ -103,7 +103,7 @@ impl ST2094_10Meta {
             trim_power: level2_config.trim_power,
             trim_chroma_weight: level2_config.trim_chroma_weight,
             trim_saturation_gain: level2_config.trim_saturation_gain,
-            ms_weight: level2_config.ms_weight,
+            ms_weight: level2_config.ms_weight.clamp(-1, 4095),
         };
 
         self.ext_metadata_blocks

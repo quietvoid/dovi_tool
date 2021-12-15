@@ -319,7 +319,7 @@ fn parse_hdr10plus_for_l1(
 
                         // Clamp
                         max_pq = min(max(max_pq, L1_MAX_PQ_MIN_VALUE), L1_MAX_PQ_MAX_VALUE);
-                        avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq);
+                        avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq - 1);
 
                         Level1Metadata {
                             min_pq,
