@@ -103,6 +103,7 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
 
     let count = offsets.len();
     let last = *offsets.last().unwrap();
+    let mut warned = false;
 
     let rpus: Vec<DoviRpu> = offsets
         .iter()
@@ -119,7 +120,17 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
 
             DoviRpu::parse_unspec62_nalu(&data[start..end])
         })
-        .filter_map(Result::ok)
+        .enumerate()
+        .filter_map(|(i, res)| {
+            if let Err(e) = &res {
+                if !warned {
+                    println!("Error parsing frame {}: {}", i, e);
+                    warned = true;
+                }
+            }
+
+            res.ok()
+        })
         .collect();
 
     if count > 0 && rpus.len() == count {

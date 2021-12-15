@@ -11,6 +11,7 @@ use super::rpu_data_mapping::RpuDataMapping;
 use super::rpu_data_nlq::RpuDataNlq;
 use super::vdr_dm_data::VdrDmData;
 
+use crate::rpu::cmv4::CmV4DmData;
 use crate::rpu::rpu_data_mapping::vdr_rpu_data_payload;
 use crate::rpu::vdr_dm_data::vdr_dm_data_payload;
 use crate::st2094_10::generate::GenerateConfig;
@@ -28,6 +29,7 @@ pub struct DoviRpu {
     pub rpu_data_mapping: Option<RpuDataMapping>,
     pub rpu_data_nlq: Option<RpuDataNlq>,
     pub vdr_dm_data: Option<VdrDmData>,
+    pub cmv4_dm_data: Option<CmV4DmData>,
 
     #[cfg_attr(
         feature = "serde_feature",
@@ -114,6 +116,9 @@ impl DoviRpu {
             ..Default::default()
         };
 
+        // EOF case
+        let final_len = if end_byte == 0 { 48 } else { 40 };
+
         rpu_data_header(&mut dovi_rpu, &mut reader)?;
 
         // Preliminary header validation
@@ -130,15 +135,18 @@ impl DoviRpu {
                 vdr_dm_data_payload(&mut dovi_rpu, &mut reader)?;
             }
 
-            // rpu_alignment_zero_bit
-            while !reader.is_aligned() {
-                dovi_rpu.remaining.push(reader.get()?);
+            // CMv4 extension metadata blocks
+            // Requires at least L254 block, which is 16 bits
+            if reader.available() >= final_len + 16 {
+                dovi_rpu.cmv4_dm_data = Some(CmV4DmData::parse(&mut reader)?);
             }
 
-            // EOF case
-            let final_len = if end_byte == 0 { 48 } else { 40 };
+            // rpu_alignment_zero_bit
+            while !reader.is_aligned() {
+                ensure!(!reader.get()?, "rpu_alignment_zero_bit != 0");
+            }
 
-            // CRC32 is at the end, apparently sometimes there is more unknown data
+            // CRC32 is at the end, there can be more data in between
             if reader.available() != final_len {
                 while reader.available() != final_len {
                     dovi_rpu.remaining.push(reader.get()?);
@@ -188,17 +196,18 @@ impl DoviRpu {
             if header.vdr_dm_metadata_present_flag {
                 self.write_vdr_dm_data_payload(&mut writer);
             }
+
+            if let Some(cmv4_dm_data) = &self.cmv4_dm_data {
+                cmv4_dm_data.write(&mut writer);
+            }
         }
 
         if !self.remaining.is_empty() {
             self.remaining.iter().for_each(|b| writer.write(*b));
         }
 
-        // Since we edited, remaining is not accurate
-        if self.modified {
-            while !writer.is_aligned() {
-                writer.write(false);
-            }
+        while !writer.is_aligned() {
+            writer.write(false);
         }
 
         let computed_crc32 = compute_crc32(&writer.as_slice()[1..]);
