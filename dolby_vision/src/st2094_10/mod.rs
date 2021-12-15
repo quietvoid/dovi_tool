@@ -30,7 +30,7 @@ impl ST2094_10Meta {
 
         if meta.num_ext_blocks > 0 {
             while !reader.is_aligned() {
-                ensure!(!reader.get()?, "dm_alignment_zero_bit != 0");
+                ensure!(!reader.get()?, "CMv2.9: dm_alignment_zero_bit != 0");
             }
 
             for _ in 0..meta.num_ext_blocks {

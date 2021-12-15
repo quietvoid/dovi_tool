@@ -1,3 +1,4 @@
+pub mod cmv4;
 pub mod dovi_rpu;
 pub mod rpu_data_header;
 pub mod rpu_data_mapping;
