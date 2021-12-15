@@ -552,17 +552,21 @@ impl CmXmlParser {
 
         ensure!(trim.len() == 9, "invalid L2 trim: should be 9 values");
 
+        let trim_lift = trim[3].parse::<f32>().unwrap();
+        let trim_gain = trim[4].parse::<f32>().unwrap();
+        let trim_gamma = trim[5].parse::<f32>().unwrap().clamp(-1.0, 1.0);
+
         let trim_slope = min(
             4095,
-            ((trim[4].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+            ((((trim_gain + 2.0) * (1.0 - trim_lift / 2.0) - 2.0) * 2048.0) + 2048.0).round() as u16,
         );
         let trim_offset = min(
             4095,
-            ((trim[3].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+            ((((trim_gain + 2.0) * (trim_lift / 2.0)) * 2048.0) + 2048.0).round() as u16,
         );
         let trim_power = min(
             4095,
-            ((trim[5].parse::<f32>().unwrap() * -2048.0) + 2048.0).round() as u16,
+            (((2.0 / (1.0 + trim_gamma / 2.0) - 2.0) * 2048.0) + 2048.0).round() as u16,
         );
         let trim_chroma_weight = min(
             4095,
