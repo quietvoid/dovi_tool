@@ -2,8 +2,9 @@ use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
-use dolby_vision::st2094_10::generate::Level6Metadata;
-use dolby_vision::st2094_10::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
+};
 use serde::{Deserialize, Serialize};
 
 use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
@@ -39,7 +40,7 @@ pub struct EditConfig {
     #[serde(default)]
     max_pq: Option<u16>,
 
-    level6: Option<Level6Metadata>,
+    level6: Option<ExtMetadataBlockLevel6>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -144,7 +145,7 @@ impl EditConfig {
         }
 
         if let Some(l6) = &self.level6 {
-            self.set_level6_metadata(rpus, l6);
+            self.set_level6_metadata(rpus, l6)?;
         }
 
         Ok(())
@@ -251,21 +252,27 @@ impl EditConfig {
         });
     }
 
-    fn set_level6_metadata(&self, rpus: &mut Vec<Option<DoviRpu>>, l6: &Level6Metadata) {
-        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+    fn set_level6_metadata(
+        &self,
+        rpus: &mut Vec<Option<DoviRpu>>,
+        level6: &ExtMetadataBlockLevel6,
+    ) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
             rpu.modified = true;
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
-                vdr_dm_data.st2094_10_metadata.set_level6_metadata(l6);
+                vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level6(level6.clone()))?;
             }
-        });
+        }
+
+        Ok(())
     }
 }
 
 impl ActiveArea {
     fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         if self.crop {
-            self.crop(rpus);
+            self.crop(rpus)?;
         }
 
         if let Some(drop_opt) = &self.drop_l5 {
@@ -281,11 +288,13 @@ impl ActiveArea {
         Ok(())
     }
 
-    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         println!("Cropping...");
-        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
-            rpu.crop();
-        });
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.crop()?;
+        }
+
+        Ok(())
     }
 
     fn do_edits(
@@ -311,25 +320,22 @@ impl ActiveArea {
                 }
 
                 if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
-                    rpus[start..=end]
-                        .iter_mut()
-                        .filter_map(|e| e.as_mut())
-                        .for_each(|rpu| {
-                            rpu.modified = true;
+                    for rpu in rpus[start..=end].iter_mut().filter_map(|e| e.as_mut()) {
+                        rpu.modified = true;
 
-                            let (left, right, top, bottom) = (
-                                active_area_offsets.left,
-                                active_area_offsets.right,
-                                active_area_offsets.top,
-                                active_area_offsets.bottom,
-                            );
+                        let (left, right, top, bottom) = (
+                            active_area_offsets.left,
+                            active_area_offsets.right,
+                            active_area_offsets.top,
+                            active_area_offsets.bottom,
+                        );
 
-                            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
-                                vdr_dm_data
-                                    .st2094_10_metadata
-                                    .set_level5_metadata(left, right, top, bottom);
-                            }
-                        });
+                        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                            vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
+                                ExtMetadataBlockLevel5::from_offsets(left, right, top, bottom),
+                            ))?;
+                        }
+                    }
                 } else {
                     bail!("Invalid preset ID: {}", preset_id);
                 }
@@ -347,11 +353,7 @@ impl ActiveArea {
         rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 let drop_it = if param == "zeroes" {
-                    let level5_block = vdr_dm_data
-                        .st2094_10_metadata
-                        .ext_metadata_blocks
-                        .iter()
-                        .find(|e| matches!(e, ExtMetadataBlock::Level5(_)));
+                    let level5_block = vdr_dm_data.get_block(5);
 
                     if let Some(ExtMetadataBlock::Level5(m)) = level5_block {
                         m.active_area_left_offset == 0
@@ -368,11 +370,7 @@ impl ActiveArea {
                 if drop_it {
                     rpu.modified = true;
 
-                    vdr_dm_data
-                        .st2094_10_metadata
-                        .ext_metadata_blocks
-                        .retain(|b| b.level() != 5);
-                    vdr_dm_data.st2094_10_metadata.update_extension_block_info();
+                    vdr_dm_data.remove_metadata_level(5);
                 }
             }
         });

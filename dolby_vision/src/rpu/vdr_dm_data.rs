@@ -1,15 +1,20 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
-
-use crate::st2094_10::{generate::GenerateConfig, ExtMetadataBlock, ST2094_10Meta};
+use serde::{Deserialize, Serialize};
 
 use super::dovi_rpu::DoviRpu;
+use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel2};
+use super::extension_metadata::*;
+use super::generate::GenerateConfig;
+use super::profiles::profile81::Profile81;
+use super::profiles::DoviProfile;
 
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+use super::extension_metadata::WithExtMetadataBlocks;
+
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct VdrDmData {
     pub affected_dm_metadata_id: u64,
     pub current_dm_metadata_id: u64,
@@ -47,12 +52,34 @@ pub struct VdrDmData {
     pub source_max_pq: u16,
     pub source_diagonal: u16,
 
-    #[cfg_attr(feature = "serde_feature", serde(flatten))]
-    pub st2094_10_metadata: ST2094_10Meta,
+    pub cmv29_metadata: Option<DmData>,
+    pub cmv40_metadata: Option<DmData>,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+pub enum CmVersion {
+    V29,
+    V40,
 }
 
 pub fn vdr_dm_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
-    dovi_rpu.vdr_dm_data = Some(VdrDmData::parse(reader)?);
+    let mut vdr_dm_data = VdrDmData::parse(reader)?;
+
+    if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData>(reader)? {
+        vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
+    }
+
+    let final_length = if dovi_rpu.last_byte == 0 { 48 } else { 40 };
+
+    // 40 or 48 w/ CRC32 + 16 bits required level 254
+    if reader.available() >= final_length + 16 {
+        if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
+            vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));
+        }
+    }
+
+    dovi_rpu.vdr_dm_data = Some(vdr_dm_data);
 
     Ok(())
 }
@@ -98,7 +125,7 @@ impl VdrDmData {
             source_min_pq: reader.get_n(12),
             source_max_pq: reader.get_n(12),
             source_diagonal: reader.get_n(10),
-            st2094_10_metadata: ST2094_10Meta::parse(reader)?,
+            ..Default::default()
         };
 
         Ok(data)
@@ -119,6 +146,14 @@ impl VdrDmData {
             && self.signal_eotf_param2 == 0
         {
             ensure!(self.signal_eotf == 65535, "signal_eotf should be 65535");
+        }
+
+        if let Some(cmv29) = &self.cmv29_metadata {
+            cmv29.validate()?;
+        }
+
+        if let Some(cmv40) = &self.cmv40_metadata {
+            cmv40.validate()?;
         }
 
         Ok(())
@@ -167,7 +202,146 @@ impl VdrDmData {
         writer.write_n(&self.source_max_pq.to_be_bytes(), 12);
         writer.write_n(&self.source_diagonal.to_be_bytes(), 10);
 
-        self.st2094_10_metadata.write(writer);
+        if let Some(cmv29) = &self.cmv29_metadata {
+            cmv29.write(writer);
+        }
+
+        if let Some(cmv40) = &self.cmv40_metadata {
+            cmv40.write(writer);
+        }
+    }
+
+    pub fn extension_metadata_for_level(&self, level: u8) -> Option<&DmData> {
+        if CmV29DmData::ALLOWED_BLOCK_LEVELS.contains(&level) {
+            return self.cmv29_metadata.as_ref();
+        } else if CmV40DmData::ALLOWED_BLOCK_LEVELS.contains(&level) {
+            return self.cmv40_metadata.as_ref();
+        }
+
+        None
+    }
+
+    pub fn extension_metadata_for_level_mut(&mut self, level: u8) -> Option<&mut DmData> {
+        if CmV29DmData::ALLOWED_BLOCK_LEVELS.contains(&level) {
+            return self.cmv29_metadata.as_mut();
+        } else if CmV40DmData::ALLOWED_BLOCK_LEVELS.contains(&level) {
+            return self.cmv40_metadata.as_mut();
+        }
+
+        None
+    }
+
+    pub fn metadata_blocks(&self, level: u8) -> Option<&Vec<ExtMetadataBlock>> {
+        self.extension_metadata_for_level(level)
+            .map(|dm_data| match dm_data {
+                DmData::V29(meta) => meta.blocks_ref(),
+                DmData::V40(meta) => meta.blocks_ref(),
+            })
+    }
+
+    pub fn metadata_blocks_mut(&mut self, level: u8) -> Option<&mut Vec<ExtMetadataBlock>> {
+        self.extension_metadata_for_level_mut(level)
+            .map(|dm_data| match dm_data {
+                DmData::V29(meta) => meta.blocks_mut(),
+                DmData::V40(meta) => meta.blocks_mut(),
+            })
+    }
+
+    pub fn level_blocks_iter(&self, level: u8) -> impl Iterator<Item = &ExtMetadataBlock> {
+        self.metadata_blocks(level)
+            .into_iter()
+            .flat_map(|e| e.iter())
+            .filter(move |e| e.level() == level)
+    }
+
+    pub fn level_blocks_iter_mut(
+        &mut self,
+        level: u8,
+    ) -> impl Iterator<Item = &mut ExtMetadataBlock> {
+        self.metadata_blocks_mut(level)
+            .into_iter()
+            .flat_map(|e| e.iter_mut())
+            .filter(move |e| e.level() == level)
+    }
+
+    pub fn get_block(&self, level: u8) -> Option<&ExtMetadataBlock> {
+        self.level_blocks_iter(level).next()
+    }
+
+    pub fn get_block_mut(&mut self, level: u8) -> Option<&mut ExtMetadataBlock> {
+        self.level_blocks_iter_mut(level).next()
+    }
+
+    pub fn add_metadata_block(&mut self, block: ExtMetadataBlock) -> Result<()> {
+        let level = block.level();
+
+        if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
+            match dm_data {
+                DmData::V29(meta) => meta.add_block(block)?,
+                DmData::V40(meta) => meta.add_block(block)?,
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn remove_metadata_level(&mut self, level: u8) {
+        if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
+            match dm_data {
+                DmData::V29(meta) => meta.remove_level(level),
+                DmData::V40(meta) => meta.remove_level(level),
+            }
+        }
+    }
+
+    pub fn replace_metadata_level(&mut self, block: ExtMetadataBlock) -> Result<()> {
+        let level = block.level();
+
+        self.remove_metadata_level(level);
+        self.add_metadata_block(block)?;
+
+        Ok(())
+    }
+
+    pub fn replace_metadata_block(&mut self, block: ExtMetadataBlock) -> Result<()> {
+        let level = block.level();
+
+        match &block {
+            ExtMetadataBlock::Level1(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level2(level2) => {
+                if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
+                    match dm_data {
+                        DmData::V29(cmv29) => cmv29.replace_level2_block(level2),
+                        _ => unreachable!(),
+                    };
+
+                    Ok(())
+                } else {
+                    bail!("Did not find CM v2.9 DM data")
+                }
+            }
+            ExtMetadataBlock::Level3(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level4(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level5(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level6(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level8(level8) => {
+                if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
+                    match dm_data {
+                        DmData::V40(cmv40) => cmv40.replace_level8_block(level8),
+                        _ => unreachable!(),
+                    };
+
+                    Ok(())
+                } else {
+                    bail!("Did not find CM v4.0 DM data")
+                }
+            }
+            ExtMetadataBlock::Level9(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level254(_) => {
+                bail!("Cannot replace automatically generated Level254 block")
+            }
+            ExtMetadataBlock::Reserved(_) => bail!("Cannot replace specific reserved block"),
+        }
     }
 
     pub fn set_p81_coeffs(&mut self) {
@@ -208,88 +382,63 @@ impl VdrDmData {
         if let Some(v) = max_pq {
             self.source_max_pq = v;
         }
+
+        if let Some(ExtMetadataBlock::Level6(level6_block)) = self.get_block(6) {
+            let (derived_min_pq, derived_max_pq) = level6_block.source_meta_from_l6();
+
+            if self.source_min_pq == 0 {
+                self.source_min_pq = derived_min_pq;
+            }
+
+            if self.source_max_pq == 0 {
+                self.source_max_pq = derived_max_pq;
+            }
+        }
     }
 
     pub fn set_scene_cut(&mut self, is_scene_cut: bool) {
         self.scene_refresh_flag = is_scene_cut as u64;
     }
 
-    pub fn from_config(config: &GenerateConfig) -> Result<VdrDmData> {
-        let mut vdr_dm_data = VdrDmData {
-            affected_dm_metadata_id: 0,
-            current_dm_metadata_id: 0,
-            scene_refresh_flag: 0,
-            ycc_to_rgb_coef0: 9574,
-            ycc_to_rgb_coef1: 0,
-            ycc_to_rgb_coef2: 13802,
-            ycc_to_rgb_coef3: 9574,
-            ycc_to_rgb_coef4: -1540,
-            ycc_to_rgb_coef5: -5348,
-            ycc_to_rgb_coef6: 9574,
-            ycc_to_rgb_coef7: 17610,
-            ycc_to_rgb_coef8: 0,
-            ycc_to_rgb_offset0: 16777216,
-            ycc_to_rgb_offset1: 134217728,
-            ycc_to_rgb_offset2: 134217728,
-            rgb_to_lms_coef0: 7222,
-            rgb_to_lms_coef1: 8771,
-            rgb_to_lms_coef2: 390,
-            rgb_to_lms_coef3: 2654,
-            rgb_to_lms_coef4: 12430,
-            rgb_to_lms_coef5: 1300,
-            rgb_to_lms_coef6: 0,
-            rgb_to_lms_coef7: 422,
-            rgb_to_lms_coef8: 15962,
+    pub fn default_pq() -> VdrDmData {
+        VdrDmData {
             signal_eotf: 65535,
-            signal_eotf_param0: 0,
-            signal_eotf_param1: 0,
-            signal_eotf_param2: 0,
             signal_bit_depth: 12,
-            signal_color_space: 0,
-            signal_chroma_format: 0,
             signal_full_range_flag: 1,
             source_diagonal: 42,
             ..Default::default()
-        };
+        }
+    }
 
+    /// Sets static metadata (L5/L6/L11) and source levels
+    pub fn from_config(config: &GenerateConfig) -> Result<VdrDmData> {
+        let mut vdr_dm_data = Profile81::dm_data();
+
+        match config.cm_version {
+            CmVersion::V29 => {
+                vdr_dm_data.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()))
+            }
+            CmVersion::V40 => {
+                vdr_dm_data.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()));
+                vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254()));
+            }
+        }
+
+        vdr_dm_data.set_static_metadata(config)?;
         vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
 
-        vdr_dm_data.st2094_10_metadata.update_from_config(config)?;
-        vdr_dm_data.update_source_levels();
+        // Default L2
+        if let Some(target_nits) = config.target_nits {
+            vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(target_nits)))?;
+        }
 
         Ok(vdr_dm_data)
     }
 
-    pub fn update_source_levels(&mut self) {
-        let level6_block = self
-            .st2094_10_metadata
-            .ext_metadata_blocks
-            .iter()
-            .find(|e| matches!(e, ExtMetadataBlock::Level6(_)));
+    pub fn set_static_metadata(&mut self, config: &GenerateConfig) -> Result<()> {
+        self.replace_metadata_block(ExtMetadataBlock::Level5(config.level5.clone()))?;
+        self.replace_metadata_block(ExtMetadataBlock::Level6(config.level6.clone()))?;
 
-        if let Some(ExtMetadataBlock::Level6(m)) = level6_block {
-            let mdl_min = m.min_display_mastering_luminance;
-            let mdl_max = m.max_display_mastering_luminance;
-
-            // Adjust source by MDL if not set
-            if mdl_min > 0 && self.source_min_pq == 0 {
-                self.source_min_pq = if mdl_min <= 10 {
-                    7
-                } else if mdl_min == 50 {
-                    62
-                } else {
-                    0
-                };
-            }
-
-            if self.source_max_pq == 0 {
-                self.source_max_pq = match mdl_max {
-                    1000 => 3079,
-                    4000 => 3696,
-                    10000 => 4095,
-                    _ => 3079,
-                };
-            }
-        }
+        Ok(())
     }
 }

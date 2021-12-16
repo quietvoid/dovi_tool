@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ReservedExtMetadataBlock {
     pub ext_block_length: u64,
     pub ext_block_level: u8,

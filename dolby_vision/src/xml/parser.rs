@@ -3,20 +3,25 @@ use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
 
-use crate::st2094_10::generate::{
-    Level1Metadata, Level2Metadata, Level3Metadata, Level5Metadata, Level6Metadata,
-};
+use crate::rpu::extension_metadata::blocks::*;
+use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
 
 #[derive(Default, Debug)]
 pub struct CmXmlParser {
+    opts: XmlParserOpts,
+
     cm_version: String,
     separator: char,
 
-    length: usize,
     target_displays: HashMap<String, TargetDisplay>,
-    level5: Option<Level5AspectRatios>,
-    level6: Level6Metadata,
-    shots: Vec<VideoShot>,
+
+    pub config: GenerateConfig,
+}
+
+#[derive(Default, Debug)]
+pub struct XmlParserOpts {
+    pub canvas_width: Option<u16>,
+    pub canvas_height: Option<u16>,
 }
 
 #[derive(Default, Debug)]
@@ -25,34 +30,12 @@ pub struct TargetDisplay {
     peak_nits: u16,
 }
 
-#[derive(Default, Debug)]
-pub struct VideoShot {
-    pub id: String,
-    pub start: usize,
-    pub duration: usize,
-    pub level1: Option<Vec<Level1Metadata>>,
-    pub level2: Option<Vec<Vec<Level2Metadata>>>,
-    pub level3: Option<Vec<Level3Metadata>>,
-    pub level5: Option<Vec<Level5AspectRatios>>,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct Level5AspectRatios {
-    pub canvas: f32,
-    pub image: f32,
-}
-
-#[derive(Debug)]
-pub enum DynamicMeta {
-    Level1(Level1Metadata),
-    Level2(Vec<Level2Metadata>),
-    Level3(Level3Metadata),
-    Level5(Level5AspectRatios),
-}
-
 impl CmXmlParser {
-    pub fn new(s: String) -> Result<CmXmlParser> {
-        let mut parser = CmXmlParser::default();
+    pub fn new(s: String, opts: XmlParserOpts) -> Result<CmXmlParser> {
+        let mut parser = CmXmlParser {
+            opts,
+            ..Default::default()
+        };
 
         let doc = roxmltree::Document::parse(&s).unwrap();
 
@@ -61,7 +44,7 @@ impl CmXmlParser {
         parser.separator = if parser.is_cmv4() { ' ' } else { ',' };
 
         if let Some(output) = doc.descendants().find(|e| e.has_tag_name("Output")) {
-            parser.parse_global_level5(&output);
+            parser.parse_global_level5(&output)?;
 
             if let Some(video) = output.descendants().find(|e| e.has_tag_name("Video")) {
                 let (max_frame_average_light_level, max_content_light_level) =
@@ -69,7 +52,7 @@ impl CmXmlParser {
                 let (min_display_mastering_luminance, max_display_mastering_luminance) =
                     parser.parse_mastering_display_metadata(&video);
 
-                parser.level6 = Level6Metadata {
+                parser.config.level6 = ExtMetadataBlockLevel6 {
                     max_display_mastering_luminance,
                     min_display_mastering_luminance,
                     max_content_light_level,
@@ -78,13 +61,13 @@ impl CmXmlParser {
 
                 parser.target_displays = parser.parse_target_displays(&video);
 
-                parser.shots = parser.parse_shots(&video)?;
-                parser.shots.sort_by_key(|s| s.start);
+                parser.config.shots = parser.parse_shots(&video)?;
+                parser.config.shots.sort_by_key(|s| s.start);
 
-                let first_shot = parser.shots.first().unwrap();
-                let last_shot = parser.shots.last().unwrap();
+                let first_shot = parser.config.shots.first().unwrap();
+                let last_shot = parser.config.shots.last().unwrap();
 
-                parser.length = (last_shot.start + last_shot.duration) - first_shot.start;
+                parser.config.length = (last_shot.start + last_shot.duration) - first_shot.start;
             } else {
                 bail!("Could not find Video node");
             }
@@ -260,47 +243,7 @@ impl CmXmlParser {
                         .unwrap();
                 }
 
-                let trims = self.parse_shot_trims(&n)?;
-
-                let mut l1_list = if let Some(Some(DynamicMeta::Level1(l1))) = trims.get("1") {
-                    let mut list: Vec<Level1Metadata> = Vec::new();
-
-                    list.resize(shot.duration, l1.clone());
-
-                    Some(list)
-                } else {
-                    None
-                };
-
-                let mut l2_list = if let Some(Some(DynamicMeta::Level2(l2))) = trims.get("2") {
-                    let mut list: Vec<Vec<Level2Metadata>> = Vec::new();
-
-                    list.resize(shot.duration, l2.clone());
-
-                    Some(list)
-                } else {
-                    None
-                };
-
-                let mut l3_list = if let Some(Some(DynamicMeta::Level3(l3))) = trims.get("3") {
-                    let mut list: Vec<Level3Metadata> = Vec::new();
-
-                    list.resize(shot.duration, l3.clone());
-
-                    Some(list)
-                } else {
-                    None
-                };
-
-                let mut l5_list = if let Some(Some(DynamicMeta::Level5(l5))) = trims.get("5") {
-                    let mut list: Vec<Level5AspectRatios> = Vec::new();
-
-                    list.resize(shot.duration, l5.clone());
-
-                    Some(list)
-                } else {
-                    None
-                };
+                shot.metadata_blocks = self.parse_shot_trims(&n)?;
 
                 let frames = n.children().filter(|e| e.has_tag_name("Frame"));
 
@@ -314,45 +257,11 @@ impl CmXmlParser {
                         .parse::<usize>()
                         .unwrap();
 
-                    let trims = self.parse_shot_trims(&frame)?;
-
-                    if let Some(list) = &mut l1_list {
-                        ensure!(edit_offset < list.len());
-
-                        if let Some(Some(DynamicMeta::Level1(new_l1))) = trims.get("1") {
-                            list[edit_offset] = new_l1.clone();
-                        }
-                    }
-
-                    if let Some(list) = &mut l2_list {
-                        ensure!(edit_offset < list.len());
-
-                        if let Some(Some(DynamicMeta::Level2(new_l2))) = trims.get("2") {
-                            list[edit_offset] = new_l2.clone();
-                        }
-                    }
-
-                    if let Some(list) = &mut l3_list {
-                        ensure!(edit_offset < list.len());
-
-                        if let Some(Some(DynamicMeta::Level3(new_l3))) = trims.get("3") {
-                            list[edit_offset] = new_l3.clone();
-                        }
-                    }
-
-                    if let Some(list) = &mut l5_list {
-                        ensure!(edit_offset < list.len());
-
-                        if let Some(Some(DynamicMeta::Level5(new_l5))) = trims.get("5") {
-                            list[edit_offset] = new_l5.clone();
-                        }
-                    }
+                    shot.frame_edits.push(ShotFrameEdit {
+                        edit_offset,
+                        metadata_blocks: self.parse_shot_trims(&frame)?,
+                    });
                 }
-
-                shot.level1 = l1_list;
-                shot.level2 = l2_list;
-                shot.level3 = l3_list;
-                shot.level5 = l5_list;
 
                 Ok(shot)
             })
@@ -361,8 +270,8 @@ impl CmXmlParser {
         shots
     }
 
-    fn parse_shot_trims(&self, node: &Node) -> Result<HashMap<&str, Option<DynamicMeta>>> {
-        let mut trims = HashMap::new();
+    fn parse_shot_trims(&self, node: &Node) -> Result<Vec<ExtMetadataBlock>> {
+        let mut metadata_blocks = Vec::new();
 
         let dynamic_meta_tag = if self.is_cmv4() {
             "DVDynamicData"
@@ -374,11 +283,6 @@ impl CmXmlParser {
             .descendants()
             .find(|e| e.has_tag_name(dynamic_meta_tag))
         {
-            let mut default_l1 = None;
-            let mut default_l2 = Some(Vec::new());
-            let mut default_l3 = None;
-            let mut default_l5 = None;
-
             if self.is_cmv4() {
                 let level_nodes = defaults_node
                     .children()
@@ -386,21 +290,7 @@ impl CmXmlParser {
 
                 for level_node in level_nodes {
                     let level = level_node.attribute("level").unwrap();
-                    let (level1, level3, level5) =
-                        self.parse_trim_levels(&level_node, level, &mut default_l2)?;
-
-                    // Only replace if the shot has a default trim
-                    if let Some(l1) = level1 {
-                        default_l1 = Some(l1);
-                    }
-
-                    if let Some(l3) = level3 {
-                        default_l3 = Some(l3);
-                    }
-
-                    if let Some(l5) = level5 {
-                        default_l5 = Some(l5);
-                    }
+                    self.parse_trim_levels(&level_node, level, &mut metadata_blocks)?;
                 }
             } else {
                 let edr_nodes = defaults_node
@@ -409,81 +299,34 @@ impl CmXmlParser {
 
                 for edr in edr_nodes {
                     let level = edr.attribute("level").unwrap();
-                    let (level1, level3, level5) =
-                        self.parse_trim_levels(&edr, level, &mut default_l2)?;
-
-                    // Only replace if the shot has a default trim
-                    if let Some(l1) = level1 {
-                        default_l1 = Some(l1);
-                    }
-
-                    if let Some(l3) = level3 {
-                        default_l3 = Some(l3);
-                    }
-
-                    if let Some(l5) = level5 {
-                        default_l5 = Some(l5);
-                    }
+                    self.parse_trim_levels(&edr, level, &mut metadata_blocks)?;
                 }
             };
-
-            if let Some(level1) = default_l1 {
-                trims.insert("1", Some(DynamicMeta::Level1(level1)));
-            }
-
-            if let Some(level2) = default_l2 {
-                if !level2.is_empty() {
-                    trims.insert("2", Some(DynamicMeta::Level2(level2)));
-                }
-            }
-
-            if let Some(level3) = default_l3 {
-                trims.insert("3", Some(DynamicMeta::Level3(level3)));
-            }
-
-            if let Some(level5) = default_l5 {
-                trims.insert("5", Some(DynamicMeta::Level5(level5)));
-            }
         }
 
-        Ok(trims)
+        Ok(metadata_blocks)
     }
 
     fn parse_trim_levels(
         &self,
         node: &Node,
         level: &str,
-        mut default_l2: &mut Option<Vec<Level2Metadata>>,
-    ) -> Result<(
-        Option<Level1Metadata>,
-        Option<Level3Metadata>,
-        Option<Level5AspectRatios>,
-    )> {
-        let mut default_l1 = None;
-        let mut default_l3 = None;
-        let mut default_l5 = None;
-
+        metadata_blocks: &mut Vec<ExtMetadataBlock>,
+    ) -> Result<()> {
         if level == "1" {
-            let level1 = self.parse_level1_trim(node)?;
-            default_l1 = Some(level1);
+            metadata_blocks.push(ExtMetadataBlock::Level1(self.parse_level1_trim(node)?));
         } else if level == "2" {
-            let level2 = self.parse_level2_trim(node)?;
-
-            if let Some(l2_list) = &mut default_l2 {
-                l2_list.push(level2);
-            }
+            metadata_blocks.push(ExtMetadataBlock::Level2(self.parse_level2_trim(node)?));
         } else if level == "3" {
-            let level3 = self.parse_level3_trim(node)?;
-            default_l3 = Some(level3);
+            metadata_blocks.push(ExtMetadataBlock::Level3(self.parse_level3_trim(node)?));
         } else if level == "5" {
-            let level5 = self.parse_level5_trim(node)?;
-            default_l5 = Some(level5);
+            metadata_blocks.push(ExtMetadataBlock::Level5(self.parse_level5_trim(node)?));
         }
 
-        Ok((default_l1, default_l3, default_l5))
+        Ok(())
     }
 
-    pub fn parse_global_level5(&mut self, output: &Node) {
+    pub fn parse_global_level5(&mut self, output: &Node) -> Result<()> {
         let canvas_ar = if let Some(canvas_ar) = output
             .children()
             .find(|e| e.has_tag_name("CanvasAspectRatio"))
@@ -503,14 +346,14 @@ impl CmXmlParser {
         };
 
         if canvas_ar.is_some() && image_ar.is_some() {
-            self.level5 = Some(Level5AspectRatios {
-                canvas: canvas_ar.unwrap(),
-                image: image_ar.unwrap(),
-            });
+            self.config.level5 =
+                self.calculate_level5_metadata(canvas_ar.unwrap(), image_ar.unwrap())?;
         }
+
+        Ok(())
     }
 
-    pub fn parse_level1_trim(&self, node: &Node) -> Result<Level1Metadata> {
+    pub fn parse_level1_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel1> {
         let measurements = node
             .children()
             .find(|e| e.has_tag_name("ImageCharacter"))
@@ -524,14 +367,14 @@ impl CmXmlParser {
             "invalid L1 trim: should be 3 values"
         );
 
-        Ok(Level1Metadata {
+        Ok(ExtMetadataBlockLevel1 {
             min_pq: (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16,
             avg_pq: (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16,
             max_pq: (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16,
         })
     }
 
-    pub fn parse_level2_trim(&self, node: &Node) -> Result<Level2Metadata> {
+    pub fn parse_level2_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel2> {
         let target_id = node
             .children()
             .find(|e| e.has_tag_name("TID"))
@@ -558,7 +401,8 @@ impl CmXmlParser {
 
         let trim_slope = min(
             4095,
-            ((((trim_gain + 2.0) * (1.0 - trim_lift / 2.0) - 2.0) * 2048.0) + 2048.0).round() as u16,
+            ((((trim_gain + 2.0) * (1.0 - trim_lift / 2.0) - 2.0) * 2048.0) + 2048.0).round()
+                as u16,
         );
         let trim_offset = min(
             4095,
@@ -581,19 +425,18 @@ impl CmXmlParser {
             ((trim[8].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as i16,
         );
 
-        Ok(Level2Metadata {
-            target_nits: Some(target_display.peak_nits),
+        Ok(ExtMetadataBlockLevel2 {
             trim_slope,
             trim_offset,
             trim_power,
             trim_chroma_weight,
             trim_saturation_gain,
             ms_weight,
-            ..Default::default()
+            ..ExtMetadataBlockLevel2::from_nits(target_display.peak_nits)
         })
     }
 
-    pub fn parse_level3_trim(&self, node: &Node) -> Result<Level3Metadata> {
+    pub fn parse_level3_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel3> {
         let measurements = node
             .children()
             .find(|e| e.has_tag_name("L1Offset"))
@@ -607,7 +450,7 @@ impl CmXmlParser {
             "invalid L3 trim: should be 3 values"
         );
 
-        Ok(Level3Metadata {
+        Ok(ExtMetadataBlockLevel3 {
             min_pq_offset: ((measurements[0].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
             max_pq_offset: ((measurements[1].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
@@ -617,7 +460,7 @@ impl CmXmlParser {
         })
     }
 
-    pub fn parse_level5_trim(&self, node: &Node) -> Result<Level5AspectRatios> {
+    pub fn parse_level5_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel5> {
         let ratios = node
             .children()
             .find(|e| e.has_tag_name("AspectRatios"))
@@ -628,27 +471,36 @@ impl CmXmlParser {
 
         ensure!(ratios.len() == 2, "invalid L5 trim: should be 2 values");
 
-        Ok(Level5AspectRatios {
-            canvas: ratios[0].parse::<f32>().unwrap(),
-            image: ratios[1].parse::<f32>().unwrap(),
-        })
+        let canvas_ar = ratios[0].parse::<f32>().unwrap();
+        let image_ar = ratios[1].parse::<f32>().unwrap();
+
+        self.calculate_level5_metadata(canvas_ar, image_ar)
     }
 
-    pub fn calculate_level5_metadata(
-        ar: &Level5AspectRatios,
-        canvas_width: u16,
-        canvas_height: u16,
-    ) -> Option<Level5Metadata> {
-        let cw = canvas_width as f32;
-        let ch = canvas_height as f32;
+    fn calculate_level5_metadata(
+        &self,
+        canvas_ar: f32,
+        image_ar: f32,
+    ) -> Result<ExtMetadataBlockLevel5> {
+        ensure!(
+            self.opts.canvas_width.is_some(),
+            "Missing canvas width to calculate L5"
+        );
+        ensure!(
+            self.opts.canvas_height.is_some(),
+            "Missing canvas height to calculate L5"
+        );
 
-        if (ar.canvas - ar.image).abs() < f32::EPSILON {
-            None
+        let cw = self.opts.canvas_width.unwrap() as f32;
+        let ch = self.opts.canvas_height.unwrap() as f32;
+
+        let mut calculated_level5 = ExtMetadataBlockLevel5::default();
+
+        if (canvas_ar - image_ar).abs() < f32::EPSILON {
+            // No AR difference, zero offsets
         } else {
-            let mut calculated_level5 = Level5Metadata::default();
-
-            if ar.image > ar.canvas {
-                let image_h = (ch * (ar.canvas / ar.image)).round();
+            if image_ar > canvas_ar {
+                let image_h = (ch * (canvas_ar / image_ar)).round();
                 let diff = ch - image_h;
                 let offset_top = (diff / 2.0).trunc();
                 let offset_bottom = diff - offset_top;
@@ -656,7 +508,7 @@ impl CmXmlParser {
                 calculated_level5.active_area_top_offset = offset_top as u16;
                 calculated_level5.active_area_bottom_offset = offset_bottom as u16;
             } else {
-                let image_w = (cw * (ar.image / ar.canvas)).round();
+                let image_w = (cw * (image_ar / canvas_ar)).round();
                 let diff = cw - image_w;
                 let offset_left = (diff / 2.0).trunc();
                 let offset_right = diff - offset_left;
@@ -664,37 +516,9 @@ impl CmXmlParser {
                 calculated_level5.active_area_left_offset = offset_left as u16;
                 calculated_level5.active_area_right_offset = offset_right as u16;
             }
-
-            Some(calculated_level5)
         }
-    }
 
-    pub fn get_video_length(&self) -> usize {
-        self.length
-    }
-
-    pub fn get_hdr10_metadata(&self) -> &Level6Metadata {
-        &self.level6
-    }
-
-    pub fn get_shots(&self) -> &Vec<VideoShot> {
-        &self.shots
-    }
-
-    pub fn get_global_aspect_ratios(&self) -> Option<&Level5AspectRatios> {
-        self.level5.as_ref()
-    }
-
-    pub fn get_global_level5(
-        &self,
-        canvas_width: u16,
-        canvas_height: u16,
-    ) -> Option<Level5Metadata> {
-        if let Some(ar) = &self.level5 {
-            Self::calculate_level5_metadata(ar, canvas_width, canvas_height)
-        } else {
-            None
-        }
+        Ok(calculated_level5)
     }
 
     pub fn is_cmv4(&self) -> bool {

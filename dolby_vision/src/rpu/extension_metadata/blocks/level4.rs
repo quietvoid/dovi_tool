@@ -1,14 +1,14 @@
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Something about temporal stability
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel4 {
     pub anchor_pq: u16,
     pub anchor_power: u16,

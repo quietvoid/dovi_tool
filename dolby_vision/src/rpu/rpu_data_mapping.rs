@@ -10,7 +10,7 @@ use super::rpu_data_nlq::RpuDataNlq;
 
 use super::NUM_COMPONENTS;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataMapping {
     pub mapping_idc: [Vec<u64>; NUM_COMPONENTS],

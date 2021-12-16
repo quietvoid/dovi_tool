@@ -1,4 +1,4 @@
 /// XML metadata parser
 mod parser;
 
-pub use parser::CmXmlParser;
+pub use parser::{CmXmlParser, XmlParserOpts};

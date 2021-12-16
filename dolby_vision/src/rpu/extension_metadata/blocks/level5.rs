@@ -1,14 +1,14 @@
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Active area of the picture (letterbox, aspect ratio)
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel5 {
     pub active_area_left_offset: u16,
     pub active_area_right_offset: u16,
@@ -63,6 +63,15 @@ impl ExtMetadataBlockLevel5 {
         self.active_area_right_offset = 0;
         self.active_area_top_offset = 0;
         self.active_area_bottom_offset = 0;
+    }
+
+    pub fn from_offsets(left: u16, right: u16, top: u16, bottom: u16) -> Self {
+        ExtMetadataBlockLevel5 {
+            active_area_left_offset: left,
+            active_area_right_offset: right,
+            active_area_top_offset: top,
+            active_area_bottom_offset: bottom,
+        }
     }
 }
 

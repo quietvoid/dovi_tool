@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use super::{dovi_rpu::DoviRpu, NUM_COMPONENTS};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataHeader {
     pub rpu_nal_prefix: u8,
@@ -143,7 +143,7 @@ impl RpuDataHeader {
                 );
                 ensure!(
                     self.nlq_num_pivots_minus2.is_none(),
-                    "profile 5: nlq_num_pivots_minus2 shoule be undefined"
+                    "profile 5: nlq_num_pivots_minus2 should be undefined"
                 );
             }
             7 => {
@@ -163,7 +163,7 @@ impl RpuDataHeader {
                 );
                 ensure!(
                     self.nlq_num_pivots_minus2.is_none(),
-                    "profile 8: nlq_num_pivots_minus2 shoule be undefined"
+                    "profile 8: nlq_num_pivots_minus2 should be undefined"
                 );
             }
             _ => (),

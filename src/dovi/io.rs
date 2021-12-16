@@ -221,7 +221,7 @@ impl DoviReader {
                                 dovi_rpu.convert_with_mode(mode)?;
 
                                 if self.options.crop {
-                                    dovi_rpu.crop();
+                                    dovi_rpu.crop()?;
                                 }
 
                                 let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;
@@ -262,7 +262,7 @@ impl DoviReader {
                                 dovi_rpu.convert_with_mode(mode)?;
 
                                 if self.options.crop {
-                                    dovi_rpu.crop();
+                                    dovi_rpu.crop()?;
                                 }
 
                                 let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;

@@ -214,21 +214,17 @@ fn poly_coef_int_logic_rpu() -> Result<()> {
 
 #[test]
 fn sets_offsets_to_zero() -> Result<()> {
-    use dolby_vision::st2094_10::ExtMetadataBlock;
+    use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 
     let (_original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_orig.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
 
-    dovi_rpu.crop();
+    dovi_rpu.crop()?;
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
     let dovi_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
     if let Some(vdr_dm_data) = dovi_rpu.vdr_dm_data {
-        let block = vdr_dm_data
-            .st2094_10_metadata
-            .ext_metadata_blocks
-            .iter()
-            .find(|b| matches!(b, ExtMetadataBlock::Level5(_)));
+        let block = vdr_dm_data.get_block(5);
 
         assert!(block.is_some());
 
@@ -261,59 +257,35 @@ fn profile8_001_end_crc32() -> Result<()> {
 
 #[test]
 fn generated_rpu() -> Result<()> {
-    use dolby_vision::rpu::rpu_data_header::RpuDataHeader;
-    use dolby_vision::rpu::rpu_data_mapping::RpuDataMapping;
-    use dolby_vision::rpu::vdr_dm_data::VdrDmData;
-    use dolby_vision::st2094_10::generate::{GenerateConfig, Level6Metadata};
-    use dolby_vision::st2094_10::ExtMetadataBlock;
+    use dolby_vision::rpu::extension_metadata::blocks::*;
+    use dolby_vision::rpu::generate::GenerateConfig;
 
     let config = GenerateConfig {
         length: 1000,
         target_nits: Some(600),
         source_min_pq: None,
         source_max_pq: None,
-        level5: None,
-        level6: Some(Level6Metadata {
+        level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
+        level6: ExtMetadataBlockLevel6 {
             max_display_mastering_luminance: 1000,
             min_display_mastering_luminance: 1,
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
-        }),
+        },
         ..Default::default()
     };
 
-    let vdr_dm_data = VdrDmData::from_config(&config)?;
+    let rpu = DoviRpu::profile81_config(&config)?;
+    let encoded_rpu = rpu.write_rpu()?;
+
+    let vdr_dm_data = rpu.vdr_dm_data.unwrap();
     assert_eq!(vdr_dm_data.source_min_pq, 7);
     assert_eq!(vdr_dm_data.source_max_pq, 3079);
 
-    let level2_index = vdr_dm_data
-        .st2094_10_metadata
-        .ext_metadata_blocks
-        .iter()
-        .position(|e| match e {
-            ExtMetadataBlock::Level2(_) => true,
-            _ => false,
-        });
-
-    assert!(level2_index.is_some());
-    let l2_meta = &vdr_dm_data.st2094_10_metadata.ext_metadata_blocks[level2_index.unwrap()];
-
+    let l2_meta = vdr_dm_data.get_block(2).unwrap();
     if let ExtMetadataBlock::Level2(b) = l2_meta {
         assert_eq!(b.target_max_pq, 2851);
     }
-
-    let rpu = DoviRpu {
-        dovi_profile: 8,
-        modified: true,
-        header: RpuDataHeader::p8_default(),
-        rpu_data_mapping: Some(RpuDataMapping::p8_default()),
-        rpu_data_nlq: None,
-        vdr_dm_data: Some(vdr_dm_data),
-        last_byte: 0x80,
-        ..Default::default()
-    };
-
-    let encoded_rpu = rpu.write_rpu()?;
 
     let reparsed_rpu = DoviRpu::parse_rpu(&encoded_rpu);
     assert!(reparsed_rpu.is_ok());

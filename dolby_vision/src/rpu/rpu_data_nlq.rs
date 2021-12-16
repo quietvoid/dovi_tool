@@ -8,7 +8,7 @@ use super::rpu_data_header::RpuDataHeader;
 
 use super::NUM_COMPONENTS;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataNlq {
     pub num_nlq_param_predictors: Vec<[u64; NUM_COMPONENTS]>,

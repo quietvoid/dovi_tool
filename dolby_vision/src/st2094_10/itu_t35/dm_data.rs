@@ -1,14 +1,16 @@
 use anyhow::Result;
 use bitvec_helpers::bitvec_reader::BitVecReader;
 
-use super::{ST2094_10Meta, UserDataTypeStruct};
+use crate::rpu::extension_metadata::{CmV29DmData, DmData};
+
+use super::UserDataTypeStruct;
 
 #[derive(Default, Debug)]
 pub struct ST2094_10DmData {
     pub app_identifier: u64,
     pub app_version: u64,
     pub metadata_refresh_flag: bool,
-    pub dm_data: ST2094_10Meta,
+    pub dm_data: Option<CmV29DmData>,
 }
 
 impl ST2094_10DmData {
@@ -21,7 +23,7 @@ impl ST2094_10DmData {
         };
 
         if meta.metadata_refresh_flag {
-            meta.dm_data = ST2094_10Meta::parse(reader)?;
+            meta.dm_data = DmData::parse::<CmV29DmData>(reader)?;
         }
 
         Ok(UserDataTypeStruct::DMData(meta))

@@ -1,8 +1,8 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub mod level1;
 pub mod level2;
@@ -15,19 +15,32 @@ pub mod level8;
 pub mod level9;
 pub mod reserved;
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+pub use level1::ExtMetadataBlockLevel1;
+pub use level2::ExtMetadataBlockLevel2;
+pub use level254::ExtMetadataBlockLevel254;
+pub use level3::ExtMetadataBlockLevel3;
+pub use level4::ExtMetadataBlockLevel4;
+pub use level5::ExtMetadataBlockLevel5;
+pub use level6::ExtMetadataBlockLevel6;
+pub use level8::ExtMetadataBlockLevel8;
+pub use level9::ExtMetadataBlockLevel9;
+pub use reserved::ReservedExtMetadataBlock;
+
+use super::WithExtMetadataBlocks;
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum ExtMetadataBlock {
-    Level1(level1::ExtMetadataBlockLevel1),
-    Level2(level2::ExtMetadataBlockLevel2),
-    Level3(level3::ExtMetadataBlockLevel3),
-    Level4(level4::ExtMetadataBlockLevel4),
-    Level5(level5::ExtMetadataBlockLevel5),
-    Level6(level6::ExtMetadataBlockLevel6),
-    Level8(level8::ExtMetadataBlockLevel8),
-    Level9(level9::ExtMetadataBlockLevel9),
-    Level254(level254::ExtMetadataBlockLevel254),
-    Reserved(reserved::ReservedExtMetadataBlock),
+    Level1(ExtMetadataBlockLevel1),
+    Level2(ExtMetadataBlockLevel2),
+    Level3(ExtMetadataBlockLevel3),
+    Level4(ExtMetadataBlockLevel4),
+    Level5(ExtMetadataBlockLevel5),
+    Level6(ExtMetadataBlockLevel6),
+    Level8(ExtMetadataBlockLevel8),
+    Level9(ExtMetadataBlockLevel9),
+    Level254(ExtMetadataBlockLevel254),
+    Reserved(ReservedExtMetadataBlock),
 }
 
 pub trait ExtMetadataBlockInfo {
@@ -42,45 +55,6 @@ pub trait ExtMetadataBlockInfo {
     fn sort_key(&self) -> (u8, u16) {
         (self.level(), 0)
     }
-}
-
-pub fn ext_metadata_block(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
-    let ext_block_length = reader.get_ue()?;
-    let ext_block_level = reader.get_n(8);
-
-    let ext_metadata_block = match ext_block_level {
-        1 => level1::ExtMetadataBlockLevel1::parse(reader),
-        2 => level2::ExtMetadataBlockLevel2::parse(reader),
-        4 => level4::ExtMetadataBlockLevel4::parse(reader),
-        5 => level5::ExtMetadataBlockLevel5::parse(reader),
-        6 => level6::ExtMetadataBlockLevel6::parse(reader),
-        3 | 8 | 10 | 11 | 254 => bail!("Invalid block level {} for CMv2.9 RPU", ext_block_level),
-        _ => {
-            ensure!(
-                false,
-                format!("CMv2.9 - Reserved metadata block found: Level {}, length {}, please open an issue.", ext_block_level, ext_block_length)
-            );
-
-            reserved::ReservedExtMetadataBlock::parse(ext_block_length, ext_block_level, reader)?
-        }
-    };
-
-    ensure!(
-        ext_block_length == ext_metadata_block.length_bytes(),
-        format!(
-            "level {} block should have length {}",
-            ext_block_level,
-            ext_metadata_block.length_bytes()
-        )
-    );
-
-    let ext_block_use_bits = ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
-
-    for _ in 0..ext_block_use_bits {
-        ensure!(!reader.get()?, "CMv2.9: ext_dm_alignment_zero_bit != 0");
-    }
-
-    Ok(ext_metadata_block)
 }
 
 impl ExtMetadataBlock {
@@ -172,5 +146,49 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level254(b) => b.write(writer),
             ExtMetadataBlock::Reserved(b) => b.write(writer),
         }
+    }
+
+    pub fn validate_correct_dm_data<T: WithExtMetadataBlocks>(&self) -> Result<()> {
+        let level = self.level();
+
+        ensure!(
+            T::ALLOWED_BLOCK_LEVELS.contains(&level),
+            "Metadata block level {} is invalid for {}",
+            &level,
+            T::VERSION
+        );
+
+        Ok(())
+    }
+
+    pub fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
+        &self,
+        reader: &mut BitVecReader,
+        expected_length: u64,
+    ) -> Result<()> {
+        let level = self.level();
+
+        ensure!(
+            expected_length == self.length_bytes(),
+            format!(
+                "{}: Invalid metadata block. Block level {} should have length {}",
+                T::VERSION,
+                level,
+                self.length_bytes()
+            )
+        );
+
+        self.validate_correct_dm_data::<T>()?;
+
+        let ext_block_use_bits = self.length_bits() - self.required_bits();
+
+        for _ in 0..ext_block_use_bits {
+            ensure!(
+                !reader.get()?,
+                format!("{}: ext_dm_alignment_zero_bit != 0", T::VERSION)
+            );
+        }
+
+        Ok(())
     }
 }
