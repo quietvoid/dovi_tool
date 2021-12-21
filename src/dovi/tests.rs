@@ -424,11 +424,17 @@ fn cmv40_full_rpu() -> Result<()> {
                 anchor_power: 0,
             }),
             ExtMetadataBlock::Level8(ExtMetadataBlockLevel8 {
-                target_display_index: 48,
+                target_display_index: 255,
                 ..Default::default()
             }),
             ExtMetadataBlock::Level9(ExtMetadataBlockLevel9 {
                 source_primary_index: 0,
+            }),
+            ExtMetadataBlock::Level10(ExtMetadataBlockLevel10 {
+                target_display_index: 255,
+                target_max_pq: 3000,
+                target_min_pq: 0,
+                target_primary_index: 2,
             }),
             ExtMetadataBlock::Level11(ExtMetadataBlockLevel11::default_reference_cinema()),
         ],

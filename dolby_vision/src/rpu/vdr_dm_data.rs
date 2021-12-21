@@ -339,6 +339,18 @@ impl VdrDmData {
                 }
             }
             ExtMetadataBlock::Level9(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level10(level10) => {
+                if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
+                    match dm_data {
+                        DmData::V40(cmv40) => cmv40.replace_level10_block(level10),
+                        _ => unreachable!(),
+                    };
+
+                    Ok(())
+                } else {
+                    bail!("Did not find CM v4.0 DM data")
+                }
+            }
             ExtMetadataBlock::Level11(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level254(_) => {
                 bail!("Cannot replace automatically generated Level254 block")

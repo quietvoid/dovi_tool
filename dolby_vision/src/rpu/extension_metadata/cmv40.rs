@@ -42,6 +42,7 @@ impl WithExtMetadataBlocks for CmV40DmData {
             3 => level3::ExtMetadataBlockLevel3::parse(reader),
             8 => level8::ExtMetadataBlockLevel8::parse(reader),
             9 => level9::ExtMetadataBlockLevel9::parse(reader),
+            10 => level10::ExtMetadataBlockLevel10::parse(reader),
             11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
             _ => {
@@ -80,6 +81,24 @@ impl CmV40DmData {
             blocks[i] = ExtMetadataBlock::Level8(block.clone());
         } else {
             blocks.push(ExtMetadataBlock::Level8(block.clone()));
+        }
+
+        self.update_extension_block_info();
+    }
+
+    pub fn replace_level10_block(&mut self, block: &ExtMetadataBlockLevel10) {
+        let blocks = self.blocks_mut();
+
+        let existing_idx = blocks.iter().position(|b| match b {
+            ExtMetadataBlock::Level10(b) => b.target_display_index == block.target_display_index,
+            _ => false,
+        });
+
+        // Replace or add level 10 block
+        if let Some(i) = existing_idx {
+            blocks[i] = ExtMetadataBlock::Level10(block.clone());
+        } else {
+            blocks.push(ExtMetadataBlock::Level10(block.clone()));
         }
 
         self.update_extension_block_info();
