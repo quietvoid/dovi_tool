@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-///  Creative intent trim passes per target display peak brightness
+/// Creative intent trim passes per target display peak brightness
+/// For CM v4.0, L8 metadata only is present and used to compute L2
 #[repr(C)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel8 {
     pub target_display_index: u8,
@@ -58,5 +59,20 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {
 
     fn sort_key(&self) -> (u8, u16) {
         (self.level(), self.target_display_index as u16)
+    }
+}
+
+/// Target display: 1000-nit, P3, D65, ST.2084, Full (HOME)
+impl Default for ExtMetadataBlockLevel8 {
+    fn default() -> Self {
+        Self {
+            target_display_index: 48,
+            trim_slope: 2048,
+            trim_offset: 2048,
+            trim_power: 2048,
+            trim_chroma_weight: 2048,
+            trim_saturation_gain: 2048,
+            ms_weight: 2048,
+        }
     }
 }

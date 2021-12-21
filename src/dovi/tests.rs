@@ -3,6 +3,7 @@ use std::fs::File;
 use std::{io::Read, path::PathBuf};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
+use dolby_vision::rpu::generate::GenerateConfig;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     let mut f = File::open(input)?;
@@ -31,6 +32,13 @@ fn _debug(data: &[u8]) -> Result<()> {
     file.write_all(&data[2..])?;
 
     file.flush()?;
+
+    Ok(())
+}
+
+fn _debug_generate(config: &GenerateConfig) -> Result<()> {
+    let path = PathBuf::from("test.bin");
+    config.write_rpus(&path)?;
 
     Ok(())
 }
@@ -276,6 +284,7 @@ fn generated_rpu() -> Result<()> {
     };
 
     let rpu = DoviRpu::profile81_config(&config)?;
+
     let encoded_rpu = rpu.write_rpu()?;
 
     let vdr_dm_data = rpu.vdr_dm_data.unwrap();
@@ -370,6 +379,79 @@ fn profile5_to_p81_2() -> Result<()> {
 fn st2094_10_level3_invalid() -> Result<()> {
     let res = _parse_file(PathBuf::from("./assets/tests/st2094_10_level3.bin"));
     assert!(res.is_err());
+
+    Ok(())
+}
+
+#[test]
+fn cmv40_full_rpu() -> Result<()> {
+    use dolby_vision::rpu::extension_metadata::blocks::*;
+    use dolby_vision::rpu::generate::GenerateConfig;
+    use dolby_vision::rpu::generate::VideoShot;
+
+    let mut config = GenerateConfig {
+        length: 10,
+        target_nits: Some(600),
+        source_min_pq: None,
+        source_max_pq: None,
+        level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
+        level6: ExtMetadataBlockLevel6 {
+            max_display_mastering_luminance: 1000,
+            min_display_mastering_luminance: 1,
+            max_content_light_level: 1000,
+            max_frame_average_light_level: 400,
+        },
+        ..Default::default()
+    };
+
+    // Single shot with L3, L4, L8, L9 and L11 metadata
+    config.shots.push(VideoShot {
+        start: 0,
+        duration: 10,
+        metadata_blocks: vec![
+            ExtMetadataBlock::Level1(ExtMetadataBlockLevel1 {
+                min_pq: 0,
+                max_pq: 2081,
+                avg_pq: 819,
+            }),
+            ExtMetadataBlock::Level3(ExtMetadataBlockLevel3 {
+                min_pq_offset: 2048,
+                max_pq_offset: 2048,
+                avg_pq_offset: 2048,
+            }),
+            ExtMetadataBlock::Level4(ExtMetadataBlockLevel4 {
+                anchor_pq: 0,
+                anchor_power: 0,
+            }),
+            ExtMetadataBlock::Level8(ExtMetadataBlockLevel8 {
+                target_display_index: 48,
+                ..Default::default()
+            }),
+            ExtMetadataBlock::Level9(ExtMetadataBlockLevel9 {
+                source_primary_index: 0,
+            }),
+            ExtMetadataBlock::Level11(ExtMetadataBlockLevel11::default_reference_cinema()),
+        ],
+        ..Default::default()
+    });
+
+    let mut rpus = config.generate_rpu_list()?;
+    assert_eq!(rpus.len(), config.length);
+
+    let encoded_rpus = GenerateConfig::encode_rpus(&mut rpus);
+    assert_eq!(encoded_rpus.len(), config.length);
+
+    let vdr_dm_data = rpus[0].vdr_dm_data.as_ref().unwrap();
+    assert_eq!(vdr_dm_data.source_min_pq, 7);
+    assert_eq!(vdr_dm_data.source_max_pq, 3079);
+
+    let l2_meta = vdr_dm_data.get_block(2).unwrap();
+    if let ExtMetadataBlock::Level2(b) = l2_meta {
+        assert_eq!(b.target_max_pq, 2851);
+    }
+
+    let reparsed_rpus = DoviRpu::parse_list_of_unspec62_nalus(&encoded_rpus);
+    assert_eq!(reparsed_rpus.len(), config.length);
 
     Ok(())
 }

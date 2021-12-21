@@ -7,7 +7,7 @@ use crate::utils::nits_to_pq;
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-///  Creative intent trim passes per target display peak brightness
+/// Creative intent trim passes per target display peak brightness
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]

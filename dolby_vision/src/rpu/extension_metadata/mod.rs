@@ -15,6 +15,7 @@ use blocks::ExtMetadataBlock;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_feature", serde(untagged))]
 pub enum DmData {
     V29(CmV29DmData),
     V40(CmV40DmData),

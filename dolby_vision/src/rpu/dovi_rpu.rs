@@ -379,4 +379,11 @@ impl DoviRpu {
             rpu_data_mapping.set_empty_p81_mapping();
         }
     }
+
+    pub fn parse_list_of_unspec62_nalus(data: &[Vec<u8>]) -> Vec<DoviRpu> {
+        data.iter()
+            .map(|rpu| DoviRpu::parse_unspec62_nalu(rpu))
+            .filter_map(Result::ok)
+            .collect()
+    }
 }

@@ -5,9 +5,10 @@ use anyhow::{bail, ensure, Result};
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
 };
+use dolby_vision::rpu::generate::GenerateConfig;
 use serde::{Deserialize, Serialize};
 
-use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
+use super::{parse_rpu_file, write_rpu_file, DoviRpu};
 
 pub struct Editor {
     input: PathBuf,
@@ -104,7 +105,7 @@ impl Editor {
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus)?;
 
-            let mut data = encode_rpus(rpus);
+            let mut data = GenerateConfig::encode_option_rpus(rpus);
 
             if let Some(ref mut to_duplicate) = config.duplicate {
                 to_duplicate.sort_by_key(|meta| meta.offset);

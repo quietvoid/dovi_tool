@@ -5,7 +5,9 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::{Deserialize, Serialize};
 
 use super::dovi_rpu::DoviRpu;
-use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel2};
+use super::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel2,
+};
 use super::extension_metadata::*;
 use super::generate::GenerateConfig;
 use super::profiles::profile81::Profile81;
@@ -337,6 +339,7 @@ impl VdrDmData {
                 }
             }
             ExtMetadataBlock::Level9(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level11(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level254(_) => {
                 bail!("Cannot replace automatically generated Level254 block")
             }
@@ -429,7 +432,9 @@ impl VdrDmData {
 
         // Default L2
         if let Some(target_nits) = config.target_nits {
-            vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(target_nits)))?;
+            vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level2(
+                ExtMetadataBlockLevel2::from_nits(target_nits),
+            ))?;
         }
 
         Ok(vdr_dm_data)
@@ -438,6 +443,9 @@ impl VdrDmData {
     pub fn set_static_metadata(&mut self, config: &GenerateConfig) -> Result<()> {
         self.replace_metadata_block(ExtMetadataBlock::Level5(config.level5.clone()))?;
         self.replace_metadata_block(ExtMetadataBlock::Level6(config.level6.clone()))?;
+        self.replace_metadata_block(ExtMetadataBlock::Level11(
+            ExtMetadataBlockLevel11::default_reference_cinema(),
+        ))?;
 
         Ok(())
     }

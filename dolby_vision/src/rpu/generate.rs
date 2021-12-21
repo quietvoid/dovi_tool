@@ -40,11 +40,10 @@ pub struct GenerateConfig {
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct VideoShot {
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub id: String,
-    pub start: usize,
 
-    // Optional, only if dynamic length
-    pub full_length: bool,
+    pub start: usize,
     pub duration: usize,
 
     pub metadata_blocks: Vec<ExtMetadataBlock>,
@@ -59,11 +58,9 @@ pub struct ShotFrameEdit {
 }
 
 impl GenerateConfig {
-    pub fn write_rpus(&self, path: &Path) -> Result<()> {
-        let mut writer =
-            BufWriter::with_capacity(100_000, File::create(path).expect("Can't create file"));
-
+    pub fn generate_rpu_list(&self) -> Result<Vec<DoviRpu>> {
         let rpu = DoviRpu::profile81_config(self)?;
+        let mut list = Vec::with_capacity(self.length);
 
         for shot in &self.shots {
             let end = shot.duration;
@@ -87,16 +84,48 @@ impl GenerateConfig {
                     }
                 }
 
-                let encoded_rpu = frame_rpu.write_hevc_unspec62_nalu()?;
-
-                writer.write_all(OUT_NAL_HEADER)?;
-
-                // Remove 0x7C01
-                writer.write_all(&encoded_rpu[2..])?;
+                list.push(frame_rpu)
             }
         }
 
-        println!("Generated metadata for {} frames", self.length);
+        Ok(list)
+    }
+
+    pub fn encode_option_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
+        let encoded_rpus = rpus
+            .iter_mut()
+            .filter_map(|e| e.as_mut())
+            .map(|e| e.write_hevc_unspec62_nalu())
+            .filter_map(Result::ok)
+            .collect();
+
+        encoded_rpus
+    }
+
+    pub fn encode_rpus(rpus: &mut Vec<DoviRpu>) -> Vec<Vec<u8>> {
+        let encoded_rpus = rpus
+            .iter_mut()
+            .map(|e| e.write_hevc_unspec62_nalu())
+            .filter_map(Result::ok)
+            .collect();
+
+        encoded_rpus
+    }
+
+    pub fn write_rpus(&self, path: &Path) -> Result<()> {
+        let mut writer =
+            BufWriter::with_capacity(100_000, File::create(path).expect("Can't create file"));
+
+        let rpus = self.generate_rpu_list()?;
+
+        for rpu in &rpus {
+            let encoded_rpu = rpu.write_hevc_unspec62_nalu()?;
+
+            writer.write_all(OUT_NAL_HEADER)?;
+
+            // Remove 0x7C01
+            writer.write_all(&encoded_rpu[2..])?;
+        }
 
         writer.flush()?;
 

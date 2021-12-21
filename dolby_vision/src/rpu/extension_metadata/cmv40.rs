@@ -42,6 +42,7 @@ impl WithExtMetadataBlocks for CmV40DmData {
             3 => level3::ExtMetadataBlockLevel3::parse(reader),
             8 => level8::ExtMetadataBlockLevel8::parse(reader),
             9 => level9::ExtMetadataBlockLevel9::parse(reader),
+            11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
             _ => {
                 ensure!(
@@ -161,7 +162,9 @@ impl CmV40DmData {
     pub fn new_with_l254() -> Self {
         Self {
             num_ext_blocks: Default::default(),
-            ext_metadata_blocks: vec![ExtMetadataBlock::Level254(ExtMetadataBlockLevel254::cmv40_default())]
+            ext_metadata_blocks: vec![ExtMetadataBlock::Level254(
+                ExtMetadataBlockLevel254::cmv40_default(),
+            )],
         }
     }
 }

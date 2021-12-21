@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-///  Creative intent trim passes per target display peak brightness
+/// Metadata level present in CM v4.0
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]

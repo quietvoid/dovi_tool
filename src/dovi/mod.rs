@@ -146,17 +146,6 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
     }
 }
 
-pub fn encode_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
-    let encoded_rpus = rpus
-        .iter_mut()
-        .filter_map(|e| e.as_mut())
-        .map(|e| e.write_hevc_unspec62_nalu())
-        .filter_map(Result::ok)
-        .collect();
-
-    encoded_rpus
-}
-
 pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
     println!("Writing RPU file...");
     let mut writer = BufWriter::with_capacity(
