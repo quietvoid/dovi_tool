@@ -1,3 +1,12 @@
+## 1.5.0
+
+A bunch of breaking changes to add CMv4.0.
+Reworked extension metadata, different DM data payloads.
+
+C API:
+- Renamed `st2094_10_metadata` to `dm_data` in `DoviVdrDmData`.
+- Added more levels to `dm_data` struct.
+
 ## 1.4.0
 
 Fixed L3/L4 metadata block sizes.

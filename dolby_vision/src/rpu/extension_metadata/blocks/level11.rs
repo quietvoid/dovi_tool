@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-const MAX_CONTENT_TYPE_VALUE: u8 = 15;
 const MAX_WHITEPOINT_VALUE: u8 = 15;
 
 /// Content type metadata level
