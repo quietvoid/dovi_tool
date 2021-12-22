@@ -3,8 +3,9 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
 use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
 };
+use dolby_vision::rpu::extension_metadata::{CmV40DmData, DmData};
 use dolby_vision::rpu::generate::GenerateConfig;
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,9 @@ pub struct Editor {
 pub struct EditConfig {
     #[serde(default)]
     mode: u8,
+
+    #[serde(default)]
+    convert_to_cmv4: bool,
 
     #[serde(default)]
     remove_mapping: bool,
@@ -42,6 +46,7 @@ pub struct EditConfig {
     max_pq: Option<u16>,
 
     level6: Option<ExtMetadataBlockLevel6>,
+    level11: Option<ExtMetadataBlockLevel11>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -102,6 +107,16 @@ impl Editor {
         editor.rpus =
             parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());
 
+        // Set default L11
+        if config.convert_to_cmv4 && config.level11.is_none() {
+            config.level11 = Some(ExtMetadataBlockLevel11::default_reference_cinema());
+        }
+
+        // Override to CM v4.0
+        if !config.convert_to_cmv4 && config.level11.is_some() {
+            config.convert_to_cmv4 = true;
+        }
+
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus)?;
 
@@ -132,6 +147,10 @@ impl EditConfig {
             self.remove_frames(ranges, rpus)?;
         }
 
+        if self.convert_to_cmv4 {
+            self.add_cmv4_dm_data(rpus)?;
+        }
+
         // Convert with mode
         if self.mode > 0 {
             self.convert_with_mode(rpus)?;
@@ -147,6 +166,10 @@ impl EditConfig {
 
         if let Some(l6) = &self.level6 {
             self.set_level6_metadata(rpus, l6)?;
+        }
+
+        if let Some(l11) = &self.level11 {
+            self.set_level11_metadata(rpus, l11)?;
         }
 
         Ok(())
@@ -263,6 +286,36 @@ impl EditConfig {
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level6(level6.clone()))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn add_cmv4_dm_data(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                if vdr_dm_data.cmv40_metadata.is_none() {
+                    vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254()));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_level11_metadata(
+        &self,
+        rpus: &mut Vec<Option<DoviRpu>>,
+        level11: &ExtMetadataBlockLevel11,
+    ) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level11(level11.clone()))?;
             }
         }
 

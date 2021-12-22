@@ -1,0 +1,8 @@
+{
+    "convert_to_cmv4": true,
+    "level11": {
+        "content_type": 1,
+        "whitepoint": 0,
+        "reference_mode_flag": true
+    }
+}

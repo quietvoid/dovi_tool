@@ -24,15 +24,32 @@ use crate::utils::{
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct DoviRpu {
     pub dovi_profile: u8,
-
     pub header: RpuDataHeader,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub rpu_data_mapping: Option<RpuDataMapping>,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub rpu_data_nlq: Option<RpuDataNlq>,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub vdr_dm_data: Option<VdrDmData>,
 
     #[cfg_attr(
         feature = "serde_feature",
-        serde(serialize_with = "crate::utils::bitvec_ser_bits")
+        serde(
+            serialize_with = "crate::utils::bitvec_ser_bits",
+            skip_serializing_if = "BitVec::is_empty"
+        )
     )]
     pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,

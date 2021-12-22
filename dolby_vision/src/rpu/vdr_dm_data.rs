@@ -54,7 +54,15 @@ pub struct VdrDmData {
     pub source_max_pq: u16,
     pub source_diagonal: u16,
 
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub cmv29_metadata: Option<DmData>,
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub cmv40_metadata: Option<DmData>,
 }
 

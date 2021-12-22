@@ -15,7 +15,10 @@ pub struct ExtMetadataBlockLevel11 {
     pub content_type: u8,
     pub whitepoint: u8,
     pub reference_mode_flag: bool,
+
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub reserved_byte2: u8,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub reserved_byte3: u8,
 }
 

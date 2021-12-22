@@ -29,7 +29,9 @@ A JSON config example:
             "start": int,
             // Shot frame length
             "duration": int,
+
             // List of metadata blocks to use for this shot
+            // Refer to example or info JSON
             "metadata_blocks": Array,
             // Metadata to use for specific frames in the shot
             "frame_edits": Array
@@ -45,7 +47,7 @@ A JSON config example:
         "active_area_bottom_offset": int,
     },
 
-    // L6 metadata, optional
+    // L6 metadata, required for profile 8.1
     "level6": {
         "max_display_mastering_luminance": int,
         "min_display_mastering_luminance": int,

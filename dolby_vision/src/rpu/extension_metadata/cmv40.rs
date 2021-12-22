@@ -180,7 +180,7 @@ impl CmV40DmData {
 
     pub fn new_with_l254() -> Self {
         Self {
-            num_ext_blocks: Default::default(),
+            num_ext_blocks: 1,
             ext_metadata_blocks: vec![ExtMetadataBlock::Level254(
                 ExtMetadataBlockLevel254::cmv40_default(),
             )],

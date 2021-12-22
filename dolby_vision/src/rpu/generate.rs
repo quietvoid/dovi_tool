@@ -21,6 +21,8 @@ const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 pub struct GenerateConfig {
     pub cm_version: CmVersion,
     pub length: usize,
+
+    /// Optional, specifies a L2 block for this target
     pub target_nits: Option<u16>,
 
     #[cfg_attr(feature = "serde_feature", serde(default))]
@@ -28,9 +30,11 @@ pub struct GenerateConfig {
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_max_pq: Option<u16>,
 
+    /// A minimum of 1 shot is required
     pub shots: Vec<VideoShot>,
 
     /// Defaults to zero offsets, should be present in RPU
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub level5: ExtMetadataBlockLevel5,
 
     /// Defaults to 1000,0.0001
@@ -46,7 +50,10 @@ pub struct VideoShot {
     pub start: usize,
     pub duration: usize,
 
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub metadata_blocks: Vec<ExtMetadataBlock>,
+
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub frame_edits: Vec<ShotFrameEdit>,
 }
 
@@ -69,6 +76,10 @@ impl GenerateConfig {
                 let mut frame_rpu = rpu.clone();
 
                 if let Some(ref mut vdr_dm_data) = frame_rpu.vdr_dm_data {
+                    if i == 0 {
+                        vdr_dm_data.set_scene_cut(true);
+                    }
+
                     // Set metadata for this shot
                     for block in &shot.metadata_blocks {
                         vdr_dm_data.replace_metadata_block(block.clone())?;
