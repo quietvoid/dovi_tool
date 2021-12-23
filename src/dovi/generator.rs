@@ -57,8 +57,6 @@ impl Generator {
                 let json_file = File::open(json_path)?;
                 let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
 
-                println!("{:#?}", config);
-
                 if let Some(hdr10plus_path) = &generator.hdr10plus_path {
                     parse_hdr10plus_for_l1(hdr10plus_path, &mut config)?;
                 } else if let Some(madvr_path) = &generator.madvr_path {
@@ -112,20 +110,56 @@ fn parse_hdr10plus_for_l1(hdr10plus_path: &Path, config: &mut GenerateConfig) ->
     println!("Parsing HDR10+ JSON file...");
     stdout().flush().ok();
 
+    config.shots.clear();
+
     let mut s = String::new();
     File::open(hdr10plus_path)?.read_to_string(&mut s)?;
 
     let hdr10plus: Value = serde_json::from_str(&s)?;
 
+    let mut frame_count = 0;
+
     if let Some(json) = hdr10plus.as_object() {
+        // Assume a proper JSON for scene info
+        let scene_summary = json
+            .get("SceneInfoSummary")
+            .expect("No scene info summary in JSON")
+            .as_object()
+            .unwrap();
+
+        let scene_first_frames: Vec<usize> = scene_summary
+            .get("SceneFirstFrameIndex")
+            .expect("No scene first frame index array")
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap() as usize)
+            .collect();
+
+        let scene_frame_lengths: Vec<usize> = scene_summary
+            .get("SceneFrameNumbers")
+            .expect("No scene frame numbers array")
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap() as usize)
+            .collect();
+
+        let mut current_shot_id = 0;
+
         if let Some(scene_info) = json.get("SceneInfo") {
             if let Some(list) = scene_info.as_array() {
-                let frame_count = list.len();
+                frame_count = list.len();
 
                 let json_frames = list.iter().filter_map(|e| e.as_object());
+                let first_frames = json_frames
+                    .enumerate()
+                    .filter(|(frame_no, _)| scene_first_frames.contains(frame_no));
 
-                for frame in json_frames {
-                    let lum_v = frame.get("LuminanceParameters").unwrap();
+                for (frame_no, map) in first_frames {
+                    // Only use the metadata from the first frame of a shot.
+                    // The JSON is assumed to be shot based already.
+                    let lum_v = map.get("LuminanceParameters").unwrap();
                     let lum = lum_v.as_object().unwrap();
 
                     let avg_rgb = lum.get("AverageRGB").unwrap().as_u64().unwrap();
@@ -133,46 +167,29 @@ fn parse_hdr10plus_for_l1(hdr10plus_path: &Path, config: &mut GenerateConfig) ->
 
                     let max_rgb = maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
 
-                    let scene_frame_index =
-                        frame.get("SceneFrameIndex").unwrap().as_u64().unwrap() as usize;
+                    let min_pq = 0;
+                    let max_pq = (nits_to_pq((max_rgb as f64 / 10.0).round() as u16) * 4095.0)
+                        .round() as u16;
+                    let avg_pq = (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16) * 4095.0)
+                        .round() as u16;
 
-                    let sequence_frame_index =
-                        frame.get("SequenceFrameIndex").unwrap().as_u64().unwrap() as usize;
+                    let shot = VideoShot {
+                        start: frame_no,
+                        duration: scene_frame_lengths[current_shot_id],
+                        metadata_blocks: vec![ExtMetadataBlock::Level1(
+                            ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq),
+                        )],
+                        ..Default::default()
+                    };
 
-                    // Only use the metadata from the first frame of a shot.
-                    // The JSON is assumed to be shot based already.
-                    if scene_frame_index == 0 || sequence_frame_index == frame_count - 1 {
-                        let mut shot = config.shots.last_mut();
-
-                        if let Some(previous_shot) = &mut shot {
-                            previous_shot.duration = sequence_frame_index - previous_shot.start;
-                        }
-
-                        // First and all subsequent shots
-                        if config.shots.is_empty() || sequence_frame_index != frame_count - 1 {
-                            config.shots.push(VideoShot::default());
-                        } else if sequence_frame_index == frame_count - 1 {
-                            continue;
-                        }
-
-                        let min_pq = 0;
-                        let max_pq = (nits_to_pq((max_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                            .round() as u16;
-                        let avg_pq = (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                            .round() as u16;
-
-                        shot = config.shots.last_mut();
-
-                        if let Some(new_shot) = &mut shot {
-                            new_shot.metadata_blocks.push(ExtMetadataBlock::Level1(
-                                ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq),
-                            ));
-                        }
-                    }
+                    config.shots.push(shot);
+                    current_shot_id += 1;
                 }
             }
         }
     }
+
+    config.length = frame_count;
 
     Ok(())
 }
@@ -184,6 +201,8 @@ pub fn generate_metadata_from_madvr(
 ) -> Result<()> {
     println!("Parsing madVR measurement file...");
     stdout().flush().ok();
+
+    config.shots.clear();
 
     let madvr_info = madvr_parse::MadVRMeasurements::parse_file(madvr_path)?;
 
@@ -239,6 +258,8 @@ pub fn generate_metadata_from_madvr(
     if config.level6.max_frame_average_light_level == 0 {
         config.level6.max_frame_average_light_level = level6_meta.max_frame_average_light_level;
     }
+
+    config.length = frame_count;
 
     Ok(())
 }

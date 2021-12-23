@@ -30,7 +30,7 @@ pub struct GenerateConfig {
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_max_pq: Option<u16>,
 
-    /// A minimum of 1 shot is required
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub shots: Vec<VideoShot>,
 
     /// Defaults to zero offsets, should be present in RPU

@@ -32,7 +32,7 @@ The minimum Rust version to build `dovi_tool` is 1.51.0.
         ###### Both per-shot and per-frame trims are supported.
     * Example: `dovi_tool generate --xml dolbyvision_metadata.xml -o RPU_from_xml.bin`  
     &nbsp;
-    ##### From a generic profile 8 configuration JSON file  
+    ##### From a generic profile 8.1 configuration JSON file  
     * See documentation: [generator.md](generator.md) or [example](assets/generator_example.json)
     * Example: `dovi_tool generate -j assets/generator_example.json -o RPU_generated.bin`  
     &nbsp;

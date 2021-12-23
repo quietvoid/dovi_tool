@@ -23,6 +23,7 @@ A JSON config example:
     "source_max_pq": int,
 
     // Shots to specify metadata for
+    // Ignored for HDR10+ and madVR generation
     "shots": [
         {
             // Start frame, defaults to 0
