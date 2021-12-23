@@ -10,7 +10,7 @@ use hevc_parser::HevcParser;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
-use super::{CliOptions, Format, HDR10PLUS_SEI_HEADER, OUT_NAL_HEADER};
+use super::{is_st2094_40_sei, CliOptions, Format, OUT_NAL_HEADER};
 
 pub struct DoviReader {
     options: CliOptions,
@@ -201,10 +201,11 @@ impl DoviReader {
         nals: &[NALUnit],
     ) -> Result<()> {
         for nal in nals {
-            if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
-                if let HDR10PLUS_SEI_HEADER = &chunk[nal.start..nal.start + 3] {
-                    continue;
-                }
+            if self.options.drop_hdr10plus
+                && nal.nal_type == NAL_SEI_PREFIX
+                && is_st2094_40_sei(&chunk[nal.start..nal.end])?
+            {
+                continue;
             }
 
             if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
