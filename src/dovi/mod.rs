@@ -9,6 +9,7 @@ pub mod rpu_injector;
 
 mod io;
 
+#[cfg(test)]
 mod tests;
 
 use indicatif::{ProgressBar, ProgressStyle};

@@ -27,9 +27,6 @@ capi = ["libc"]
 [package.metadata.docs.rs]
 all-features = true
 
-[workspace]
-members = ["."]
-
 [package.metadata.capi.header]
 subdirectory = "libdovi"
 name = "rpu_parser"
@@ -43,3 +40,6 @@ filename = "dovi"
 [package.metadata.capi.library]
 rustflags = "-Cpanic=abort"
 name = "dovi"
+
+[lib]
+doctest = false

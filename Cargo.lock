@@ -178,6 +178,7 @@ dependencies = [
  "bitvec",
  "bitvec_helpers",
  "crc",
+ "libc",
  "roxmltree",
  "serde",
  "serde_json",

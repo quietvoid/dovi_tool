@@ -32,6 +32,7 @@ pub use reserved::ReservedExtMetadataBlock;
 
 use super::WithExtMetadataBlocks;
 
+/// cbindgen:ignore
 pub const MAX_12_BIT_VALUE: u16 = 4095;
 
 #[derive(Debug, Clone)]

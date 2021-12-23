@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DolbyLabsMDF version="2.0.5" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <RevisionHistory>
+    <Revision>
+      <DateTime>2021-10-07T14:02:44Z</DateTime>
+      <Author>Blackmagic Design</Author>
+      <Software>DaVinci Resolve Studio</Software>
+      <SoftwareVersion>17.3.0.0014</SoftwareVersion>
+    </Revision>
+  </RevisionHistory>
+  <SourceList>
+    <Source type="Video">
+      <UniqueID>f7d4314c-906e-4458-b451-b23c60e4a29c</UniqueID>
+      <In>86400</In>
+      <Duration>128787</Duration>
+    </Source>
+    <Source type="Video">
+      <UniqueID>af100c4b-8711-440e-a08a-1f74116d7f93</UniqueID>
+      <In>0</In>
+      <Duration>128787</Duration>
+    </Source>
+  </SourceList>
+  <Outputs>
+    <Output name="Timeline 1">
+      <UniqueID>8cb19cc9-1950-4a3c-8850-7afdabbbf4fb</UniqueID>
+      <NumberVideoTracks>1</NumberVideoTracks>
+      <NumberAudioTracks>0</NumberAudioTracks>
+      <CanvasAspectRatio>1.77778</CanvasAspectRatio>
+      <ImageAspectRatio>2.38806</ImageAspectRatio>
+      <Video>
+        <Track name="V1">
+          <UniqueID>3cc5cc64-0afc-4653-bc2d-ead61d446a43</UniqueID>
+          <Rate>
+            <n>24000</n>
+            <d>1001</d>
+          </Rate>
+          <ColorEncoding>
+            <Primaries>
+              <Red>0.68,0.32</Red>
+              <Green>0.265,0.69</Green>
+              <Blue>0.15,0.06</Blue>
+            </Primaries>
+            <WhitePoint>0.3127,0.329</WhitePoint>
+            <PeakBrightness>10000</PeakBrightness>
+            <MinimumBrightness>0</MinimumBrightness>
+            <Encoding>pq</Encoding>
+            <BitDepth>16</BitDepth>
+            <ColorSpace>rgb</ColorSpace>
+            <ChromaFormat>444</ChromaFormat>
+            <SignalRange>computer</SignalRange>
+          </ColorEncoding>
+          <Level6>
+            <MaxCLL>756</MaxCLL>
+            <MaxFALL>97</MaxFALL>
+          </Level6>
+          <PluginNode>
+            <DolbyEDR>
+              <AlgorithmVersions>2,1</AlgorithmVersions>
+              <Characteristics level="0">
+                <MasteringDisplay level="0">
+                  <ID>20</ID>
+                  <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                  <Primaries>
+                    <Red>0.68,0.32</Red>
+                    <Green>0.265,0.69</Green>
+                    <Blue>0.15,0.06</Blue>
+                  </Primaries>
+                  <WhitePoint>0.3127,0.329</WhitePoint>
+                  <PeakBrightness>1000</PeakBrightness>
+                  <MinimumBrightness>0.0001</MinimumBrightness>
+                  <DiagonalSize>42</DiagonalSize>
+                  <Encoding>pq</Encoding>
+                  <BitDepth>16</BitDepth>
+                  <ColorSpace>rgb</ColorSpace>
+                  <SignalRange>computer</SignalRange>
+                </MasteringDisplay>
+                <TargetDisplay level="0">
+                  <ID>1</ID>
+                  <Name>100-nit, BT.709, BT.1886, Full</Name>
+                  <Primaries>
+                    <Red>0.64,0.33</Red>
+                    <Green>0.3,0.6</Green>
+                    <Blue>0.15,0.06</Blue>
+                  </Primaries>
+                  <WhitePoint>0.3127,0.329</WhitePoint>
+                  <PeakBrightness>100</PeakBrightness>
+                  <MinimumBrightness>0.005</MinimumBrightness>
+                  <DiagonalSize>42</DiagonalSize>
+                  <Encoding>gamma_bt1886</Encoding>
+                  <BitDepth>16</BitDepth>
+                  <ColorSpace>rgb</ColorSpace>
+                  <SignalRange>computer</SignalRange>
+                </TargetDisplay>
+                <TargetDisplay level="0">
+                  <ID>27</ID>
+                  <Name>600-nit, P3, D65, ST.2084, Full</Name>
+                  <Primaries>
+                    <Red>0.68,0.32</Red>
+                    <Green>0.265,0.69</Green>
+                    <Blue>0.15,0.06</Blue>
+                  </Primaries>
+                  <WhitePoint>0.3127,0.329</WhitePoint>
+                  <PeakBrightness>600</PeakBrightness>
+                  <MinimumBrightness>0</MinimumBrightness>
+                  <DiagonalSize>42</DiagonalSize>
+                  <Encoding>pq</Encoding>
+                  <BitDepth>16</BitDepth>
+                  <ColorSpace>rgb</ColorSpace>
+                  <SignalRange>computer</SignalRange>
+                </TargetDisplay>
+                <TargetDisplay level="0">
+                  <ID>48</ID>
+                  <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                  <Primaries>
+                    <Red>0.68,0.32</Red>
+                    <Green>0.265,0.69</Green>
+                    <Blue>0.15,0.06</Blue>
+                  </Primaries>
+                  <WhitePoint>0.3127,0.329</WhitePoint>
+                  <PeakBrightness>1000</PeakBrightness>
+                  <MinimumBrightness>0</MinimumBrightness>
+                  <DiagonalSize>42</DiagonalSize>
+                  <Encoding>pq</Encoding>
+                  <BitDepth>16</BitDepth>
+                  <ColorSpace>rgb</ColorSpace>
+                  <SignalRange>computer</SignalRange>
+                </TargetDisplay>
+              </Characteristics>
+            </DolbyEDR>
+          </PluginNode>
+          <Shot>
+            <UniqueID>6ab160d9-84ad-4e1c-89bc-530e4af65233</UniqueID>
+            <Source>
+              <ParentID>af100c4b-8711-440e-a08a-1f74116d7f93</ParentID>
+              <In>0</In>
+            </Source>
+            <Record>
+              <In>86400</In>
+              <Duration>12</Duration>
+            </Record>
+            <PluginNode>
+              <DolbyEDR level="1">
+                <ImageCharacter>0,0.3,0.508078</ImageCharacter>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>1</TID>
+                <Trim>0,0,0,-0.0159445,-0.0325405,0.419015,0,0,0</Trim>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>27</TID>
+                <Trim>0,0,0,-4.37517e-05,0.00535323,0.0463567,0,0,0</Trim>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>48</TID>
+                <Trim>0,0,0,5.51248e-06,0.000553861,0.000712809,0,0,0</Trim>
+              </DolbyEDR>
+            </PluginNode>
+          </Shot>
+          <Shot>
+            <UniqueID>9b087c06-4eac-46ed-8b14-722c57652efd</UniqueID>
+            <Source>
+              <ParentID>af100c4b-8711-440e-a08a-1f74116d7f93</ParentID>
+              <In>0</In>
+            </Source>
+            <Record>
+              <In>86412</In>
+              <Duration>96</Duration>
+            </Record>
+            <PluginNode>
+              <DolbyEDR level="1">
+                <ImageCharacter>0,0.5,0.778607</ImageCharacter>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>1</TID>
+                <Trim>0,0,0,-0.0132118,-0.226289,0.373608,0,0,0</Trim>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>27</TID>
+                <Trim>0,0,0,0.000426016,-0.000542358,0.000985216,0,0,0</Trim>
+              </DolbyEDR>
+              <DolbyEDR level="2">
+                <TID>48</TID>
+                <Trim>0,0,0,0.000541802,0.0145346,-0.0513974,0,0,0</Trim>
+              </DolbyEDR>
+            </PluginNode>
+          </Shot>
+        </Track>
+      </Video>
+    </Output>
+  </Outputs>
+</DolbyLabsMDF>

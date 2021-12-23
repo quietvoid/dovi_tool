@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
+/// cbindgen:ignore
 pub const MAX_PQ_LUMINANCE: u16 = 10_000;
 
 /// ST2086/HDR10 metadata fallback

@@ -2,6 +2,9 @@ use anyhow::{bail, ensure, Result};
 use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 use crate::rpu::extension_metadata::blocks::*;
 use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
@@ -32,6 +35,13 @@ pub struct TargetDisplay {
 }
 
 impl CmXmlParser {
+    pub fn parse_file(file_path: &Path, opts: XmlParserOpts) -> Result<CmXmlParser> {
+        let mut s = String::new();
+        File::open(file_path)?.read_to_string(&mut s)?;
+
+        Self::new(s, opts)
+    }
+
     pub fn new(s: String, opts: XmlParserOpts) -> Result<CmXmlParser> {
         let mut parser = CmXmlParser {
             opts,
@@ -43,7 +53,7 @@ impl CmXmlParser {
         parser.cm_version = parser.parse_cm_version(&doc)?;
 
         parser.separator = if parser.is_cmv4() { ' ' } else { ',' };
-        
+
         // Override version
         if !parser.is_cmv4() {
             parser.config.cm_version = CmVersion::V29;
@@ -220,15 +230,16 @@ impl CmXmlParser {
             .descendants()
             .filter(|e| e.has_tag_name("Shot"))
             .map(|n| {
-                let mut shot = VideoShot::default();
-
-                shot.id = n
-                    .children()
-                    .find(|e| e.has_tag_name("UniqueID"))
-                    .unwrap()
-                    .text()
-                    .unwrap()
-                    .to_string();
+                let mut shot = VideoShot {
+                    id: n
+                        .children()
+                        .find(|e| e.has_tag_name("UniqueID"))
+                        .unwrap()
+                        .text()
+                        .unwrap()
+                        .to_string(),
+                    ..Default::default()
+                };
 
                 if let Some(record) = n.children().find(|e| e.has_tag_name("Record")) {
                     shot.start = record
@@ -327,6 +338,10 @@ impl CmXmlParser {
             metadata_blocks.push(ExtMetadataBlock::Level3(self.parse_level3_trim(node)?));
         } else if level == "5" {
             metadata_blocks.push(ExtMetadataBlock::Level5(self.parse_level5_trim(node)?));
+        } else if level == "8" {
+            metadata_blocks.push(ExtMetadataBlock::Level8(self.parse_level8_trim(node)?));
+        } else if level == "9" {
+            metadata_blocks.push(ExtMetadataBlock::Level9(self.parse_level9_trim(node)?));
         }
 
         Ok(())
@@ -337,7 +352,7 @@ impl CmXmlParser {
             .children()
             .find(|e| e.has_tag_name("CanvasAspectRatio"))
         {
-            canvas_ar.text().map_or(None, |v| v.parse::<f32>().ok())
+            canvas_ar.text().and_then(|v| v.parse::<f32>().ok())
         } else {
             None
         };
@@ -346,14 +361,16 @@ impl CmXmlParser {
             .children()
             .find(|e| e.has_tag_name("ImageAspectRatio"))
         {
-            image_ar.text().map_or(None, |v| v.parse::<f32>().ok())
+            image_ar.text().and_then(|v| v.parse::<f32>().ok())
         } else {
             None
         };
 
-        if canvas_ar.is_some() && image_ar.is_some() {
-            self.config.level5 =
-                self.calculate_level5_metadata(canvas_ar.unwrap(), image_ar.unwrap())?;
+        if let (Some(c_ar), Some(i_ar)) = (canvas_ar, image_ar) {
+            self.config.level5 = self
+                .calculate_level5_metadata(c_ar, i_ar)
+                .ok()
+                .unwrap_or_default();
         }
 
         Ok(())
@@ -397,7 +414,10 @@ impl CmXmlParser {
             .unwrap();
         let trim: Vec<&str> = trim.split(self.separator).collect();
 
-        let target_display = self.target_displays.get(&target_id).unwrap();
+        let target_display = self
+            .target_displays
+            .get(&target_id)
+            .expect("No target display found for L2 trim");
 
         ensure!(trim.len() == 9, "invalid L2 trim: should be 9 values");
 
@@ -480,7 +500,91 @@ impl CmXmlParser {
         let canvas_ar = ratios[0].parse::<f32>().unwrap();
         let image_ar = ratios[1].parse::<f32>().unwrap();
 
-        self.calculate_level5_metadata(canvas_ar, image_ar)
+        Ok(self
+            .calculate_level5_metadata(canvas_ar, image_ar)
+            .ok()
+            .unwrap_or_default())
+    }
+
+    // FIXME: No reference to compare impl
+    pub fn parse_level8_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel8> {
+        let target_id = node
+            .children()
+            .find(|e| e.has_tag_name("TID"))
+            .unwrap()
+            .text()
+            .unwrap()
+            .to_string();
+
+        let trim = node
+            .children()
+            .find(|e| e.has_tag_name("L8Trim"))
+            .unwrap()
+            .text()
+            .unwrap();
+        let trim: Vec<&str> = trim.split(self.separator).collect();
+
+        let target_display = self
+            .target_displays
+            .get(&target_id)
+            .expect("No target display found for L8 trim");
+
+        ensure!(trim.len() == 6, "invalid L8 trim: should be 6 values");
+
+        let trim_lift = trim[0].parse::<f32>().unwrap();
+        let trim_gain = trim[1].parse::<f32>().unwrap();
+        let trim_gamma = trim[2].parse::<f32>().unwrap().clamp(-1.0, 1.0);
+
+        let trim_slope = min(
+            4095,
+            ((((trim_gain + 2.0) * (1.0 - trim_lift / 2.0) - 2.0) * 2048.0) + 2048.0).round()
+                as u16,
+        );
+        let trim_offset = min(
+            4095,
+            ((((trim_gain + 2.0) * (trim_lift / 2.0)) * 2048.0) + 2048.0).round() as u16,
+        );
+        let trim_power = min(
+            4095,
+            (((2.0 / (1.0 + trim_gamma / 2.0) - 2.0) * 2048.0) + 2048.0).round() as u16,
+        );
+        let trim_chroma_weight = min(
+            4095,
+            ((trim[3].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+        );
+        let trim_saturation_gain = min(
+            4095,
+            ((trim[4].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+        );
+        let ms_weight = min(
+            4095,
+            ((trim[5].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+        );
+
+        Ok(ExtMetadataBlockLevel8 {
+            target_display_index: target_display.id.parse::<u8>()?,
+            trim_slope,
+            trim_offset,
+            trim_power,
+            trim_chroma_weight,
+            trim_saturation_gain,
+            ms_weight,
+        })
+    }
+
+    pub fn parse_level9_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel9> {
+        let source_color_model = node
+            .children()
+            .find(|e| e.has_tag_name("SourceColorModel"))
+            .unwrap()
+            .text()
+            .unwrap();
+
+        let source_primary_index = source_color_model.parse::<u8>()?;
+
+        Ok(ExtMetadataBlockLevel9 {
+            source_primary_index,
+        })
     }
 
     fn calculate_level5_metadata(
@@ -504,24 +608,22 @@ impl CmXmlParser {
 
         if (canvas_ar - image_ar).abs() < f32::EPSILON {
             // No AR difference, zero offsets
+        } else if image_ar > canvas_ar {
+            let image_h = (ch * (canvas_ar / image_ar)).round();
+            let diff = ch - image_h;
+            let offset_top = (diff / 2.0).trunc();
+            let offset_bottom = diff - offset_top;
+
+            calculated_level5.active_area_top_offset = offset_top as u16;
+            calculated_level5.active_area_bottom_offset = offset_bottom as u16;
         } else {
-            if image_ar > canvas_ar {
-                let image_h = (ch * (canvas_ar / image_ar)).round();
-                let diff = ch - image_h;
-                let offset_top = (diff / 2.0).trunc();
-                let offset_bottom = diff - offset_top;
+            let image_w = (cw * (image_ar / canvas_ar)).round();
+            let diff = cw - image_w;
+            let offset_left = (diff / 2.0).trunc();
+            let offset_right = diff - offset_left;
 
-                calculated_level5.active_area_top_offset = offset_top as u16;
-                calculated_level5.active_area_bottom_offset = offset_bottom as u16;
-            } else {
-                let image_w = (cw * (image_ar / canvas_ar)).round();
-                let diff = cw - image_w;
-                let offset_left = (diff / 2.0).trunc();
-                let offset_right = diff - offset_left;
-
-                calculated_level5.active_area_left_offset = offset_left as u16;
-                calculated_level5.active_area_right_offset = offset_right as u16;
-            }
+            calculated_level5.active_area_left_offset = offset_left as u16;
+            calculated_level5.active_area_right_offset = offset_right as u16;
         }
 
         Ok(calculated_level5)

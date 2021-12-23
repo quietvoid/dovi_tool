@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DolbyLabsMDF xmlns="http://www.dolby.com/schemas/dvmd/4_0_2">
+  <Version>4.0.2</Version>
+  <RevisionHistory>
+    <Revision>
+      <DateTime>2019-03-26T11:55:11Z</DateTime>
+      <Author>Blackmagic Design</Author>
+      <Software>DaVinci Resolve Studio</Software>
+      <SoftwareVersion>15.2.1.005</SoftwareVersion>
+    </Revision>
+  </RevisionHistory>
+  <Outputs>
+    <Output>
+      <CompositionName>Timeline 1</CompositionName>
+      <UniqueID>ddc1f2de-8187-4d0e-bd06-52eb18e1f571</UniqueID>
+      <NumberVideoTracks>1</NumberVideoTracks>
+      <CanvasAspectRatio>1.77778</CanvasAspectRatio>
+      <ImageAspectRatio>1.33333</ImageAspectRatio>
+      <Video>
+        <Track>
+          <TrackName>V1</TrackName>
+          <UniqueID>444816ea-ca83-4e75-903a-0c000a8379bf</UniqueID>
+          <EditRate>24000 1001</EditRate>
+          <ColorEncoding>
+            <Primaries>
+              <Red>0.68 0.32</Red>
+              <Green>0.265 0.69</Green>
+              <Blue>0.15 0.06</Blue>
+            </Primaries>
+            <WhitePoint>0.3127 0.329</WhitePoint>
+            <PeakBrightness>10000</PeakBrightness>
+            <MinimumBrightness>0</MinimumBrightness>
+            <Encoding>pq</Encoding>
+            <ColorSpace>rgb</ColorSpace>
+            <SignalRange>computer</SignalRange>
+          </ColorEncoding>
+          <Level6 level="6">
+            <MaxCLL>3948</MaxCLL>
+            <MaxFALL>120</MaxFALL>
+          </Level6>
+          <PluginNode>
+            <DVGlobalData level="0">
+              <MasteringDisplay>
+                <ID>20</ID>
+                <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>1000</PeakBrightness>
+                <MinimumBrightness>0.0001</MinimumBrightness>
+                <DiagonalSize>42</DiagonalSize>
+              </MasteringDisplay>
+              <TargetDisplay>
+                <ID>1</ID>
+                <Name>100-nit, BT.709, BT.1886, Full</Name>
+                <Primaries>
+                  <Red>0.64 0.33</Red>
+                  <Green>0.3 0.6</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>100</PeakBrightness>
+                <MinimumBrightness>0.005</MinimumBrightness>
+                <EOTF>gamma_bt1886</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+              <TargetDisplay>
+                <ID>27</ID>
+                <Name>600-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>600</PeakBrightness>
+                <MinimumBrightness>0</MinimumBrightness>
+                <EOTF>pq</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+              <TargetDisplay>
+                <ID>48</ID>
+                <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>1000</PeakBrightness>
+                <MinimumBrightness>0</MinimumBrightness>
+                <EOTF>pq</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+            </DVGlobalData>
+            <Level254 level="254">
+              <DMMode>0</DMMode>
+              <DMVersion>2</DMVersion>
+              <CMVersion>4 0</CMVersion>
+            </Level254>
+          </PluginNode>
+          <Shot>
+            <UniqueID>7b4b3d42-81c8-4767-aa38-f08a6f35994b</UniqueID>
+            <Record>
+              <In>86400</In>
+              <Duration>120</Duration>
+            </Record>
+            <PluginNode>
+              <DVDynamicData>
+                <Level1 level="1">
+                  <ImageCharacter>0 0.273428 0.690501</ImageCharacter>
+                </Level1>
+                <Level3 level="3">
+                  <L1Offset>0 0 0</L1Offset>
+                </Level3>
+                <Level5 level="5">
+                  <AspectRatios>1.77778 1.55556</AspectRatios>
+                </Level5>
+                <Level9 level="9">
+                  <SourceColorModel>255</SourceColorModel>
+                  <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
+                </Level9>
+              </DVDynamicData>
+            </PluginNode>
+          </Shot>
+          <Shot>
+            <UniqueID>06dbea53-d78e-4031-8a5b-e9a87d6fc2c9</UniqueID>
+            <Record>
+              <In>86520</In>
+              <Duration>99</Duration>
+            </Record>
+            <PluginNode>
+              <DVDynamicData>
+                <Level1 level="1">
+                  <ImageCharacter>0 0.3 0.508078</ImageCharacter>
+                </Level1>
+                <Level2 level="2">
+                  <TID>1</TID>
+                  <Trim>0 0 0 -0.0159445 -0.0325405 0.419015 0 0 0</Trim>
+                </Level2>
+                <Level2 level="2">
+                  <TID>27</TID>
+                  <Trim>0 0 0 -4.37517e-05 0.00535323 0.0463567 0 0 0</Trim>
+                </Level2>
+                <Level2 level="2">
+                  <TID>48</TID>
+                  <Trim>0 0 0 5.51248e-06 0.000553861 0.000712809 0 0 0</Trim>
+                </Level2>
+                <Level3 level="3">
+                  <L1Offset>0 -0.3 -0.508078</L1Offset>
+                </Level3>
+                <Level8 level="8">
+                  <TID>1</TID>
+                  <L8Trim>0 0 0 0 0 0</L8Trim>
+                  <MidContrastBias>0</MidContrastBias>
+                  <HighlightClipping>0</HighlightClipping>
+                  <SaturationVectorField>0 0 0 0 0 0</SaturationVectorField>
+                  <HueVectorField>0 0 0 0 0 0</HueVectorField>
+                </Level8>
+                <Level8 level="8">
+                  <TID>48</TID>
+                  <L8Trim>0 0 0 0 0 0</L8Trim>
+                  <MidContrastBias>0</MidContrastBias>
+                  <HighlightClipping>0</HighlightClipping>
+                  <SaturationVectorField>0 0 0 0 0 0</SaturationVectorField>
+                  <HueVectorField>0 0 0 0 0 0</HueVectorField>
+                </Level8>
+                <Level9 level="9">
+                  <SourceColorModel>255</SourceColorModel>
+                  <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
+                </Level9>
+              </DVDynamicData>
+            </PluginNode>
+          </Shot>
+          <Shot>
+            <UniqueID>f06f8317-94df-4b18-9801-911ec0b188de</UniqueID>
+            <Record>
+              <In>86619</In>
+              <Duration>40</Duration>
+            </Record>
+            <PluginNode>
+              <DVDynamicData>
+                <Level1 level="1">
+                  <ImageCharacter>0 0.2 0.70219</ImageCharacter>
+                </Level1>
+                <Level3 level="3">
+                  <L1Offset>0 -0.0863522 0</L1Offset>
+                </Level3>
+                <Level9 level="9">
+                  <SourceColorModel>255</SourceColorModel>
+                  <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
+                </Level9>
+              </DVDynamicData>
+            </PluginNode>
+            <Frame>
+              <EditOffset>10</EditOffset>
+              <PluginNode>
+                <DVDynamicData>
+                  <Level1 level="1">
+                    <ImageCharacter>0 0.3 0.508078</ImageCharacter>
+                  </Level1>
+                  <Level2 level="2">
+                    <TID>1</TID>
+                    <Trim>0 0 0 -0.0159445 -0.0325405 0.419015 0 0 0</Trim>
+                  </Level2>
+                  <Level8 level="8">
+                    <TID>1</TID>
+                    <L8Trim>0 0.01 0 0 0 0</L8Trim>
+                    <MidContrastBias>0</MidContrastBias>
+                    <HighlightClipping>0</HighlightClipping>
+                    <SaturationVectorField>0 0 0 0 0 0</SaturationVectorField>
+                    <HueVectorField>0 0 0 0 0 0</HueVectorField>
+                  </Level8>
+                </DVDynamicData>
+              </PluginNode>
+            </Frame>
+          </Shot>
+        </Track>
+      </Video>
+    </Output>
+  </Outputs>
+</DolbyLabsMDF>

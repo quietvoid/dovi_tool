@@ -26,10 +26,10 @@ The minimum Rust version to build `dovi_tool` is 1.51.0.
     ##### From an exported CMv2.9 or CMv4.0 Dolby Vision XML metadata file  
     * The binary RPU can be created with support for the following metadata levels:
         * CMv2.9: L1, L2, L5, L6
-        * CMv4.0: L1, L2, L3, L5, L6
+        * CMv4.0: CMv2.9 + L3, L8, L9
 
         Level 5 metadata requires both `canvas-width` and `canvas-height` to be set.
-        ###### For L1, L2, L3, and L5 metadata, both per-shot and per-frame trims are supported.
+        ###### Both per-shot and per-frame trims are supported.
     * Example: `dovi_tool generate --xml dolbyvision_metadata.xml -o RPU_from_xml.bin`  
     &nbsp;
     ##### From a generic profile 8 configuration JSON file  

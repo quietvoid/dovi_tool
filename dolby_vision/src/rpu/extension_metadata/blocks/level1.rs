@@ -6,11 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
+/// cbindgen:ignore
 pub const L1_MIN_PQ_MAX_VALUE: u16 = 12;
-
+/// cbindgen:ignore
 pub const L1_MAX_PQ_MIN_VALUE: u16 = 2081;
+/// cbindgen:ignore
 pub const L1_MAX_PQ_MAX_VALUE: u16 = 4095;
-
+/// cbindgen:ignore
 pub const L1_AVG_PQ_MIN_VALUE: u16 = 819;
 
 /// Statistical analysis of the frame: min, max, avg brightness.

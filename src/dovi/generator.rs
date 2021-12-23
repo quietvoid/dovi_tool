@@ -97,15 +97,12 @@ impl Generator {
     fn config_from_xml(&self, xml_path: &Path) -> Result<GenerateConfig> {
         println!("Parsing XML metadata...");
 
-        let mut s = String::new();
-        File::open(xml_path)?.read_to_string(&mut s)?;
-
         let parser_opts = XmlParserOpts {
             canvas_width: self.canvas_width,
             canvas_height: self.canvas_height,
         };
 
-        let parser = CmXmlParser::new(s, parser_opts)?;
+        let parser = CmXmlParser::parse_file(xml_path, parser_opts)?;
 
         Ok(parser.config)
     }

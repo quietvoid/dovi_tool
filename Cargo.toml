@@ -24,3 +24,9 @@ rayon = "1.5.1"
 [[bin]]
 name = "dovi_tool"
 path = "src/main.rs"
+
+[workspace]
+members = [
+    "dolby_vision",
+    "madvr_parse",
+]
