@@ -51,6 +51,7 @@ impl ExtMetadataBlockLevel1 {
     }
 
     pub fn from_stats(min_pq: u16, max_pq: u16, avg_pq: u16) -> ExtMetadataBlockLevel1 {
+        let min_pq = min_pq.clamp(0, L1_MIN_PQ_MAX_VALUE);
         let max_pq = max_pq.clamp(L1_MAX_PQ_MIN_VALUE, L1_MAX_PQ_MAX_VALUE);
         let avg_pq = avg_pq.clamp(L1_AVG_PQ_MIN_VALUE, max_pq - 1);
 

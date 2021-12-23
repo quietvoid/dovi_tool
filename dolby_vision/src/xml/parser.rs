@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use crate::rpu::extension_metadata::blocks::*;
 use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
+use crate::rpu::vdr_dm_data::CmVersion;
 
 #[derive(Default, Debug)]
 pub struct CmXmlParser {
@@ -42,6 +43,11 @@ impl CmXmlParser {
         parser.cm_version = parser.parse_cm_version(&doc)?;
 
         parser.separator = if parser.is_cmv4() { ' ' } else { ',' };
+        
+        // Override version
+        if !parser.is_cmv4() {
+            parser.config.cm_version = CmVersion::V29;
+        }
 
         if let Some(output) = doc.descendants().find(|e| e.has_tag_name("Output")) {
             parser.parse_global_level5(&output)?;
@@ -367,11 +373,11 @@ impl CmXmlParser {
             "invalid L1 trim: should be 3 values"
         );
 
-        Ok(ExtMetadataBlockLevel1 {
-            min_pq: (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16,
-            avg_pq: (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16,
-            max_pq: (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16,
-        })
+        let min_pq = (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16;
+        let avg_pq = (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16;
+        let max_pq = (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16;
+
+        Ok(ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq))
     }
 
     pub fn parse_level2_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel2> {
