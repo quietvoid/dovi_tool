@@ -164,6 +164,10 @@ impl EditConfig {
             self.change_source_levels(rpus);
         }
 
+        if self.remove_mapping {
+            self.remove_mapping(rpus);
+        }
+
         if let Some(l6) = &self.level6 {
             self.set_level6_metadata(rpus, l6)?;
         }
@@ -181,10 +185,6 @@ impl EditConfig {
 
         for rpu in list {
             rpu.convert_with_mode(self.mode)?;
-
-            if self.remove_mapping {
-                rpu.remove_mapping();
-            }
         }
 
         Ok(())
@@ -320,6 +320,15 @@ impl EditConfig {
         }
 
         Ok(())
+    }
+
+    fn remove_mapping(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+        println!("Removing polynomial/MMR mapping...");
+        let list = rpus.iter_mut().filter_map(|e| e.as_mut());
+
+        for rpu in list {
+            rpu.remove_mapping();
+        }
     }
 }
 
