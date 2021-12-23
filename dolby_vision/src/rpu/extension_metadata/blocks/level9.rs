@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
@@ -20,8 +21,10 @@ impl ExtMetadataBlockLevel9 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         writer.write_n(&self.source_primary_index.to_be_bytes(), 8);
+
+        Ok(())
     }
 }
 

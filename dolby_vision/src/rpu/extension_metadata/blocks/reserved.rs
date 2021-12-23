@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
@@ -41,8 +41,9 @@ impl ReservedExtMetadataBlock {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
-        self.data.iter().for_each(|b| writer.write(*b));
+    pub fn write(&self, _writer: &mut BitVecWriter) -> Result<()> {
+        bail!("Cannot write reserved block");
+        // self.data.iter().for_each(|b| writer.write(*b));
     }
 }
 

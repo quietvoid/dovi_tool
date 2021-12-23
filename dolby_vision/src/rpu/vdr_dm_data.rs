@@ -169,7 +169,7 @@ impl VdrDmData {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         writer.write_ue(self.affected_dm_metadata_id);
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
@@ -213,12 +213,14 @@ impl VdrDmData {
         writer.write_n(&self.source_diagonal.to_be_bytes(), 10);
 
         if let Some(cmv29) = &self.cmv29_metadata {
-            cmv29.write(writer);
+            cmv29.write(writer)?;
         }
 
         if let Some(cmv40) = &self.cmv40_metadata {
-            cmv40.write(writer);
+            cmv40.write(writer)?;
         }
+
+        Ok(())
     }
 
     pub fn extension_metadata_for_level(&self, level: u8) -> Option<&DmData> {

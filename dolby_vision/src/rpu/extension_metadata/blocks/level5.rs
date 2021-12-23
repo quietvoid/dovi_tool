@@ -1,9 +1,12 @@
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
+
+const MAX_RESOLUTION_13_BITS: u16 = 8191;
 
 /// Active area of the picture (letterbox, aspect ratio)
 #[repr(C)]
@@ -26,11 +29,24 @@ impl ExtMetadataBlockLevel5 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_n(&self.active_area_left_offset.to_be_bytes(), 13);
         writer.write_n(&self.active_area_right_offset.to_be_bytes(), 13);
         writer.write_n(&self.active_area_top_offset.to_be_bytes(), 13);
         writer.write_n(&self.active_area_bottom_offset.to_be_bytes(), 13);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.active_area_left_offset <= MAX_RESOLUTION_13_BITS);
+        ensure!(self.active_area_right_offset <= MAX_RESOLUTION_13_BITS);
+        ensure!(self.active_area_top_offset <= MAX_RESOLUTION_13_BITS);
+        ensure!(self.active_area_bottom_offset <= MAX_RESOLUTION_13_BITS);
+
+        Ok(())
     }
 
     pub fn get_offsets(&self) -> (u16, u16, u16, u16) {

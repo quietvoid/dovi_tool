@@ -206,7 +206,7 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data_payload(&mut writer);
+                self.write_vdr_dm_data_payload(&mut writer)?;
             }
         }
 
@@ -251,10 +251,12 @@ impl DoviRpu {
         Ok(())
     }
 
-    fn write_vdr_dm_data_payload(&self, writer: &mut BitVecWriter) {
+    fn write_vdr_dm_data_payload(&self, writer: &mut BitVecWriter) -> Result<()> {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer);
+            vdr_dm_data.write(writer)?;
         }
+
+        Ok(())
     }
 
     fn validate(&self) -> Result<()> {

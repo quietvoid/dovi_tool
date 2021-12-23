@@ -1,9 +1,12 @@
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
+
+pub const MAX_PQ_LUMINANCE: u16 = 10_000;
 
 /// ST2086/HDR10 metadata fallback
 #[repr(C)]
@@ -26,11 +29,24 @@ impl ExtMetadataBlockLevel6 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_n(&self.max_display_mastering_luminance.to_be_bytes(), 16);
         writer.write_n(&self.min_display_mastering_luminance.to_be_bytes(), 16);
         writer.write_n(&self.max_content_light_level.to_be_bytes(), 16);
         writer.write_n(&self.max_frame_average_light_level.to_be_bytes(), 16);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.max_display_mastering_luminance <= MAX_PQ_LUMINANCE);
+        ensure!(self.min_display_mastering_luminance <= MAX_PQ_LUMINANCE);
+        ensure!(self.max_content_light_level <= MAX_PQ_LUMINANCE);
+        ensure!(self.max_frame_average_light_level <= MAX_PQ_LUMINANCE);
+
+        Ok(())
     }
 
     pub fn source_meta_from_l6(&self) -> (u16, u16) {

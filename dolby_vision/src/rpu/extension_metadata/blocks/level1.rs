@@ -1,5 +1,4 @@
-use std::cmp::{max, min};
-
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
@@ -33,15 +32,27 @@ impl ExtMetadataBlockLevel1 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_n(&self.min_pq.to_be_bytes(), 12);
         writer.write_n(&self.max_pq.to_be_bytes(), 12);
         writer.write_n(&self.avg_pq.to_be_bytes(), 12);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.min_pq <= L1_MAX_PQ_MAX_VALUE);
+        ensure!(self.max_pq <= L1_MAX_PQ_MAX_VALUE);
+        ensure!(self.avg_pq <= L1_MAX_PQ_MAX_VALUE);
+
+        Ok(())
     }
 
     pub fn from_stats(min_pq: u16, max_pq: u16, avg_pq: u16) -> ExtMetadataBlockLevel1 {
-        let max_pq = min(max(max_pq, L1_MAX_PQ_MIN_VALUE), L1_MAX_PQ_MAX_VALUE);
-        let avg_pq = min(max(avg_pq, L1_AVG_PQ_MIN_VALUE), max_pq - 1);
+        let max_pq = max_pq.clamp(L1_MAX_PQ_MIN_VALUE, L1_MAX_PQ_MAX_VALUE);
+        let avg_pq = avg_pq.clamp(L1_AVG_PQ_MIN_VALUE, max_pq - 1);
 
         ExtMetadataBlockLevel1 {
             min_pq,

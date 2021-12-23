@@ -1,9 +1,10 @@
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
 
-use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
 /// Level 1 offsets.
 #[repr(C)]
@@ -24,10 +25,22 @@ impl ExtMetadataBlockLevel3 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_n(&self.min_pq_offset.to_be_bytes(), 12);
         writer.write_n(&self.max_pq_offset.to_be_bytes(), 12);
         writer.write_n(&self.avg_pq_offset.to_be_bytes(), 12);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.min_pq_offset <= MAX_12_BIT_VALUE);
+        ensure!(self.max_pq_offset <= MAX_12_BIT_VALUE);
+        ensure!(self.avg_pq_offset <= MAX_12_BIT_VALUE);
+
+        Ok(())
     }
 }
 

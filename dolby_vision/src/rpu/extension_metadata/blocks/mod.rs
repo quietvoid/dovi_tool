@@ -32,6 +32,8 @@ pub use reserved::ReservedExtMetadataBlock;
 
 use super::WithExtMetadataBlocks;
 
+pub const MAX_12_BIT_VALUE: u16 = 4095;
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum ExtMetadataBlock {
@@ -149,7 +151,7 @@ impl ExtMetadataBlock {
         }
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         match self {
             ExtMetadataBlock::Level1(b) => b.write(writer),
             ExtMetadataBlock::Level2(b) => b.write(writer),

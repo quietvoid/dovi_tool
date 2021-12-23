@@ -1,3 +1,4 @@
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
@@ -40,7 +41,9 @@ impl ExtMetadataBlockLevel11 {
         ExtMetadataBlock::Level11(l11)
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         let mut wp = self.whitepoint;
 
         if self.reference_mode_flag {
@@ -51,6 +54,17 @@ impl ExtMetadataBlockLevel11 {
         writer.write_n(&wp.to_be_bytes(), 8);
         writer.write_n(&self.reserved_byte2.to_be_bytes(), 8);
         writer.write_n(&self.reserved_byte3.to_be_bytes(), 8);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.content_type <= 15);
+        ensure!(self.whitepoint <= 15);
+        ensure!(self.reserved_byte2 == 0);
+        ensure!(self.reserved_byte3 == 0);
+
+        Ok(())
     }
 
     /// Cinema, reference mode, D65 whitepoint

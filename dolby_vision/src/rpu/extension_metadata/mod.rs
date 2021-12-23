@@ -72,7 +72,7 @@ pub trait WithExtMetadataBlocks {
         self.update_extension_block_info();
     }
 
-    fn write(&self, writer: &mut BitVecWriter) {
+    fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         let num_ext_blocks = self.num_ext_blocks();
 
         // Ignore empty dm data
@@ -93,12 +93,14 @@ pub trait WithExtMetadataBlocks {
                 writer.write_ue(ext_metadata_block.length_bytes());
                 writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
 
-                ext_metadata_block.write(writer);
+                ext_metadata_block.write(writer)?;
 
                 // ext_dm_alignment_zero_bit
                 (0..remaining_bits).for_each(|_| writer.write(false));
             }
         }
+
+        Ok(())
     }
 }
 
@@ -131,7 +133,7 @@ impl DmData {
         }
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         match self {
             DmData::V29(m) => m.write(writer),
             DmData::V40(m) => m.write(writer),
