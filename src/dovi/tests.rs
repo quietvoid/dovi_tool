@@ -464,7 +464,8 @@ fn cmv40_full_rpu() -> Result<()> {
 
 #[test]
 fn profile8_unordered_l8_blocks() -> Result<()> {
-    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/unordered_l8_blocks.bin"))?;
+    let (original_data, dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/unordered_l8_blocks.bin"))?;
     assert!(!dovi_rpu.modified);
     assert_eq!(dovi_rpu.dovi_profile, 8);
 
