@@ -11,7 +11,7 @@ use hevc_parser::HevcParser;
 
 //use crate::dovi::get_aud;
 use super::{
-    input_format, parse_rpu_file, CliOptions, DoviRpu, Format, HDR10PLUS_SEI_HEADER, OUT_NAL_HEADER,
+    input_format, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, Format, OUT_NAL_HEADER,
 };
 
 pub struct RpuInjector {
@@ -252,10 +252,11 @@ impl RpuInjector {
                 let nals = parser.split_nals(&chunk, &offsets, last, true)?;
 
                 for (cur_index, nal) in nals.iter().enumerate() {
-                    if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
-                        if let HDR10PLUS_SEI_HEADER = &chunk[nal.start..nal.start + 3] {
-                            continue;
-                        }
+                    if self.options.drop_hdr10plus
+                        && nal.nal_type == NAL_SEI_PREFIX
+                        && is_st2094_40_sei(&chunk[nal.start..nal.end])?
+                    {
+                        continue;
                     }
 
                     // AUDs

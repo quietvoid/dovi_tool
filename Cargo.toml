@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "1.3.2"
+version = "1.4.0"
 authors = ["quietvoid"]
 edition = "2018"
 rust-version = "1.51.0"
@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 bitvec_helpers = "1.0.0"
-hevc_parser = "0.3.0"
+hevc_parser = "0.3.1"
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
@@ -24,3 +24,9 @@ rayon = "1.5.1"
 [[bin]]
 name = "dovi_tool"
 path = "src/main.rs"
+
+[workspace]
+members = [
+    "dolby_vision",
+    "madvr_parse",
+]

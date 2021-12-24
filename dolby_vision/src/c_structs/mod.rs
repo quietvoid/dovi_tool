@@ -1,20 +1,14 @@
-use std::ptr::null;
-
 use super::rpu::rpu_data_header::RpuDataHeader as RuRpuDataHeader;
+use super::rpu::NUM_COMPONENTS;
 use crate::rpu::rpu_data_mapping::RpuDataMapping as RuRpuDataMapping;
 use crate::rpu::rpu_data_nlq::RpuDataNlq as RuRpuDataNlq;
 use crate::rpu::vdr_dm_data::VdrDmData as RuVdrDmData;
-use crate::st2094_10::{
-    level1::ExtMetadataBlockLevel1, level2::ExtMetadataBlockLevel2, level3::ExtMetadataBlockLevel3,
-    level4::ExtMetadataBlockLevel4, level5::ExtMetadataBlockLevel5, level6::ExtMetadataBlockLevel6,
-    ExtMetadataBlock, ST2094_10Meta as RuST2094_10Meta,
-};
-
-use super::rpu::NUM_COMPONENTS;
 
 mod buffers;
+mod dm_data;
 pub use buffers::*;
-use libc::size_t;
+
+pub use dm_data::DmData;
 
 /// C struct for rpu_data_header()
 #[repr(C)]
@@ -132,29 +126,7 @@ pub struct VdrDmData {
     source_min_pq: u16,
     source_max_pq: u16,
     source_diagonal: u16,
-    st2094_10_metadata: ST2094_10Meta,
-}
-
-/// C struct for the list of ext_metadata_block()
-#[repr(C)]
-pub struct ST2094_10Meta {
-    /// Number of metadata blocks
-    num_ext_blocks: u64,
-
-    level1: *const ExtMetadataBlockLevel1,
-    level2: Level2BlockList,
-    level3: *const ExtMetadataBlockLevel3,
-    level4: *const ExtMetadataBlockLevel4,
-    level5: *const ExtMetadataBlockLevel5,
-    level6: *const ExtMetadataBlockLevel6,
-}
-
-#[repr(C)]
-pub struct Level2BlockList {
-    /// Pointer to the list of ExtMetadataBlockLevel2 structs
-    pub list: *const *const ExtMetadataBlockLevel2,
-    /// List length
-    pub len: size_t,
+    dm_data: DmData,
 }
 
 impl From<&RuRpuDataHeader> for RpuDataHeader {
@@ -284,87 +256,10 @@ impl From<&RuVdrDmData> for VdrDmData {
             source_min_pq: data.source_min_pq,
             source_max_pq: data.source_max_pq,
             source_diagonal: data.source_diagonal,
-            st2094_10_metadata: ST2094_10Meta::from(&data.st2094_10_metadata),
-        }
-    }
-}
-
-impl From<&RuST2094_10Meta> for ST2094_10Meta {
-    fn from(data: &RuST2094_10Meta) -> Self {
-        Self {
-            num_ext_blocks: data.num_ext_blocks,
-            level1: data
-                .ext_metadata_blocks
-                .iter()
-                .find(|b| matches!(b, ExtMetadataBlock::Level1(_)))
-                .map_or(null(), |b| match b {
-                    ExtMetadataBlock::Level1(e) => {
-                        Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel1
-                    }
-                    _ => null(),
-                }),
-            level2: Level2BlockList::from(&data.ext_metadata_blocks),
-            level3: data
-                .ext_metadata_blocks
-                .iter()
-                .find(|b| matches!(b, ExtMetadataBlock::Level3(_)))
-                .map_or(null(), |b| match b {
-                    ExtMetadataBlock::Level3(e) => {
-                        Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel3
-                    }
-                    _ => null(),
-                }),
-            level4: data
-                .ext_metadata_blocks
-                .iter()
-                .find(|b| matches!(b, ExtMetadataBlock::Level4(_)))
-                .map_or(null(), |b| match b {
-                    ExtMetadataBlock::Level4(e) => {
-                        Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel4
-                    }
-                    _ => null(),
-                }),
-            level5: data
-                .ext_metadata_blocks
-                .iter()
-                .find(|b| matches!(b, ExtMetadataBlock::Level5(_)))
-                .map_or(null(), |b| match b {
-                    ExtMetadataBlock::Level5(e) => {
-                        Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel5
-                    }
-                    _ => null(),
-                }),
-            level6: data
-                .ext_metadata_blocks
-                .iter()
-                .find(|b| matches!(b, ExtMetadataBlock::Level6(_)))
-                .map_or(null(), |b| match b {
-                    ExtMetadataBlock::Level6(e) => {
-                        Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel6
-                    }
-                    _ => null(),
-                }),
-        }
-    }
-}
-
-impl From<&Vec<ExtMetadataBlock>> for Level2BlockList {
-    fn from(blocks: &Vec<ExtMetadataBlock>) -> Self {
-        let level2_blocks: Vec<*const ExtMetadataBlockLevel2> = blocks
-            .iter()
-            .filter(|b| matches!(b, ExtMetadataBlock::Level2(_)))
-            .map(|b| match b {
-                ExtMetadataBlock::Level2(e) => {
-                    Box::into_raw(Box::new(e.clone())) as *const ExtMetadataBlockLevel2
-                }
-                _ => null(),
-            })
-            .collect();
-
-        Self {
-            len: level2_blocks.len(),
-            list: Box::into_raw(level2_blocks.into_boxed_slice())
-                as *const *const ExtMetadataBlockLevel2,
+            dm_data: DmData::combine_dm_data(
+                data.cmv29_metadata.as_ref(),
+                data.cmv40_metadata.as_ref(),
+            ),
         }
     }
 }
@@ -429,34 +324,7 @@ impl RpuDataNlq {
 impl VdrDmData {
     /// # Safety
     pub unsafe fn free(&self) {
-        self.st2094_10_metadata.free();
-    }
-}
-
-impl ST2094_10Meta {
-    /// # Safety
-    pub unsafe fn free(&self) {
-        Box::from_raw(self.level1 as *mut ExtMetadataBlockLevel1);
-        self.level2.free();
-        Box::from_raw(self.level3 as *mut ExtMetadataBlockLevel3);
-        Box::from_raw(self.level4 as *mut ExtMetadataBlockLevel4);
-        Box::from_raw(self.level5 as *mut ExtMetadataBlockLevel5);
-        Box::from_raw(self.level6 as *mut ExtMetadataBlockLevel6);
-    }
-}
-
-impl Level2BlockList {
-    /// # Safety
-    pub unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(
-            self.list as *mut *const ExtMetadataBlockLevel2,
-            self.len as usize,
-            self.len as usize,
-        );
-
-        for data_ptr in list {
-            Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel2);
-        }
+        self.dm_data.free();
     }
 }
 

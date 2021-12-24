@@ -2,11 +2,14 @@ use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
-use dolby_vision::st2094_10::generate::Level6Metadata;
-use dolby_vision::st2094_10::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
+};
+use dolby_vision::rpu::extension_metadata::{CmV40DmData, DmData};
+use dolby_vision::rpu::generate::GenerateConfig;
 use serde::{Deserialize, Serialize};
 
-use super::{encode_rpus, parse_rpu_file, write_rpu_file, DoviRpu};
+use super::{parse_rpu_file, write_rpu_file, DoviRpu};
 
 pub struct Editor {
     input: PathBuf,
@@ -20,6 +23,9 @@ pub struct Editor {
 pub struct EditConfig {
     #[serde(default)]
     mode: u8,
+
+    #[serde(default)]
+    convert_to_cmv4: bool,
 
     #[serde(default)]
     remove_mapping: bool,
@@ -39,7 +45,8 @@ pub struct EditConfig {
     #[serde(default)]
     max_pq: Option<u16>,
 
-    level6: Option<Level6Metadata>,
+    level6: Option<ExtMetadataBlockLevel6>,
+    level11: Option<ExtMetadataBlockLevel11>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -100,10 +107,20 @@ impl Editor {
         editor.rpus =
             parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());
 
+        // Set default L11
+        if config.convert_to_cmv4 && config.level11.is_none() {
+            config.level11 = Some(ExtMetadataBlockLevel11::default_reference_cinema());
+        }
+
+        // Override to CM v4.0
+        if !config.convert_to_cmv4 && config.level11.is_some() {
+            config.convert_to_cmv4 = true;
+        }
+
         if let Some(ref mut rpus) = editor.rpus {
             config.execute(rpus)?;
 
-            let mut data = encode_rpus(rpus);
+            let mut data = GenerateConfig::encode_option_rpus(rpus);
 
             if let Some(ref mut to_duplicate) = config.duplicate {
                 to_duplicate.sort_by_key(|meta| meta.offset);
@@ -130,6 +147,10 @@ impl EditConfig {
             self.remove_frames(ranges, rpus)?;
         }
 
+        if self.convert_to_cmv4 {
+            self.add_cmv4_dm_data(rpus)?;
+        }
+
         // Convert with mode
         if self.mode > 0 {
             self.convert_with_mode(rpus)?;
@@ -143,8 +164,16 @@ impl EditConfig {
             self.change_source_levels(rpus);
         }
 
+        if self.remove_mapping {
+            self.remove_mapping(rpus);
+        }
+
         if let Some(l6) = &self.level6 {
-            self.set_level6_metadata(rpus, l6);
+            self.set_level6_metadata(rpus, l6)?;
+        }
+
+        if let Some(l11) = &self.level11 {
+            self.set_level11_metadata(rpus, l11)?;
         }
 
         Ok(())
@@ -156,10 +185,6 @@ impl EditConfig {
 
         for rpu in list {
             rpu.convert_with_mode(self.mode)?;
-
-            if self.remove_mapping {
-                rpu.remove_mapping();
-            }
         }
 
         Ok(())
@@ -251,21 +276,66 @@ impl EditConfig {
         });
     }
 
-    fn set_level6_metadata(&self, rpus: &mut Vec<Option<DoviRpu>>, l6: &Level6Metadata) {
-        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
+    fn set_level6_metadata(
+        &self,
+        rpus: &mut Vec<Option<DoviRpu>>,
+        level6: &ExtMetadataBlockLevel6,
+    ) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
             rpu.modified = true;
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
-                vdr_dm_data.st2094_10_metadata.set_level6_metadata(l6);
+                vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level6(level6.clone()))?;
             }
-        });
+        }
+
+        Ok(())
+    }
+
+    fn add_cmv4_dm_data(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                if vdr_dm_data.cmv40_metadata.is_none() {
+                    vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254()));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_level11_metadata(
+        &self,
+        rpus: &mut Vec<Option<DoviRpu>>,
+        level11: &ExtMetadataBlockLevel11,
+    ) -> Result<()> {
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level11(level11.clone()))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn remove_mapping(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+        println!("Removing polynomial/MMR mapping...");
+        let list = rpus.iter_mut().filter_map(|e| e.as_mut());
+
+        for rpu in list {
+            rpu.remove_mapping();
+        }
     }
 }
 
 impl ActiveArea {
     fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         if self.crop {
-            self.crop(rpus);
+            self.crop(rpus)?;
         }
 
         if let Some(drop_opt) = &self.drop_l5 {
@@ -281,11 +351,13 @@ impl ActiveArea {
         Ok(())
     }
 
-    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
         println!("Cropping...");
-        rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
-            rpu.crop();
-        });
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.crop()?;
+        }
+
+        Ok(())
     }
 
     fn do_edits(
@@ -311,25 +383,22 @@ impl ActiveArea {
                 }
 
                 if let Some(active_area_offsets) = presets.iter().find(|e| e.id == preset_id) {
-                    rpus[start..=end]
-                        .iter_mut()
-                        .filter_map(|e| e.as_mut())
-                        .for_each(|rpu| {
-                            rpu.modified = true;
+                    for rpu in rpus[start..=end].iter_mut().filter_map(|e| e.as_mut()) {
+                        rpu.modified = true;
 
-                            let (left, right, top, bottom) = (
-                                active_area_offsets.left,
-                                active_area_offsets.right,
-                                active_area_offsets.top,
-                                active_area_offsets.bottom,
-                            );
+                        let (left, right, top, bottom) = (
+                            active_area_offsets.left,
+                            active_area_offsets.right,
+                            active_area_offsets.top,
+                            active_area_offsets.bottom,
+                        );
 
-                            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
-                                vdr_dm_data
-                                    .st2094_10_metadata
-                                    .set_level5_metadata(left, right, top, bottom);
-                            }
-                        });
+                        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                            vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
+                                ExtMetadataBlockLevel5::from_offsets(left, right, top, bottom),
+                            ))?;
+                        }
+                    }
                 } else {
                     bail!("Invalid preset ID: {}", preset_id);
                 }
@@ -347,11 +416,7 @@ impl ActiveArea {
         rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 let drop_it = if param == "zeroes" {
-                    let level5_block = vdr_dm_data
-                        .st2094_10_metadata
-                        .ext_metadata_blocks
-                        .iter()
-                        .find(|e| matches!(e, ExtMetadataBlock::Level5(_)));
+                    let level5_block = vdr_dm_data.get_block(5);
 
                     if let Some(ExtMetadataBlock::Level5(m)) = level5_block {
                         m.active_area_left_offset == 0
@@ -368,11 +433,7 @@ impl ActiveArea {
                 if drop_it {
                     rpu.modified = true;
 
-                    vdr_dm_data
-                        .st2094_10_metadata
-                        .ext_metadata_blocks
-                        .retain(|b| b.level() != 5);
-                    vdr_dm_data.st2094_10_metadata.update_extension_block_info();
+                    vdr_dm_data.remove_metadata_level(5);
                 }
             }
         });

@@ -1,14 +1,16 @@
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
+use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
-///  Creative intent trim passes per target display peak brightness
+/// Creative intent trim passes per target display peak brightness
+/// For CM v4.0, L8 metadata only is present and used to compute L2
 #[repr(C)]
-#[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel8 {
     pub target_display_index: u8,
     pub trim_slope: u16,
@@ -32,7 +34,9 @@ impl ExtMetadataBlockLevel8 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_n(&self.target_display_index.to_be_bytes(), 8);
         writer.write_n(&self.trim_slope.to_be_bytes(), 12);
         writer.write_n(&self.trim_offset.to_be_bytes(), 12);
@@ -40,6 +44,19 @@ impl ExtMetadataBlockLevel8 {
         writer.write_n(&self.trim_chroma_weight.to_be_bytes(), 12);
         writer.write_n(&self.trim_saturation_gain.to_be_bytes(), 12);
         writer.write_n(&self.ms_weight.to_be_bytes(), 12);
+
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        ensure!(self.trim_slope <= MAX_12_BIT_VALUE);
+        ensure!(self.trim_offset <= MAX_12_BIT_VALUE);
+        ensure!(self.trim_power <= MAX_12_BIT_VALUE);
+        ensure!(self.trim_chroma_weight <= MAX_12_BIT_VALUE);
+        ensure!(self.trim_saturation_gain <= MAX_12_BIT_VALUE);
+        ensure!(self.ms_weight <= MAX_12_BIT_VALUE);
+
+        Ok(())
     }
 }
 
@@ -58,5 +75,20 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {
 
     fn sort_key(&self) -> (u8, u16) {
         (self.level(), self.target_display_index as u16)
+    }
+}
+
+/// Target display: 1000-nit, P3, D65, ST.2084, Full (HOME)
+impl Default for ExtMetadataBlockLevel8 {
+    fn default() -> Self {
+        Self {
+            target_display_index: 48,
+            trim_slope: 2048,
+            trim_offset: 2048,
+            trim_power: 2048,
+            trim_chroma_weight: 2048,
+            trim_saturation_gain: 2048,
+            ms_weight: 2048,
+        }
     }
 }

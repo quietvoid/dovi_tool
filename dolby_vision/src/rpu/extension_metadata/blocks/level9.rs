@@ -1,14 +1,15 @@
+use anyhow::Result;
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-///  Creative intent trim passes per target display peak brightness
+/// Source/mastering display color primaries
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel9 {
     pub source_primary_index: u8,
 }
@@ -20,8 +21,10 @@ impl ExtMetadataBlockLevel9 {
         })
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
+    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         writer.write_n(&self.source_primary_index.to_be_bytes(), 8);
+
+        Ok(())
     }
 }
 

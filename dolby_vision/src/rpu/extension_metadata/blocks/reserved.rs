@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ReservedExtMetadataBlock {
     pub ext_block_length: u64,
     pub ext_block_level: u8,
@@ -41,8 +41,9 @@ impl ReservedExtMetadataBlock {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) {
-        self.data.iter().for_each(|b| writer.write(*b));
+    pub fn write(&self, _writer: &mut BitVecWriter) -> Result<()> {
+        bail!("Cannot write reserved block");
+        // self.data.iter().for_each(|b| writer.write(*b));
     }
 }
 

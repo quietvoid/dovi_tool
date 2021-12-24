@@ -4,6 +4,11 @@ The editor expects a JSON config like the example below:
     // Mode to convert the RPU (refer to README)
     "mode": int,
 
+    // Adds CM v4.0 metadata with L11 content type metadata
+    // Optional, defaults to false
+    // If L11 is not specified, it is defaulted to Cinema, D65 and Reference Mode
+    "convert_to_cmv4": boolean,
+
     // Whether to remove polynomial/MMR mapping coefficients from the metadata
     "remove_mapping": boolean,
 
@@ -13,7 +18,8 @@ The editor expects a JSON config like the example below:
         // Should be set to true when final video has no letterbox bars
         "crop": boolean,
 
-        // Optional, specifies whether to drop some or all L5 metadata
+        // Optional, specifies whether to drop some or all L5 metadata.
+        // This produces spec non conformant RPUs.
         // Possible options: "all", "zeroes"
         //   "zeroes" drops the L5 metadata blocks which have all offsets set to zero.
         "drop_l5": string,
@@ -69,6 +75,19 @@ The editor expects a JSON config like the example below:
         "min_display_mastering_luminance": int,
         "max_content_light_level": int,
         "max_frame_average_light_level": int
+    },
+
+    // Level 11 Content type metadata
+    // Optional, replaces existing L11
+    // Setting this implies converting to CM v4.0
+    "level11": {
+        // 1 = Cinema, 2 = Games, 3 = Sports, 4 = User generated content
+        "content_type": int,
+
+        // WP * 375 + 6504
+        // D65 = 0
+        "whitepoint": int,
+        "reference_mode_flag": boolean
     }
 }
 ```

@@ -13,3 +13,6 @@ repository = "https://github.com/quietvoid/dovi_tool/tree/main/madvr_parse"
 [dependencies]
 anyhow = "1.0.45"
 byteorder = "1.4.3"
+
+[lib]
+doctest = false

@@ -1,6 +1,6 @@
 [package]
 name = "dolby_vision"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["quietvoid"]
 edition = "2018"
 rust-version = "1.55.0"
@@ -27,9 +27,6 @@ capi = ["libc"]
 [package.metadata.docs.rs]
 all-features = true
 
-[workspace]
-members = ["."]
-
 [package.metadata.capi.header]
 subdirectory = "libdovi"
 name = "rpu_parser"
@@ -43,3 +40,6 @@ filename = "dovi"
 [package.metadata.capi.library]
 rustflags = "-Cpanic=abort"
 name = "dovi"
+
+[lib]
+doctest = false

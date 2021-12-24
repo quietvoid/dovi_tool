@@ -9,9 +9,12 @@ pub mod rpu_injector;
 
 mod io;
 
+#[cfg(test)]
 mod tests;
 
+use hevc_parser::hevc::{SeiMessage, USER_DATA_REGISTERED_ITU_T_35};
 use indicatif::{ProgressBar, ProgressStyle};
+use std::convert::TryInto;
 use std::io::{stdout, BufReader, Read, Write};
 use std::{fs::File, io::BufWriter, path::Path};
 
@@ -29,7 +32,6 @@ use hevc_parser::{
 use rpu::dovi_rpu::DoviRpu;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
-const HDR10PLUS_SEI_HEADER: &[u8] = &[78, 1, 4];
 
 #[derive(Debug, PartialEq)]
 pub enum Format {
@@ -146,17 +148,6 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
     }
 }
 
-pub fn encode_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
-    let encoded_rpus = rpus
-        .iter_mut()
-        .filter_map(|e| e.as_mut())
-        .map(|e| e.write_hevc_unspec62_nalu())
-        .filter_map(Result::ok)
-        .collect();
-
-    encoded_rpus
-}
-
 pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
     println!("Writing RPU file...");
     let mut writer = BufWriter::with_capacity(
@@ -199,4 +190,37 @@ pub fn _get_aud(frame: &Frame) -> Vec<u8> {
     data.extend_from_slice(writer.as_slice());
 
     data
+}
+
+pub fn is_st2094_40_sei(sei_payload: &[u8]) -> Result<bool> {
+    if sei_payload.len() >= 4 {
+        let sei = SeiMessage::from_bytes(sei_payload)?;
+
+        if sei.payload_type == USER_DATA_REGISTERED_ITU_T_35 {
+            // FIXME: Not sure why 4 bytes..
+            let itu_t35_bytes = &sei_payload[4..];
+
+            if itu_t35_bytes.len() >= 7 {
+                let itu_t_t35_country_code = itu_t35_bytes[0];
+                let itu_t_t35_terminal_provider_code =
+                    u16::from_be_bytes(itu_t35_bytes[1..3].try_into()?);
+                let itu_t_t35_terminal_provider_oriented_code =
+                    u16::from_be_bytes(itu_t35_bytes[3..5].try_into()?);
+
+                if itu_t_t35_country_code == 0xB5
+                    && itu_t_t35_terminal_provider_code == 0x003C
+                    && itu_t_t35_terminal_provider_oriented_code == 0x0001
+                {
+                    let application_identifier = itu_t35_bytes[5];
+                    let application_version = itu_t35_bytes[6];
+
+                    if application_identifier == 4 && application_version == 1 {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(false)
 }

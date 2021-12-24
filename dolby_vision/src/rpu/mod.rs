@@ -1,5 +1,7 @@
-pub mod cmv4;
 pub mod dovi_rpu;
+pub mod extension_metadata;
+pub mod generate;
+pub mod profiles;
 pub mod rpu_data_header;
 pub mod rpu_data_mapping;
 pub mod rpu_data_nlq;

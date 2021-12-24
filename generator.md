@@ -1,8 +1,14 @@
-The generator can create a profile 8, limited metadata RPU binary.  
+The generator can create a profile 8.1 RPU binary.  
+Any extension metadata can be added.
+
 A JSON config example:
 
 ```json5
 {
+    // CM version, either V29 or V40
+    // Defaults to V40
+    "cm_version": CmVersion,
+
     // Number of metadata frames to generate
     "length": int,
 
@@ -16,20 +22,20 @@ A JSON config example:
     "source_min_pq": int,
     "source_max_pq": int,
 
-    // L2 metadata, optional
-    // If not specified, nothing added
-    // By default, trim adjustments are set to 2048 (no adjust)
-    "level2": [
+    // Shots to specify metadata for
+    // Ignored for HDR10+ and madVR generation
+    "shots": [
         {
-            "target_nits": 600,
-            "trim_slope": 2000,
-            "trim_saturation_gain": 2096
-        },
-        {
-            "target_nits": 1000
-        },
-        {
-            "target_nits": 2000
+            // Start frame, defaults to 0
+            "start": int,
+            // Shot frame length
+            "duration": int,
+
+            // List of metadata blocks to use for this shot
+            // Refer to example or info JSON
+            "metadata_blocks": Array,
+            // Metadata to use for specific frames in the shot
+            "frame_edits": Array
         }
     ],
 
@@ -42,7 +48,7 @@ A JSON config example:
         "active_area_bottom_offset": int,
     },
 
-    // L6 metadata, optional
+    // L6 metadata, required for profile 8.1
     "level6": {
         "max_display_mastering_luminance": int,
         "min_display_mastering_luminance": int,

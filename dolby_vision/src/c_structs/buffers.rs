@@ -2,7 +2,7 @@ use libc::size_t;
 
 use crate::rpu::NUM_COMPONENTS;
 
-pub trait CBuffer {
+pub trait Freeable {
     /// # Safety
     /// The pointers should all be valid.
     unsafe fn free(&self);
@@ -224,25 +224,25 @@ impl From<&Vec<[u64; NUM_COMPONENTS]>> for U64Data2D {
     }
 }
 
-impl CBuffer for Data {
+impl Freeable for Data {
     unsafe fn free(&self) {
         Vec::from_raw_parts(self.data as *mut u8, self.len as usize, self.len as usize);
     }
 }
 
-impl CBuffer for U64Data {
+impl Freeable for U64Data {
     unsafe fn free(&self) {
         Vec::from_raw_parts(self.data as *mut u64, self.len as usize, self.len as usize);
     }
 }
 
-impl CBuffer for I64Data {
+impl Freeable for I64Data {
     unsafe fn free(&self) {
         Vec::from_raw_parts(self.data as *mut i64, self.len as usize, self.len as usize);
     }
 }
 
-impl CBuffer for Data2D {
+impl Freeable for Data2D {
     unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const Data,
@@ -257,7 +257,7 @@ impl CBuffer for Data2D {
     }
 }
 
-impl CBuffer for U64Data2D {
+impl Freeable for U64Data2D {
     unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const U64Data,
@@ -272,7 +272,7 @@ impl CBuffer for U64Data2D {
     }
 }
 
-impl CBuffer for I64Data2D {
+impl Freeable for I64Data2D {
     unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const I64Data,
@@ -287,7 +287,7 @@ impl CBuffer for I64Data2D {
     }
 }
 
-impl CBuffer for U64Data3D {
+impl Freeable for U64Data3D {
     unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const U64Data2D,
@@ -302,7 +302,7 @@ impl CBuffer for U64Data3D {
     }
 }
 
-impl CBuffer for I64Data3D {
+impl Freeable for I64Data3D {
     unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const I64Data2D,

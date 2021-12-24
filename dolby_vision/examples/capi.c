@@ -11,7 +11,7 @@ int process_dm_metadata(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header);
 const uint8_t* read_rpu_file(char *path, size_t *len);
 
 int main(void) {
-    char *path = "../../assets/tests/data_before_crc32.bin";
+    char *path = "../../assets/tests/cmv40_full_rpu.bin";
     int ret;
 
     size_t length;
@@ -173,65 +173,138 @@ int process_rpu_data_mapping(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header
 }
 
 int process_dm_metadata(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header) {
-    const DoviVdrDmData *dm_data = dovi_rpu_get_vdr_dm_data(rpu);
-    if (!dm_data)
+    const DoviVdrDmData *vdr_dm_data = dovi_rpu_get_vdr_dm_data(rpu);
+    if (!vdr_dm_data)
         return -1;
 
     printf("vdr_dm_data_payload()\n");
 
-    // Do something with the DM metadata..
-    printf("  Mastering display PQ codes: min %.6f max %.6f\n", dm_data->source_min_pq / 4095.0,
-           dm_data->source_max_pq / 4095.0);
+    printf("  Num extension metadata blocks: %d\n", vdr_dm_data->dm_data.num_ext_blocks);
 
+    // Do something with the DM metadata..
+    printf("  Mastering display PQ codes: min %.6f max %.6f\n", vdr_dm_data->source_min_pq / 4095.0,
+           vdr_dm_data->source_max_pq / 4095.0);
+
+    printf("  dm_data_payload(), CM v2.9 DM data\n");
     // We have the frame stats
-    if (dm_data->st2094_10_metadata.level1) {
-        const DoviExtMetadataBlockLevel1 *meta = dm_data->st2094_10_metadata.level1;
+    if (vdr_dm_data->dm_data.level1) {
+        const DoviExtMetadataBlockLevel1 *meta = vdr_dm_data->dm_data.level1;
 
         // Values are PQ encoded in 12 bit, from 0 to 4095
-        printf("  L1 Frame brightness: min %.6f, max %.6f, avg %.6f\n", meta->min_pq / 4095.0,
+        printf("    L1 Frame brightness: min %.6f, max %.6f, avg %.6f\n", meta->min_pq / 4095.0,
                meta->max_pq / 4095.0, meta->avg_pq / 4095.0);
     }
 
     // We have creative trims
-    if (dm_data->st2094_10_metadata.level2.len > 0) {
-        const DoviLevel2BlockList blocks = dm_data->st2094_10_metadata.level2; 
-        printf("  L2 Creative trims, targets: %d\n", dm_data->st2094_10_metadata.level2.len);
+    if (vdr_dm_data->dm_data.level2.len > 0) {
+        const DoviLevel2BlockList blocks = vdr_dm_data->dm_data.level2; 
+        printf("    L2 Creative trims, targets: %d\n", vdr_dm_data->dm_data.level2.len);
 
-        for (int i = 0; i < dm_data->st2094_10_metadata.level2.len; i++) {
+        for (int i = 0; i < vdr_dm_data->dm_data.level2.len; i++) {
             const DoviExtMetadataBlockLevel2 *meta = blocks.list[i];
 
-            printf("    target display brightness PQ code: %.6f\n", meta->target_max_pq / 4095.0);
+            printf("      target display brightness PQ code: %.6f\n", meta->target_max_pq / 4095.0);
 
             // Trim values are from 0 to 4095
-            printf("      trim_slope: %d, trim_offset: %d, trim_power: %d\n", meta->trim_slope,
+            printf("        trim_slope: %d, trim_offset: %d, trim_power: %d\n", meta->trim_slope,
                    meta->trim_offset, meta->trim_power);
-            printf("      trim_chroma_weight: %d, trim_saturation_gain: %d, ms_weight: %d\n",
+            printf("        trim_chroma_weight: %d, trim_saturation_gain: %d, ms_weight: %d\n",
                    meta->trim_chroma_weight, meta->trim_saturation_gain, meta->ms_weight);
         }
     }
 
-    // We have active area metadata
-    if (dm_data->st2094_10_metadata.level5) {
-        const DoviExtMetadataBlockLevel5 *meta = dm_data->st2094_10_metadata.level5;
+    if (vdr_dm_data->dm_data.level4) {
+        const DoviExtMetadataBlockLevel4 *meta = vdr_dm_data->dm_data.level4;
 
-        printf("  L5 Active area offsets: top %d, bottom %d, left %d, right %d\n",
+        printf("    L4 anchor_pq: %d, anchor_power: %d\n", meta->anchor_pq, meta->anchor_power);
+    }
+
+    // We have active area metadata
+    if (vdr_dm_data->dm_data.level5) {
+        const DoviExtMetadataBlockLevel5 *meta = vdr_dm_data->dm_data.level5;
+
+        printf("    L5 Active area offsets: top %d, bottom %d, left %d, right %d\n",
                meta->active_area_top_offset, meta->active_area_bottom_offset,
                meta->active_area_left_offset, meta->active_area_right_offset);
     }
 
     // We have fallback HDR10 metadata
-    if (dm_data->st2094_10_metadata.level6) {
-        const DoviExtMetadataBlockLevel6 *meta = dm_data->st2094_10_metadata.level6;
+    if (vdr_dm_data->dm_data.level6) {
+        const DoviExtMetadataBlockLevel6 *meta = vdr_dm_data->dm_data.level6;
 
-        printf("  L6 Mastering display: min %.4f, max %d\n",
+        printf("    L6 Mastering display: min %.4f, max %d\n",
                meta->min_display_mastering_luminance / 10000.0,
                meta->max_display_mastering_luminance);
 
-        printf("    MaxCLL %d, MaxFALL %d\n", meta->max_content_light_level,
+        printf("      MaxCLL %d, MaxFALL %d\n", meta->max_content_light_level,
                meta->max_frame_average_light_level);
     }
 
-    dovi_rpu_free_vdr_dm_data(dm_data);
+    // CM v4.0, DM data version 2
+    if (vdr_dm_data->dm_data.level254) {
+        printf("  dm_data_payload2(), CM v4.0 DM data\n");
+
+        if (vdr_dm_data->dm_data.level3) {
+            const DoviExtMetadataBlockLevel3 *meta = vdr_dm_data->dm_data.level3;
+
+            printf("    L3 level 1 PQ offsets min: %d, max: %d, avg: %d\n",
+                   meta->min_pq_offset, meta->max_pq_offset, meta->avg_pq_offset);
+        }
+
+        // We have creative trims
+        if (vdr_dm_data->dm_data.level8.len > 0) {
+            const DoviLevel8BlockList blocks = vdr_dm_data->dm_data.level8; 
+            printf("    L8 Creative trims, targets: %d\n", vdr_dm_data->dm_data.level8.len);
+
+            for (int i = 0; i < vdr_dm_data->dm_data.level8.len; i++) {
+                const DoviExtMetadataBlockLevel8 *meta = blocks.list[i];
+
+                printf("      target display index: %d\n", meta->target_display_index);
+
+                // Trim values are from 0 to 4095
+                printf("        trim_slope: %d, trim_offset: %d, trim_power: %d\n", meta->trim_slope,
+                    meta->trim_offset, meta->trim_power);
+                printf("        trim_chroma_weight: %d, trim_saturation_gain: %d, ms_weight: %d\n",
+                    meta->trim_chroma_weight, meta->trim_saturation_gain, meta->ms_weight);
+            }
+        }
+
+        if (vdr_dm_data->dm_data.level9) {
+            const DoviExtMetadataBlockLevel9 *meta = vdr_dm_data->dm_data.level9;
+
+            printf("    L9 Source primary index: %d\n", meta->source_primary_index);
+        }
+
+        // The L8 target definitions
+        if (vdr_dm_data->dm_data.level10.len > 0) {
+            const DoviLevel10BlockList blocks = vdr_dm_data->dm_data.level10; 
+            printf("    L10 Custom display targets: %d\n", vdr_dm_data->dm_data.level10.len);
+
+            for (int i = 0; i < vdr_dm_data->dm_data.level10.len; i++) {
+                const DoviExtMetadataBlockLevel10 *meta = blocks.list[i];
+
+                printf("      target display index: %d\n", meta->target_display_index);
+
+                // Trim values are from 0 to 4095
+                printf("        target_max_pq: %d, target_min_pq: %d, target_primary_index: %d \n", meta->target_max_pq, meta->target_min_pq, meta->target_primary_index);
+            }
+        }
+
+        if (vdr_dm_data->dm_data.level11) {
+            const DoviExtMetadataBlockLevel11 *meta = vdr_dm_data->dm_data.level11;
+
+            printf("    L11 Content type: %d, whitepoint: %d, reference_mode_flag: %d\n", 
+                   meta->content_type, (meta->whitepoint * 375) + 6504, meta->reference_mode_flag);
+        }
+
+        if (vdr_dm_data->dm_data.level254) {
+            const DoviExtMetadataBlockLevel254 *meta = vdr_dm_data->dm_data.level254;
+
+            printf("    L254 dm_mode: %d, dm_version_index: %d\n", meta->dm_mode, meta->dm_version_index);
+        }
+    }
+
+    dovi_rpu_free_vdr_dm_data(vdr_dm_data);
 }
 
 const uint8_t* read_rpu_file(char *path, size_t *len) {

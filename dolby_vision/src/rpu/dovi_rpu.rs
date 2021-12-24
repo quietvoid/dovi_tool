@@ -6,34 +6,50 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::Serialize;
 
 use super::compute_crc32;
+use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel5};
+use super::generate::GenerateConfig;
 use super::rpu_data_header::{rpu_data_header, RpuDataHeader};
 use super::rpu_data_mapping::RpuDataMapping;
 use super::rpu_data_nlq::RpuDataNlq;
 use super::vdr_dm_data::VdrDmData;
 
-use crate::rpu::cmv4::CmV4DmData;
 use crate::rpu::rpu_data_mapping::vdr_rpu_data_payload;
 use crate::rpu::vdr_dm_data::vdr_dm_data_payload;
-use crate::st2094_10::generate::GenerateConfig;
 
 use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct DoviRpu {
     pub dovi_profile: u8,
-
     pub header: RpuDataHeader,
-    pub rpu_data_mapping: Option<RpuDataMapping>,
-    pub rpu_data_nlq: Option<RpuDataNlq>,
-    pub vdr_dm_data: Option<VdrDmData>,
-    pub cmv4_dm_data: Option<CmV4DmData>,
 
     #[cfg_attr(
         feature = "serde_feature",
-        serde(serialize_with = "crate::utils::bitvec_ser_bits")
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub rpu_data_mapping: Option<RpuDataMapping>,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub rpu_data_nlq: Option<RpuDataNlq>,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub vdr_dm_data: Option<VdrDmData>,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(
+            serialize_with = "crate::utils::bitvec_ser_bits",
+            skip_serializing_if = "BitVec::is_empty"
+        )
     )]
     pub remaining: BitVec<Msb0, u8>,
     pub rpu_data_crc32: u32,
@@ -117,7 +133,7 @@ impl DoviRpu {
         };
 
         // EOF case
-        let final_len = if end_byte == 0 { 48 } else { 40 };
+        let final_length = if end_byte == 0 { 48 } else { 40 };
 
         rpu_data_header(&mut dovi_rpu, &mut reader)?;
 
@@ -135,20 +151,14 @@ impl DoviRpu {
                 vdr_dm_data_payload(&mut dovi_rpu, &mut reader)?;
             }
 
-            // CMv4 extension metadata blocks
-            // Requires at least L254 block, which is 16 bits
-            if reader.available() >= final_len + 16 {
-                dovi_rpu.cmv4_dm_data = Some(CmV4DmData::parse(&mut reader)?);
-            }
-
             // rpu_alignment_zero_bit
             while !reader.is_aligned() {
                 ensure!(!reader.get()?, "rpu_alignment_zero_bit != 0");
             }
 
             // CRC32 is at the end, there can be more data in between
-            if reader.available() != final_len {
-                while reader.available() != final_len {
+            if reader.available() != final_length {
+                while reader.available() != final_length {
                     dovi_rpu.remaining.push(reader.get()?);
                 }
             }
@@ -185,6 +195,8 @@ impl DoviRpu {
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
         let mut writer = BitVecWriter::new();
 
+        self.validate()?;
+
         let header = &self.header;
         header.write_header(&mut writer);
 
@@ -194,11 +206,7 @@ impl DoviRpu {
             }
 
             if header.vdr_dm_metadata_present_flag {
-                self.write_vdr_dm_data_payload(&mut writer);
-            }
-
-            if let Some(cmv4_dm_data) = &self.cmv4_dm_data {
-                cmv4_dm_data.write(&mut writer);
+                self.write_vdr_dm_data_payload(&mut writer)?;
             }
         }
 
@@ -243,10 +251,12 @@ impl DoviRpu {
         Ok(())
     }
 
-    fn write_vdr_dm_data_payload(&self, writer: &mut BitVecWriter) {
+    fn write_vdr_dm_data_payload(&self, writer: &mut BitVecWriter) -> Result<()> {
         if let Some(ref vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data.write(writer);
+            vdr_dm_data.write(writer)?;
         }
+
+        Ok(())
     }
 
     fn validate(&self) -> Result<()> {
@@ -348,7 +358,7 @@ impl DoviRpu {
         Ok(())
     }
 
-    pub fn profile8_config(config: &GenerateConfig) -> Result<Self> {
+    pub fn profile81_config(config: &GenerateConfig) -> Result<Self> {
         Ok(DoviRpu {
             dovi_profile: 8,
             modified: true,
@@ -361,14 +371,18 @@ impl DoviRpu {
         })
     }
 
-    pub fn crop(&mut self) {
+    /// Set existing L5 metadata to zero offsets
+    /// If there is no L5 metadata, creates it with zero offsets
+    pub fn crop(&mut self) -> Result<()> {
         self.modified = true;
 
         if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
-            vdr_dm_data
-                .st2094_10_metadata
-                .set_level5_metadata(0, 0, 0, 0);
+            vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
+                ExtMetadataBlockLevel5::default(),
+            ))?;
         }
+
+        Ok(())
     }
 
     pub fn remove_mapping(&mut self) {
@@ -383,5 +397,12 @@ impl DoviRpu {
         if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
             rpu_data_mapping.set_empty_p81_mapping();
         }
+    }
+
+    pub fn parse_list_of_unspec62_nalus(data: &[Vec<u8>]) -> Vec<DoviRpu> {
+        data.iter()
+            .map(|rpu| DoviRpu::parse_unspec62_nalu(rpu))
+            .filter_map(Result::ok)
+            .collect()
     }
 }
