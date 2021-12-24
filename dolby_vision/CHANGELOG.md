@@ -1,3 +1,7 @@
+## 1.5.1
+
+Fix bug where metadata blocks were reordered after parsing, altering the final CRC32.
+
 ## 1.5.0
 
 A bunch of breaking changes to add CMv4.0.
