@@ -164,7 +164,7 @@ impl Default for GenerateConfig {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "xml"))]
 mod tests {
     use anyhow::Result;
     use std::path::PathBuf;
