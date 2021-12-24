@@ -125,8 +125,6 @@ impl DmData {
                 meta.parse_block(reader)?;
             }
 
-            meta.update_extension_block_info();
-
             Ok(Some(meta))
         } else {
             Ok(None)

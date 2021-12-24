@@ -461,3 +461,22 @@ fn cmv40_full_rpu() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn profile8_unordered_l8_blocks() -> Result<()> {
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/unordered_l8_blocks.bin"))?;
+    assert!(!dovi_rpu.modified);
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
+    assert!(!reparsed_rpu.modified);
+    assert_eq!(reparsed_rpu.dovi_profile, 8);
+
+    assert_eq!(dovi_rpu.rpu_data_crc32, reparsed_rpu.rpu_data_crc32);
+
+    Ok(())
+}
