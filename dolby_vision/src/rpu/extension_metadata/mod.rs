@@ -75,29 +75,26 @@ pub trait WithExtMetadataBlocks {
     fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         let num_ext_blocks = self.num_ext_blocks();
 
-        // Ignore empty dm data
-        if num_ext_blocks > 0 {
-            let ext_metadata_blocks = self.blocks_ref();
+        writer.write_ue(num_ext_blocks);
 
-            writer.write_ue(self.num_ext_blocks());
+        // dm_alignment_zero_bit
+        while !writer.is_aligned() {
+            writer.write(false);
+        }
 
-            // dm_alignment_zero_bit
-            while !writer.is_aligned() {
-                writer.write(false);
-            }
+        let ext_metadata_blocks = self.blocks_ref();
 
-            for ext_metadata_block in ext_metadata_blocks {
-                let remaining_bits =
-                    ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
+        for ext_metadata_block in ext_metadata_blocks {
+            let remaining_bits =
+                ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
 
-                writer.write_ue(ext_metadata_block.length_bytes());
-                writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
+            writer.write_ue(ext_metadata_block.length_bytes());
+            writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
 
-                ext_metadata_block.write(writer)?;
+            ext_metadata_block.write(writer)?;
 
-                // ext_dm_alignment_zero_bit
-                (0..remaining_bits).for_each(|_| writer.write(false));
-            }
+            // ext_dm_alignment_zero_bit
+            (0..remaining_bits).for_each(|_| writer.write(false));
         }
 
         Ok(())
@@ -113,22 +110,18 @@ impl DmData {
 
         meta.set_num_ext_blocks(num_ext_blocks);
 
-        if num_ext_blocks > 0 {
-            while !reader.is_aligned() {
-                ensure!(
-                    !reader.get()?,
-                    format!("{}: dm_alignment_zero_bit != 0", T::VERSION)
-                );
-            }
-
-            for _ in 0..num_ext_blocks {
-                meta.parse_block(reader)?;
-            }
-
-            Ok(Some(meta))
-        } else {
-            Ok(None)
+        while !reader.is_aligned() {
+            ensure!(
+                !reader.get()?,
+                format!("{}: dm_alignment_zero_bit != 0", T::VERSION)
+            );
         }
+
+        for _ in 0..num_ext_blocks {
+            meta.parse_block(reader)?;
+        }
+
+        Ok(Some(meta))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

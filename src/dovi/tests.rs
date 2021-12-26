@@ -481,3 +481,30 @@ fn profile8_unordered_l8_blocks() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn empty_dmv1_blocks() -> Result<()> {
+    let (original_data, mut dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/empty_dmv1_blocks.bin"))?;
+    assert!(!dovi_rpu.modified);
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
+    assert!(!reparsed_rpu.modified);
+    assert_eq!(reparsed_rpu.dovi_profile, 5);
+
+    assert_eq!(dovi_rpu.rpu_data_crc32, reparsed_rpu.rpu_data_crc32);
+
+    dovi_rpu.convert_with_mode(3)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
+    assert!(!reparsed_rpu.modified);
+    assert_eq!(reparsed_rpu.dovi_profile, 8);
+
+    Ok(())
+}

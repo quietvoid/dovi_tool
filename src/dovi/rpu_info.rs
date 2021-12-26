@@ -23,7 +23,7 @@ impl RpuInfo {
 
         if let Some(ref rpus) = info.rpus {
             if let Some(f) = info.frame {
-                ensure!(f < rpus.len(), "info: invalid frame number (out of range)");
+                ensure!(f < rpus.len(), format!("info: invalid frame number (out of range).\nNumber of valid RPUs parsed: {}", rpus.len()));
 
                 let rpu = &rpus[f];
 
