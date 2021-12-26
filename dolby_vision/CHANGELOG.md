@@ -1,3 +1,7 @@
+## 1.5.2
+
+Changed DM data logic to write the number of blocks and align even if there are none.
+
 ## 1.5.1
 
 Fix bug where metadata blocks were reordered after parsing, altering the final CRC32.

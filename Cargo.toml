@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "1.4.1"
+version = "1.4.2"
 authors = ["quietvoid"]
 edition = "2018"
 rust-version = "1.51.0"
