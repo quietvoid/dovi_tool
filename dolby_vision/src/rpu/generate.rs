@@ -19,7 +19,9 @@ const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct GenerateConfig {
+    #[cfg_attr(feature = "serde_feature", serde(default = "CmVersion::v40"))]
     pub cm_version: CmVersion,
+
     pub length: usize,
 
     /// Optional, specifies a L2 block for this target

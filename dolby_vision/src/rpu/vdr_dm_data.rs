@@ -472,3 +472,13 @@ impl VdrDmData {
         Ok(())
     }
 }
+
+impl CmVersion {
+    pub fn v29() -> Self {
+        CmVersion::V29
+    }
+
+    pub fn v40() -> Self {
+        CmVersion::V40
+    }
+}

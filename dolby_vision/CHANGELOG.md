@@ -1,3 +1,7 @@
+### ???
+
+- Fixed deserialize default value for `GenerateConfig`.`cm_version` field.
+
 ## 1.5.2
 
 Changed DM data logic to write the number of blocks and align even if there are none.
