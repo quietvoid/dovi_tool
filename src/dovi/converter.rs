@@ -39,7 +39,10 @@ impl Converter {
 
         let output = match output {
             Some(path) => path,
-            None => PathBuf::from("BL_EL.hevc"),
+            None => match options.discard_el {
+                true => PathBuf::from("BL_RPU.hevc"),
+                false => PathBuf::from("BL_EL_RPU.hevc"),
+            },
         };
 
         let demuxer = Converter::new(format, input, output);
