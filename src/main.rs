@@ -88,7 +88,10 @@ fn main() -> Result<()> {
             output,
         } => RpuInjector::inject_rpu(input, rpu_in, output, cli_options),
         Command::Info { input, frame } => RpuInfo::info(input, frame),
-        Command::Generate { .. } => Generator::generate(opt.cmd),
+        Command::Generate { .. } => {
+            let mut generator = Generator::from_command(opt.cmd)?;
+            generator.generate()
+        }
         Command::Export { input, output } => Exporter::export(input, output),
     };
 

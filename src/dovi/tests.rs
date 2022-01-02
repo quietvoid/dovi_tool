@@ -1,9 +1,13 @@
 use anyhow::Result;
+use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use std::fs::File;
 use std::{io::Read, path::PathBuf};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::generate::GenerateConfig;
+
+use crate::commands::Command;
+use crate::dovi::generator::Generator;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     let mut f = File::open(input)?;
@@ -270,7 +274,6 @@ fn generated_rpu() -> Result<()> {
 
     let config = GenerateConfig {
         length: 1000,
-        target_nits: Some(600),
         source_min_pq: None,
         source_max_pq: None,
         level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
@@ -280,6 +283,9 @@ fn generated_rpu() -> Result<()> {
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
         },
+        default_metadata_blocks: vec![ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(
+            600,
+        ))],
         ..Default::default()
     };
 
@@ -391,7 +397,6 @@ fn cmv40_full_rpu() -> Result<()> {
 
     let mut config = GenerateConfig {
         length: 10,
-        target_nits: Some(600),
         source_min_pq: None,
         source_max_pq: None,
         level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
@@ -401,6 +406,9 @@ fn cmv40_full_rpu() -> Result<()> {
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
         },
+        default_metadata_blocks: vec![ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(
+            600,
+        ))],
         ..Default::default()
     };
 
@@ -505,6 +513,342 @@ fn empty_dmv1_blocks() -> Result<()> {
     let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
     assert!(!reparsed_rpu.modified);
     assert_eq!(reparsed_rpu.dovi_profile, 8);
+
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn generate_default_cmv29() -> Result<()> {
+    let cmd = Command::Generate {
+        json_file: Some(PathBuf::from(
+            "./assets/generator_examples/default_cmv29.json",
+        )),
+        rpu_out: Some(PathBuf::from("/dev/null")),
+        hdr10plus_json: None,
+        xml: None,
+        canvas_width: None,
+        canvas_height: None,
+        madvr_file: None,
+        use_custom_targets: false,
+    };
+
+    let mut generator = Generator::from_command(cmd)?;
+    generator.generate()?;
+
+    // Get updated config
+    let config = generator.config.unwrap();
+
+    let rpus = config.generate_rpu_list()?;
+    assert_eq!(rpus.len(), 10);
+
+    let first_rpu = &rpus[0];
+    let vdr_dm_data = first_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L5 and L6
+    assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 2);
+    // No CM v4.0
+    assert!(vdr_dm_data.metadata_blocks(3).is_none());
+
+    if let ExtMetadataBlock::Level5(level5) = vdr_dm_data.get_block(5).unwrap() {
+        assert_eq!(level5.get_offsets(), (0, 0, 0, 0));
+    }
+
+    if let ExtMetadataBlock::Level6(level6) = vdr_dm_data.get_block(6).unwrap() {
+        assert_eq!(level6.min_display_mastering_luminance, 1);
+        assert_eq!(level6.max_display_mastering_luminance, 1000);
+        assert_eq!(level6.max_content_light_level, 1000);
+        assert_eq!(level6.max_frame_average_light_level, 400);
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn generate_default_cmv40() -> Result<()> {
+    let cmd = Command::Generate {
+        json_file: Some(PathBuf::from(
+            "./assets/generator_examples/default_cmv40.json",
+        )),
+        rpu_out: Some(PathBuf::from("/dev/null")),
+        hdr10plus_json: None,
+        xml: None,
+        canvas_width: None,
+        canvas_height: None,
+        madvr_file: None,
+        use_custom_targets: false,
+    };
+
+    let mut generator = Generator::from_command(cmd)?;
+    generator.generate()?;
+
+    // Get updated config
+    let config = generator.config.unwrap();
+
+    let rpus = config.generate_rpu_list()?;
+    assert_eq!(rpus.len(), 10);
+
+    let first_rpu = &rpus[0];
+    let vdr_dm_data = first_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L5 and L6
+    assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 2);
+    // Only L11 and L254
+    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 2);
+
+    if let ExtMetadataBlock::Level5(level5) = vdr_dm_data.get_block(5).unwrap() {
+        assert_eq!(level5.get_offsets(), (0, 0, 0, 0));
+    }
+
+    if let ExtMetadataBlock::Level6(level6) = vdr_dm_data.get_block(6).unwrap() {
+        assert_eq!(level6.min_display_mastering_luminance, 1);
+        assert_eq!(level6.max_display_mastering_luminance, 1000);
+        assert_eq!(level6.max_content_light_level, 1000);
+        assert_eq!(level6.max_frame_average_light_level, 400);
+    }
+
+    if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {
+        assert_eq!(level11.content_type, 1);
+        assert_eq!(level11.whitepoint, 0);
+        assert_eq!(level11.reference_mode_flag, true);
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn generate_full() -> Result<()> {
+    let cmd = Command::Generate {
+        json_file: Some(PathBuf::from(
+            "./assets/generator_examples/full_example.json",
+        )),
+        rpu_out: Some(PathBuf::from("/dev/null")),
+        hdr10plus_json: None,
+        xml: None,
+        canvas_width: None,
+        canvas_height: None,
+        madvr_file: None,
+        use_custom_targets: false,
+    };
+
+    let mut generator = Generator::from_command(cmd)?;
+    generator.generate()?;
+
+    // Get updated config
+    let config = generator.config.unwrap();
+
+    let rpus = config.generate_rpu_list()?;
+    assert_eq!(rpus.len(), 10);
+
+    let first_rpu = &rpus[0];
+    let vdr_dm_data = first_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(vdr_dm_data.scene_refresh_flag, 1);
+
+    // L1, L2 * 2, L5, L6
+    assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 5);
+    // Only L9, L11 and L254
+    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
+
+    if let ExtMetadataBlock::Level5(level5) = vdr_dm_data.get_block(5).unwrap() {
+        assert_eq!(level5.get_offsets(), (0, 0, 40, 40));
+    }
+
+    if let ExtMetadataBlock::Level6(level6) = vdr_dm_data.get_block(6).unwrap() {
+        assert_eq!(level6.min_display_mastering_luminance, 1);
+        assert_eq!(level6.max_display_mastering_luminance, 1000);
+        assert_eq!(level6.max_content_light_level, 1000);
+        assert_eq!(level6.max_frame_average_light_level, 400);
+    }
+
+    // From default blocks
+    assert_eq!(vdr_dm_data.level_blocks_iter(2).count(), 2);
+    let mut shot_level2_iter = vdr_dm_data.level_blocks_iter(2);
+
+    if let ExtMetadataBlock::Level2(level2) = shot_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 2851);
+        assert_eq!(level2.trim_slope, 2048);
+        assert_eq!(level2.trim_offset, 2048);
+        assert_eq!(level2.trim_power, 1800);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
+
+    if let ExtMetadataBlock::Level2(level2) = shot_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 3079);
+        assert_eq!(level2.trim_slope, 2048);
+        assert_eq!(level2.trim_offset, 2048);
+        assert_eq!(level2.trim_power, 2048);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
+
+    // From default blocks
+    if let ExtMetadataBlock::Level9(level9) = vdr_dm_data.get_block(9).unwrap() {
+        assert_eq!(level9.source_primary_index, 0);
+    }
+
+    // Default block L11 overrides
+    if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {
+        assert_eq!(level11.content_type, 4);
+        assert_eq!(level11.whitepoint, 0);
+        assert_eq!(level11.reference_mode_flag, true);
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn generate_full_hdr10plus() -> Result<()> {
+    let cmd = Command::Generate {
+        json_file: Some(PathBuf::from(
+            "./assets/generator_examples/no_duration.json",
+        )),
+        rpu_out: Some(PathBuf::from("/dev/null")),
+        hdr10plus_json: Some(PathBuf::from("./assets/tests/hdr10plus_metadata.json")),
+        xml: None,
+        canvas_width: None,
+        canvas_height: None,
+        madvr_file: None,
+        use_custom_targets: false,
+    };
+
+    let mut generator = Generator::from_command(cmd)?;
+    generator.generate()?;
+
+    // Get updated config
+    let config = generator.config.unwrap();
+    assert_eq!(config.shots.len(), 3);
+
+    let rpus = config.generate_rpu_list()?;
+    assert_eq!(rpus.len(), 9);
+
+    let shot1_rpu = &rpus[0];
+    let shot1_vdr_dm_data = shot1_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot1_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L1, L2 and L5 and L6
+    assert_eq!(shot1_vdr_dm_data.metadata_blocks(1).unwrap().len(), 4);
+    // Only L9, L11 and L254
+    assert_eq!(shot1_vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
+
+    // Shot L1 is ignored, HDR10+ is used
+    if let ExtMetadataBlock::Level1(level1) = shot1_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        assert_eq!(level1.max_pq, 3337);
+        assert_eq!(level1.avg_pq, 2097);
+    }
+
+    // From shot blocks
+    assert_eq!(shot1_vdr_dm_data.level_blocks_iter(2).count(), 1);
+    let mut shot1_level2_iter = shot1_vdr_dm_data.level_blocks_iter(2);
+
+    if let ExtMetadataBlock::Level2(level2) = shot1_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 2851);
+        assert_eq!(level2.trim_slope, 2048);
+        assert_eq!(level2.trim_offset, 2048);
+        assert_eq!(level2.trim_power, 1800);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
+
+    if let ExtMetadataBlock::Level5(level5) = shot1_vdr_dm_data.get_block(5).unwrap() {
+        assert_eq!(level5.get_offsets(), (0, 0, 0, 0));
+    }
+
+    let shot2_rpu = &rpus[3];
+    let shot2_vdr_dm_data = shot2_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot2_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L1, L5 and L6
+    assert_eq!(shot2_vdr_dm_data.metadata_blocks(1).unwrap().len(), 4);
+    // Only L9, L11 and L254
+    assert_eq!(shot2_vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
+
+    if let ExtMetadataBlock::Level1(level1) = shot2_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        assert_eq!(level1.max_pq, 3401);
+        assert_eq!(level1.avg_pq, 1609);
+    }
+
+    // From shot blocks
+    assert_eq!(shot2_vdr_dm_data.level_blocks_iter(2).count(), 1);
+    let mut shot2_level2_iter = shot2_vdr_dm_data.level_blocks_iter(2);
+
+    if let ExtMetadataBlock::Level2(level2) = shot2_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 2851);
+        assert_eq!(level2.trim_slope, 1400);
+        assert_eq!(level2.trim_offset, 1234);
+        assert_eq!(level2.trim_power, 1800);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
+
+    if let ExtMetadataBlock::Level5(level5) = shot2_vdr_dm_data.get_block(5).unwrap() {
+        assert_eq!(level5.get_offsets(), (0, 0, 276, 276));
+    }
+
+    if let ExtMetadataBlock::Level6(level6) = shot2_vdr_dm_data.get_block(6).unwrap() {
+        assert_eq!(level6.min_display_mastering_luminance, 1);
+        assert_eq!(level6.max_display_mastering_luminance, 1000);
+        assert_eq!(level6.max_content_light_level, 1000);
+        assert_eq!(level6.max_frame_average_light_level, 400);
+    }
+
+    let frame_edit_rpu = &rpus[5];
+    let edit_vdr_dm_data = frame_edit_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(edit_vdr_dm_data.scene_refresh_flag, 0);
+
+    // Only L1, L2 * 2, L5 and L6
+    assert_eq!(edit_vdr_dm_data.metadata_blocks(1).unwrap().len(), 5);
+    // Only L9, L11 and L254
+    assert_eq!(edit_vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
+
+    // Also ignored L1 from edit
+    if let ExtMetadataBlock::Level1(level1) = edit_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        assert_eq!(level1.max_pq, 3401);
+        assert_eq!(level1.avg_pq, 1609);
+    }
+
+    // From edit blocks
+    assert_eq!(edit_vdr_dm_data.level_blocks_iter(2).count(), 2);
+    let mut edit_level2_iter = edit_vdr_dm_data.level_blocks_iter(2);
+
+    // Replaced same target display trim
+    if let ExtMetadataBlock::Level2(level2) = edit_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 2851);
+        assert_eq!(level2.trim_slope, 1999);
+        assert_eq!(level2.trim_offset, 1999);
+        assert_eq!(level2.trim_power, 1999);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
+
+    if let ExtMetadataBlock::Level2(level2) = edit_level2_iter.next().unwrap() {
+        assert_eq!(level2.target_max_pq, 3079);
+        assert_eq!(level2.trim_slope, 2048);
+        assert_eq!(level2.trim_offset, 2048);
+        assert_eq!(level2.trim_power, 2048);
+        assert_eq!(level2.trim_chroma_weight, 2048);
+        assert_eq!(level2.trim_saturation_gain, 2048);
+        assert_eq!(level2.ms_weight, 2048);
+    }
 
     Ok(())
 }

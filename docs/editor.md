@@ -87,6 +87,8 @@ The editor expects a JSON config like the example below:
         // WP * 375 + 6504
         // D65 = 0
         "whitepoint": int,
+
+        // Whether to force reference mode or not.
         "reference_mode_flag": boolean
     }
 }
