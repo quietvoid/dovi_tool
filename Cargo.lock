@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "dolby_vision"
-version = "1.5.2"
+version = "1.6.0"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "dovi_tool"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "anyhow",
  "bitvec",
