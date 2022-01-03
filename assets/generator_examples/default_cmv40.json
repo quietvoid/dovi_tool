@@ -1,0 +1,10 @@
+{
+    "cm_version": "V40",
+    "length": 10,
+    "level6": {
+        "max_display_mastering_luminance": 1000,
+        "min_display_mastering_luminance": 1,
+        "max_content_light_level": 1000,
+        "max_frame_average_light_level": 400
+    }
+}

@@ -1,6 +1,8 @@
-### ???
+### 1.6.0
 
 - Fixed deserialize default value for `GenerateConfig`.`cm_version` field.
+- Added `default_metadata_blocks` to `GenerateConfig` struct.
+- Removed `target_nits` field from `GenerateConfig`. Use default blocks.
 
 ## 1.5.2
 

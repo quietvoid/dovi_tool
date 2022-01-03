@@ -80,10 +80,7 @@ impl CmXmlParser {
                 parser.config.shots = parser.parse_shots(&video)?;
                 parser.config.shots.sort_by_key(|s| s.start);
 
-                let first_shot = parser.config.shots.first().unwrap();
-                let last_shot = parser.config.shots.last().unwrap();
-
-                parser.config.length = (last_shot.start + last_shot.duration) - first_shot.start;
+                parser.config.length = parser.config.shots.iter().map(|s| s.duration).sum();
             } else {
                 bail!("Could not find Video node");
             }

@@ -1,0 +1,80 @@
+{
+    "cm_version": "V40",
+    "level5": {
+        "active_area_left_offset": 0,
+        "active_area_right_offset": 0,
+        "active_area_top_offset": 40,
+        "active_area_bottom_offset": 40
+    },
+    "level6": {
+        "max_display_mastering_luminance": 1000,
+        "min_display_mastering_luminance": 1,
+        "max_content_light_level": 1000,
+        "max_frame_average_light_level": 400
+    },
+    "default_metadata_blocks": [
+        {
+            "Level2": {
+                "target_max_pq": 3079,
+                "trim_slope": 2048,
+                "trim_offset": 2048,
+                "trim_power": 2048,
+                "trim_chroma_weight": 2048,
+                "trim_saturation_gain": 2048,
+                "ms_weight": 2048
+            }
+        },
+        {
+            "Level9": {
+                "source_primary_index": 0
+            }
+        },
+        {
+            "Level11": {
+                "content_type": 4,
+                "whitepoint": 0,
+                "reference_mode_flag": true
+            }
+        }
+    ],
+    "shots": [
+        {
+            "start": 0,
+            "duration": 10,
+            "metadata_blocks": [
+                {
+                    "Level1": {
+                        "min_pq": 2,
+                        "max_pq": 2938,
+                        "avg_pq": 1456
+                    }
+                },
+                {
+                    "Level2": {
+                        "target_max_pq": 2851,
+                        "trim_slope": 2048,
+                        "trim_offset": 2048,
+                        "trim_power": 1800,
+                        "trim_chroma_weight": 2048,
+                        "trim_saturation_gain": 2048,
+                        "ms_weight": 2048
+                    }
+                }
+            ],
+            "frame_edits": [
+                {
+                    "edit_offset": 5,
+                    "metadata_blocks": [
+                        {
+                            "Level1": {
+                                "min_pq": 0,
+                                "max_pq": 3079,
+                                "avg_pq": 1229
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

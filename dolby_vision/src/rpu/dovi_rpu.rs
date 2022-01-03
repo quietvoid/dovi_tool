@@ -365,7 +365,7 @@ impl DoviRpu {
             header: RpuDataHeader::p8_default(),
             rpu_data_mapping: Some(RpuDataMapping::p8_default()),
             rpu_data_nlq: None,
-            vdr_dm_data: Some(VdrDmData::from_config(config)?),
+            vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
             last_byte: 0x80,
             ..Default::default()
         })

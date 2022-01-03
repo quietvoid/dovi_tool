@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::Result;
+use anyhow::{ensure, Result};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -16,53 +16,84 @@ use blocks::*;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
+/// Generic generation config struct.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct GenerateConfig {
+    /// Content mapping version
+    /// Optional, defaults to v4.0
     #[cfg_attr(feature = "serde_feature", serde(default = "CmVersion::v40"))]
     pub cm_version: CmVersion,
 
+    /// Number of RPU frames to generate.
+    /// Required only when no shots are specified.
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub length: usize,
 
-    /// Optional, specifies a L2 block for this target
-    pub target_nits: Option<u16>,
-
+    /// Mastering display min luminance, as 12 bit PQ code.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_min_pq: Option<u16>,
+
+    /// Mastering display max luminance, as 12 bit PQ code.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_max_pq: Option<u16>,
 
-    #[cfg_attr(feature = "serde_feature", serde(default))]
-    pub shots: Vec<VideoShot>,
-
+    /// Active area offsets.
     /// Defaults to zero offsets, should be present in RPU
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub level5: ExtMetadataBlockLevel5,
 
+    /// ST2086/HDR10 fallback metadata.
+    /// Required for deserialization.
     /// Defaults to 1000,0.0001
     pub level6: ExtMetadataBlockLevel6,
+
+    /// List of metadata blocks to use for every RPU generated.
+    ///
+    /// Per-shot or per-frame metadata replaces the default
+    /// metadata blocks if there are conflicts.
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub default_metadata_blocks: Vec<ExtMetadataBlock>,
+
+    /// List of shots to generate.
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub shots: Vec<VideoShot>,
 }
 
+/// Struct defining a video shot.
+/// A shot is a group of frames that share the same metadata.
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct VideoShot {
+    /// Optional (unused) ID of the shot.
+    /// Only XML generation provides this.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub id: String,
 
+    /// Frame start offset of the shot.
+    /// Used as a sorting key for the shots.
     pub start: usize,
+
+    /// Number of frames contained in the shot.
     pub duration: usize,
 
+    /// List of metadata blocks.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub metadata_blocks: Vec<ExtMetadataBlock>,
 
+    /// List of per-frame metadata edits.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub frame_edits: Vec<ShotFrameEdit>,
 }
 
+/// Struct to represent a list of metadata edits for a specific frame.
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ShotFrameEdit {
+    /// Frame offset within the parent shot.
     pub edit_offset: usize,
+
+    /// List of metadata blocks to use.
     pub metadata_blocks: Vec<ExtMetadataBlock>,
 }
 
@@ -70,6 +101,16 @@ impl GenerateConfig {
     pub fn generate_rpu_list(&self) -> Result<Vec<DoviRpu>> {
         let rpu = DoviRpu::profile81_config(self)?;
         let mut list = Vec::with_capacity(self.length);
+
+        let shots_length: usize = self.shots.iter().map(|s| s.duration).sum();
+
+        ensure!(
+            self.length == shots_length,
+            format!(
+                "Config length is not the same as shots total duration. Config: {}, Shots: {}",
+                self.length, shots_length
+            )
+        );
 
         for shot in &self.shots {
             let end = shot.duration;
@@ -151,10 +192,9 @@ impl Default for GenerateConfig {
         Self {
             cm_version: CmVersion::V40,
             length: Default::default(),
-            target_nits: Default::default(),
             source_min_pq: Default::default(),
             source_max_pq: Default::default(),
-            shots: Default::default(),
+            default_metadata_blocks: Default::default(),
             level5: Default::default(),
             level6: ExtMetadataBlockLevel6 {
                 max_display_mastering_luminance: 1000,
@@ -162,7 +202,76 @@ impl Default for GenerateConfig {
                 max_content_light_level: 0,
                 max_frame_average_light_level: 0,
             },
+            shots: Default::default(),
         }
+    }
+}
+
+impl VideoShot {
+    pub fn copy_metadata_from_shot(
+        &mut self,
+        other_shot: &VideoShot,
+        level_block_list: Option<&[u8]>,
+    ) {
+        // Add blocks to shot metadata
+        let new_shot_blocks: Vec<ExtMetadataBlock> = if let Some(block_list) = level_block_list {
+            other_shot
+                .metadata_blocks
+                .iter()
+                .filter(|b| !block_list.contains(&b.level()))
+                .cloned()
+                .collect()
+        } else {
+            other_shot.metadata_blocks.clone()
+        };
+
+        self.metadata_blocks.extend(new_shot_blocks);
+
+        // Add blocks to existing frame edits for the same offsets
+        for frame_edit in &mut self.frame_edits {
+            let new_frame_edit = other_shot
+                .frame_edits
+                .iter()
+                .find(|e| e.edit_offset == frame_edit.edit_offset);
+
+            if let Some(other_edit) = new_frame_edit {
+                let new_edit_blocks: Vec<ExtMetadataBlock> =
+                    if let Some(block_list) = level_block_list {
+                        other_edit
+                            .metadata_blocks
+                            .iter()
+                            .filter(|b| !block_list.contains(&b.level()))
+                            .cloned()
+                            .collect()
+                    } else {
+                        other_edit.metadata_blocks.clone()
+                    };
+
+                frame_edit.metadata_blocks.extend(new_edit_blocks);
+            }
+        }
+
+        // Add extra frame edits but don't replace
+        let existing_edit_offsets: Vec<usize> =
+            self.frame_edits.iter().map(|e| e.edit_offset).collect();
+
+        // Filter out unwanted blocks and add new edits
+        let added_frame_edits = other_shot
+            .frame_edits
+            .iter()
+            .filter(|e| !existing_edit_offsets.contains(&e.edit_offset))
+            .cloned()
+            .map(|mut frame_edit| {
+                if let Some(block_list) = level_block_list {
+                    frame_edit
+                        .metadata_blocks
+                        .retain(|b| !block_list.contains(&b.level()));
+                }
+
+                frame_edit
+            });
+
+        self.frame_edits.extend(added_frame_edits);
     }
 }
 
@@ -277,6 +386,7 @@ mod tests {
             assert_eq!(shot2_l2.trim_saturation_gain, 2048);
             assert_eq!(shot2_l2.ms_weight, 2048);
         }
+
         if let ExtMetadataBlock::Level2(shot2_l2) = shot2_level2_iter.next().unwrap() {
             assert_eq!(shot2_l2.target_max_pq, 3079);
             assert_eq!(shot2_l2.trim_slope, 2049);

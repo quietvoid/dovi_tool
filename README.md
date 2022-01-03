@@ -33,22 +33,22 @@ The minimum Rust version to build `dovi_tool` is 1.51.0.
     * Example: `dovi_tool generate --xml dolbyvision_metadata.xml -o RPU_from_xml.bin`  
     &nbsp;
     ##### From a generic profile 8.1 configuration JSON file  
-    * See documentation: [generator.md](generator.md) or [example](assets/generator_example.json)
-    * Example: `dovi_tool generate -j assets/generator_example.json -o RPU_generated.bin`  
+    * See documentation: [generator.md](docs/generator.md) or [examples](assets/generator_examples)
+    * Example: `dovi_tool generate -j assets/generator_examples/default_cmv40.json -o RPU_generated.bin`  
     &nbsp;
     ##### From an existing HDR10+ metadata JSON file  
     The metadata is generated from a configuration JSON file, and the L1 metadata is derived from HDR10+ metadata.
     * The HDR10+ metadata has to contain scene information for proper scene cuts.
-    * Example: `dovi_tool generate -j assets/generator_example.json --hdr10plus-json hdr10plus_metadata.json -o RPU_from_hdr10plus.bin`  
+    * Example: `dovi_tool generate -j assets/generator_examples/default_cmv40.json --hdr10plus-json hdr10plus_metadata.json -o RPU_from_hdr10plus.bin`  
     &nbsp;
     ##### From a madVR HDR measurement file
     The metadata is generated from a configuration JSON file, and the L1 metadata is derived from the madVR measurements.  
     Supports using custom targets nits from Soulnight's madMeasureHDR Optimizer, with flag `--use-custom-targets`.  
-    * Example: `dovi_tool generate -j assets/generator_example.json --madvr-file madmeasure-output.bin -o RPU_from_madVR.bin`  
+    * Example: `dovi_tool generate -j assets/generator_examples/default_cmv40.json --madvr-file madmeasure-output.bin -o RPU_from_madVR.bin`  
 &nbsp;
 * #### editor
     Allows editing a binary RPU according to a JSON config.  
-    See documentation: [editor.md](editor.md) or [examples](assets/editor_examples).  
+    See documentation: [editor.md](docs/editor.md) or [examples](assets/editor_examples).  
     All indices start at 0, and are inclusive.  For example, using "0-39" edits the first 40 frames.
     * Example: `dovi_tool editor -i RPU.bin -j assets/editor_examples/mode.json -o RPU_mode2.bin`  
 &nbsp;

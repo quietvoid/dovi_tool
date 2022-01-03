@@ -5,9 +5,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::{Deserialize, Serialize};
 
 use super::dovi_rpu::DoviRpu;
-use super::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel2,
-};
+use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel11};
 use super::extension_metadata::*;
 use super::generate::GenerateConfig;
 use super::profiles::profile81::Profile81;
@@ -329,7 +327,7 @@ impl VdrDmData {
 
                     Ok(())
                 } else {
-                    bail!("Did not find CM v2.9 DM data")
+                    bail!("Cannot replace L2 metadata, no CM v4.0 DM data")
                 }
             }
             ExtMetadataBlock::Level3(_) => self.replace_metadata_level(block),
@@ -345,7 +343,7 @@ impl VdrDmData {
 
                     Ok(())
                 } else {
-                    bail!("Did not find CM v4.0 DM data")
+                    bail!("Cannot replace L8 metadata, no CM v4.0 DM data")
                 }
             }
             ExtMetadataBlock::Level9(_) => self.replace_metadata_level(block),
@@ -358,7 +356,7 @@ impl VdrDmData {
 
                     Ok(())
                 } else {
-                    bail!("Did not find CM v4.0 DM data")
+                    bail!("Cannot replace L10 metadata, no CM v4.0 DM data")
                 }
             }
             ExtMetadataBlock::Level11(_) => self.replace_metadata_level(block),
@@ -436,7 +434,7 @@ impl VdrDmData {
     }
 
     /// Sets static metadata (L5/L6/L11) and source levels
-    pub fn from_config(config: &GenerateConfig) -> Result<VdrDmData> {
+    pub fn from_generate_config(config: &GenerateConfig) -> Result<VdrDmData> {
         let mut vdr_dm_data = Profile81::dm_data();
 
         match config.cm_version {
@@ -452,13 +450,6 @@ impl VdrDmData {
         vdr_dm_data.set_static_metadata(config)?;
         vdr_dm_data.change_source_levels(config.source_min_pq, config.source_max_pq);
 
-        // Default L2
-        if let Some(target_nits) = config.target_nits {
-            vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level2(
-                ExtMetadataBlockLevel2::from_nits(target_nits),
-            ))?;
-        }
-
         Ok(vdr_dm_data)
     }
 
@@ -468,6 +459,19 @@ impl VdrDmData {
         self.replace_metadata_block(ExtMetadataBlock::Level11(
             ExtMetadataBlockLevel11::default_reference_cinema(),
         ))?;
+
+        if !config.default_metadata_blocks.is_empty() {
+            let level_block_list: &[u8] = &[5, 6, 254];
+
+            let allowed_default_blocks = config
+                .default_metadata_blocks
+                .iter()
+                .filter(|block| !level_block_list.contains(&block.level()));
+
+            for block in allowed_default_blocks {
+                self.replace_metadata_block(block.clone())?;
+            }
+        }
 
         Ok(())
     }
