@@ -194,12 +194,12 @@ impl ExtMetadataBlock {
     pub fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
         &self,
         reader: &mut BitVecReader,
-        expected_length: u64,
+        block_length: u64,
     ) -> Result<()> {
         let level = self.level();
 
         ensure!(
-            expected_length == self.length_bytes(),
+            block_length == self.length_bytes(),
             format!(
                 "{}: Invalid metadata block. Block level {} should have length {}",
                 T::VERSION,

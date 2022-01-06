@@ -558,7 +558,43 @@ impl CmXmlParser {
             ((trim[5].parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
         );
 
+        let mid_contrast_bias_text = node
+            .children()
+            .find(|e| e.has_tag_name("MidContrastBias"))
+            .unwrap()
+            .text()
+            .unwrap();
+
+        let highlight_clipping_text = node
+            .children()
+            .find(|e| e.has_tag_name("HighlightClipping"))
+            .unwrap()
+            .text()
+            .unwrap();
+
+        let target_mid_contrast = min(
+            4095,
+            ((mid_contrast_bias_text.parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+        );
+
+        let clip_trim = min(
+            4095,
+            ((highlight_clipping_text.parse::<f32>().unwrap() * 2048.0) + 2048.0).round() as u16,
+        );
+
+        // Write order:
+        //   target_mid_contrast <-- 12
+        //   clip_trim <-- 13
+        let length = if clip_trim != 2048 {
+            13
+        } else if target_mid_contrast != 2048 {
+            12
+        } else {
+            10
+        };
+
         Ok(ExtMetadataBlockLevel8 {
+            length,
             target_display_index: target_display.id.parse::<u8>()?,
             trim_slope,
             trim_offset,
@@ -566,6 +602,8 @@ impl CmXmlParser {
             trim_chroma_weight,
             trim_saturation_gain,
             ms_weight,
+            target_mid_contrast,
+            clip_trim,
         })
     }
 

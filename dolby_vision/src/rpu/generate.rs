@@ -338,7 +338,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot1_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot1_vdr_dm_data.get_block(11).unwrap() {
@@ -412,6 +412,7 @@ mod tests {
         let mut shot2_level8_iter = shot2_vdr_dm_data.level_blocks_iter(8);
 
         if let ExtMetadataBlock::Level8(shot2_l8) = shot2_level8_iter.next().unwrap() {
+            assert_eq!(shot2_l8.length, 13);
             assert_eq!(shot2_l8.target_display_index, 1);
             assert_eq!(shot2_l8.trim_slope, 2048);
             assert_eq!(shot2_l8.trim_offset, 2048);
@@ -419,6 +420,8 @@ mod tests {
             assert_eq!(shot2_l8.trim_chroma_weight, 2048);
             assert_eq!(shot2_l8.trim_saturation_gain, 2048);
             assert_eq!(shot2_l8.ms_weight, 2048);
+            assert_eq!(shot2_l8.target_mid_contrast, 2048);
+            assert_eq!(shot2_l8.clip_trim, 2011);
         }
         if let ExtMetadataBlock::Level8(shot2_l8) = shot2_level8_iter.next().unwrap() {
             assert_eq!(shot2_l8.target_display_index, 48);
@@ -431,7 +434,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot2_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot2_vdr_dm_data.get_block(11).unwrap() {
@@ -475,7 +478,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot3_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot3_vdr_dm_data.get_block(11).unwrap() {
@@ -545,7 +548,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot3_edit_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot3_edit_vdr_dm_data.get_block(11).unwrap() {
