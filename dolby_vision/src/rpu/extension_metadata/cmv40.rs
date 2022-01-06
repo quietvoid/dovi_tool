@@ -16,7 +16,7 @@ pub struct CmV40DmData {
 
 impl WithExtMetadataBlocks for CmV40DmData {
     const VERSION: &'static str = "CM v4.0";
-    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[3, 8, 9, 10, 11, 254];
+    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[3, 8, 9, 10, 11, 254, 255];
 
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64) {
         self.num_ext_blocks = num_ext_blocks;
@@ -45,6 +45,7 @@ impl WithExtMetadataBlocks for CmV40DmData {
             10 => level10::ExtMetadataBlockLevel10::parse(reader),
             11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
+            255 => level255::ExtMetadataBlockLevel255::parse(reader),
             _ => {
                 ensure!(
                     false,
@@ -116,6 +117,8 @@ impl CmV40DmData {
 
         let level254_count = blocks.iter().filter(|b| b.level() == 254).count();
 
+        let level255_count = blocks.iter().filter(|b| b.level() == 255).count();
+
         let level3_count = blocks.iter().filter(|b| b.level() == 3).count();
 
         let level8_count = blocks.iter().filter(|b| b.level() == 8).count();
@@ -129,7 +132,7 @@ impl CmV40DmData {
         ensure!(
             invalid_blocks_count == 0,
             format!(
-                "{}: Only allowed blocks level 3, 8, 9, 10, 11 and 254",
+                "{}: Only allowed blocks level 3, 8, 9, 10, 11, 254 and 255",
                 Self::VERSION
             )
         );
@@ -137,6 +140,11 @@ impl CmV40DmData {
         ensure!(
             level254_count == 1,
             format!("{}: There must be one L254 metadata block", Self::VERSION)
+        );
+
+        ensure!(
+            level255_count <= 1,
+            format!("{}: There must be at most one L255 metadata block", Self::VERSION)
         );
 
         ensure!(
