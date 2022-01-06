@@ -442,7 +442,7 @@ fn cmv40_full_rpu() -> Result<()> {
                 ..Default::default()
             }),
             ExtMetadataBlock::Level10(ExtMetadataBlockLevel10 {
-                target_display_index: 21,
+                target_display_index: 20,
                 target_max_pq: 3000,
                 target_min_pq: 0,
                 target_primary_index: 2,
@@ -863,6 +863,35 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
     use dolby_vision::rpu::generate::GenerateConfig;
     use dolby_vision::rpu::generate::VideoShot;
 
+    // Random primaries derived from DCI-P3
+    let primaries1 = ColorPrimaries::from_array_float(&[
+        0.681, 0.322, 0.2653, 0.694, 0.155, 0.066, 0.3127, 0.329,
+    ]);
+
+    // Random primaries derived from BT.709
+    let primaries2 = ColorPrimaries::from_array_float(&[
+        0.641, 0.332, 0.303, 0.604, 0.155, 0.066, 0.3127, 0.329,
+    ]);
+
+    let mut level9 = ExtMetadataBlockLevel9 {
+        length: 17,
+        source_primary_index: 255,
+        ..Default::default()
+    };
+
+    level9.set_from_primaries(&primaries1);
+
+    let mut level10 = ExtMetadataBlockLevel10 {
+        length: 21,
+        target_display_index: 123,
+        target_max_pq: 3000,
+        target_min_pq: 0,
+        target_primary_index: 255,
+        ..Default::default()
+    };
+
+    level10.set_from_primaries(&primaries2);
+
     let mut config = GenerateConfig {
         length: 10,
         source_min_pq: None,
@@ -893,35 +922,11 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
             ExtMetadataBlock::Level8(ExtMetadataBlockLevel8 {
                 length: 25,
                 target_display_index: 123,
+                hue_vector_field4: 130,
                 ..Default::default()
             }),
-            ExtMetadataBlock::Level9(ExtMetadataBlockLevel9 {
-                length: 1,
-                source_primary_index: 255,
-                source_primary_red_x: 32000,
-                source_primary_red_y: 16500,
-                source_primary_green_x: 15000,
-                source_primary_green_y: 30000,
-                source_primary_blue_x: 7500,
-                source_primary_blue_y: 3000,
-                source_primary_white_x: 15635,
-                source_primary_white_y: 16450,
-            }),
-            ExtMetadataBlock::Level10(ExtMetadataBlockLevel10 {
-                length: 21,
-                target_display_index: 123,
-                target_max_pq: 3000,
-                target_min_pq: 0,
-                target_primary_index: 255,
-                target_primary_red_x: 32000,
-                target_primary_red_y: 16500,
-                target_primary_green_x: 15000,
-                target_primary_green_y: 30000,
-                target_primary_blue_x: 7500,
-                target_primary_blue_y: 3000,
-                target_primary_white_x: 15635,
-                target_primary_white_y: 16450,
-            }),
+            ExtMetadataBlock::Level9(level9),
+            ExtMetadataBlock::Level10(level10),
         ],
         ..Default::default()
     };
@@ -945,6 +950,20 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
     let l2_meta = vdr_dm_data.get_block(2).unwrap();
     if let ExtMetadataBlock::Level2(b) = l2_meta {
         assert_eq!(b.target_max_pq, 2851);
+    }
+
+    let l8_meta = vdr_dm_data.get_block(8).unwrap();
+    if let ExtMetadataBlock::Level8(b) = l8_meta {
+        assert_eq!(b.target_display_index, 123);
+        assert_eq!(b.saturation_vector_field5, 128);
+        assert_eq!(b.hue_vector_field4, 130);
+    }
+
+    let l9_meta = vdr_dm_data.get_block(9).unwrap();
+    if let ExtMetadataBlock::Level9(b) = l9_meta {
+        assert_eq!(b.source_primary_index, 255);
+        assert_eq!(b.source_primary_blue_x, 5079);
+        assert_eq!(b.source_primary_blue_y, 2163);
     }
 
     let reparsed_rpus = DoviRpu::parse_list_of_unspec62_nalus(&encoded_rpus);

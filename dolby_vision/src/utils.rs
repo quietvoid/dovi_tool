@@ -1,4 +1,4 @@
-use std::{cmp::min, convert::TryInto};
+use std::convert::TryInto;
 
 #[cfg(feature = "serde_feature")]
 use {
@@ -60,17 +60,11 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
 
 /// Assumes a list of size 8, otherwise panics
 pub fn f64_to_integer_primaries(primaries: &[f64]) -> [u16; 8] {
+    const SCALE: f64 = 1.0 / 32767.0;
+
     primaries
         .iter()
-        .map(|v| {
-            let tmp = (v * 32767.0 + 32767.0).round() as u16;
-
-            match tmp {
-                // This value will not be 32768
-                32767.. => min(32767, tmp - 32767),
-                _ => tmp + 32769,
-            }
-        })
+        .map(|v| (v / SCALE).round() as u16)
         .collect::<Vec<u16>>()
         .try_into()
         .unwrap()

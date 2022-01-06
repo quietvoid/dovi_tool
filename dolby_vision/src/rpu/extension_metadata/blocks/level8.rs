@@ -199,16 +199,17 @@ impl Serialize for ExtMetadataBlockLevel8 {
     {
         let name = "ExtMetadataBlockLevel8";
         let fields_count = match self.length {
-            25 => 21,
-            19 => 15,
-            13 => 9,
-            12 => 8,
-            10 => 7,
+            25 => 22,
+            19 => 16,
+            13 => 10,
+            12 => 9,
+            10 => 8,
             _ => unreachable!(),
         };
 
         let mut state = serializer.serialize_struct(name, fields_count)?;
 
+        state.serialize_field("length", &self.length)?;
         state.serialize_field("target_display_index", &self.target_display_index)?;
         state.serialize_field("trim_slope", &self.trim_slope)?;
         state.serialize_field("trim_offset", &self.trim_offset)?;

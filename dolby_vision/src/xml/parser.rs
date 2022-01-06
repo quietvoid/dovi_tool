@@ -10,7 +10,7 @@ use std::path::Path;
 use crate::rpu::extension_metadata::blocks::*;
 use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
 use crate::rpu::vdr_dm_data::CmVersion;
-use crate::utils::{f64_to_integer_primaries, nits_to_pq};
+use crate::utils::nits_to_pq;
 
 use level10::PRESET_TARGET_DISPLAYS;
 
@@ -121,9 +121,14 @@ impl CmXmlParser {
             };
 
             let version_split: Vec<&str> = version_text.split('.').collect();
-            let rev = version_split.iter().enumerate().fold(0, |rev, (i, v)| {
-                rev + (v.parse::<u16>().unwrap() << (i * 4))
-            });
+
+            let rev = version_split
+                .iter()
+                .rev()
+                .enumerate()
+                .fold(0, |rev, (i, v)| {
+                    rev + (v.parse::<u16>().unwrap() << (i * 4))
+                });
 
             if rev >= 0x402 {
                 match rev {
@@ -499,17 +504,8 @@ impl CmXmlParser {
             };
 
             if index == 255 {
-                // Float to integer primaries
-                let primaries_int = f64_to_integer_primaries(&target.primaries);
-
-                block.target_primary_red_x = primaries_int[0];
-                block.target_primary_red_y = primaries_int[1];
-                block.target_primary_green_x = primaries_int[2];
-                block.target_primary_green_y = primaries_int[3];
-                block.target_primary_blue_x = primaries_int[4];
-                block.target_primary_blue_y = primaries_int[5];
-                block.target_primary_white_x = primaries_int[6];
-                block.target_primary_white_y = primaries_int[7];
+                let color_primaries = ColorPrimaries::from_array_float(&target.primaries);
+                block.set_from_primaries(&color_primaries);
             }
 
             // Only allow custom L10
@@ -874,16 +870,8 @@ impl CmXmlParser {
         };
 
         if index == 255 {
-            let primaries_int = f64_to_integer_primaries(&primaries);
-
-            block.source_primary_red_x = primaries_int[0];
-            block.source_primary_red_y = primaries_int[1];
-            block.source_primary_green_x = primaries_int[2];
-            block.source_primary_green_y = primaries_int[3];
-            block.source_primary_blue_x = primaries_int[4];
-            block.source_primary_blue_y = primaries_int[5];
-            block.source_primary_white_x = primaries_int[6];
-            block.source_primary_white_y = primaries_int[7];
+            let color_primaries = ColorPrimaries::from_array_float(&primaries);
+            block.set_from_primaries(&color_primaries);
         }
 
         Ok(block)

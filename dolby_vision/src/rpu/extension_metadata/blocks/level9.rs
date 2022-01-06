@@ -4,7 +4,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
+use super::{ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo};
 
 pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
     [0.68, 0.32, 0.265, 0.69, 0.15, 0.06, 0.3127, 0.329], //  0, DCI-P3 D65
@@ -26,13 +26,21 @@ pub struct ExtMetadataBlockLevel9 {
     pub length: u64,
     pub source_primary_index: u8,
 
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_red_x: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_red_y: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_green_x: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_green_y: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_blue_x: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_blue_y: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_white_x: u16,
+    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_white_y: u16,
 }
 
@@ -79,7 +87,7 @@ impl ExtMetadataBlockLevel9 {
 
     pub fn validate(&self) -> Result<()> {
         if self.length > 1 {
-            // Custom primaries
+            // Custom primaries required
             ensure!(self.source_primary_index == 255);
             ensure!(self.source_primary_red_x > 0);
             ensure!(self.source_primary_red_y > 0);
@@ -97,6 +105,17 @@ impl ExtMetadataBlockLevel9 {
 
         Ok(())
     }
+
+    pub fn set_from_primaries(&mut self, primaries: &ColorPrimaries) {
+        self.source_primary_red_x = primaries.red_x;
+        self.source_primary_red_y = primaries.red_y;
+        self.source_primary_green_x = primaries.green_x;
+        self.source_primary_green_y = primaries.green_y;
+        self.source_primary_blue_x = primaries.blue_x;
+        self.source_primary_blue_y = primaries.blue_y;
+        self.source_primary_white_x = primaries.white_x;
+        self.source_primary_white_y = primaries.white_y;
+    }
 }
 
 impl ExtMetadataBlockInfo for ExtMetadataBlockLevel9 {
@@ -111,7 +130,7 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel9 {
     fn required_bits(&self) -> u64 {
         match self.length {
             1 => 8,
-            9 => 136,
+            17 => 136,
             _ => unreachable!(),
         }
     }
@@ -147,17 +166,19 @@ impl Serialize for ExtMetadataBlockLevel9 {
     {
         let name = "ExtMetadataBlockLevel9";
         let fields_count = match self.length {
-            1 => 1,
-            9 => 9,
+            1 => 2,
+            17 => 10,
             _ => unreachable!(),
         };
 
         let mut state = serializer.serialize_struct(name, fields_count)?;
+
+        state.serialize_field("length", &self.length)?;
         state.serialize_field("source_primary_index", &self.source_primary_index)?;
 
         if self.length > 1 {
             state.serialize_field("source_primary_red_x", &self.source_primary_red_x)?;
-            state.serialize_field("source_primary_red_y", &self.source_primary_white_y)?;
+            state.serialize_field("source_primary_red_y", &self.source_primary_red_y)?;
             state.serialize_field("source_primary_green_x", &self.source_primary_green_x)?;
             state.serialize_field("source_primary_green_y", &self.source_primary_green_y)?;
             state.serialize_field("source_primary_blue_x", &self.source_primary_blue_x)?;
