@@ -2,7 +2,7 @@ use anyhow::{ensure, Result};
 use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
@@ -10,7 +10,7 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 /// For CM v4.0, L8 metadata only is present and used to compute L2
 #[repr(C)]
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize))]
 pub struct ExtMetadataBlockLevel8 {
     pub length: u64,
     pub target_display_index: u8,
@@ -22,11 +22,25 @@ pub struct ExtMetadataBlockLevel8 {
     pub ms_weight: u16,
     pub target_mid_contrast: u16,
     pub clip_trim: u16,
+
+    pub saturation_vector_field0: u8,
+    pub saturation_vector_field1: u8,
+    pub saturation_vector_field2: u8,
+    pub saturation_vector_field3: u8,
+    pub saturation_vector_field4: u8,
+    pub saturation_vector_field5: u8,
+
+    pub hue_vector_field0: u8,
+    pub hue_vector_field1: u8,
+    pub hue_vector_field2: u8,
+    pub hue_vector_field3: u8,
+    pub hue_vector_field4: u8,
+    pub hue_vector_field5: u8,
 }
 
 impl ExtMetadataBlockLevel8 {
     pub fn parse(reader: &mut BitVecReader, length: u64) -> ExtMetadataBlock {
-        let mut level8 = Self {
+        let mut block = Self {
             length,
             target_display_index: reader.get_n(8),
             trim_slope: reader.get_n(12),
@@ -38,15 +52,33 @@ impl ExtMetadataBlockLevel8 {
             ..Default::default()
         };
 
-        if length >= 11 {
-            level8.target_mid_contrast = reader.get_n(12);
-
-            if length >= 13 {
-                level8.clip_trim = reader.get_n(12);
-            }
+        if length > 10 {
+            block.target_mid_contrast = reader.get_n(12);
         }
 
-        ExtMetadataBlock::Level8(level8)
+        if length > 12 {
+            block.clip_trim = reader.get_n(12);
+        }
+
+        if length > 13 {
+            block.saturation_vector_field0 = reader.get_n(8);
+            block.saturation_vector_field1 = reader.get_n(8);
+            block.saturation_vector_field2 = reader.get_n(8);
+            block.saturation_vector_field3 = reader.get_n(8);
+            block.saturation_vector_field4 = reader.get_n(8);
+            block.saturation_vector_field5 = reader.get_n(8);
+        }
+
+        if length > 19 {
+            block.hue_vector_field0 = reader.get_n(8);
+            block.hue_vector_field1 = reader.get_n(8);
+            block.hue_vector_field2 = reader.get_n(8);
+            block.hue_vector_field3 = reader.get_n(8);
+            block.hue_vector_field4 = reader.get_n(8);
+            block.hue_vector_field5 = reader.get_n(8);
+        }
+
+        ExtMetadataBlock::Level8(block)
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
@@ -60,12 +92,31 @@ impl ExtMetadataBlockLevel8 {
         writer.write_n(&self.trim_saturation_gain.to_be_bytes(), 12);
         writer.write_n(&self.ms_weight.to_be_bytes(), 12);
 
-        if self.length >= 11 {
+        // Write default values when the fields can not be omitted
+        if self.length > 10 {
             writer.write_n(&self.target_mid_contrast.to_be_bytes(), 12);
+        }
 
-            if self.length >= 13 {
-                writer.write_n(&self.clip_trim.to_be_bytes(), 12);
-            }
+        if self.length > 12 {
+            writer.write_n(&self.clip_trim.to_be_bytes(), 12);
+        }
+
+        if self.length > 13 {
+            writer.write_n(&self.saturation_vector_field0.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field1.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field2.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field3.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field4.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field5.to_be_bytes(), 8);
+        }
+
+        if self.length > 19 {
+            writer.write_n(&self.hue_vector_field0.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field1.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field2.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field3.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field4.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field5.to_be_bytes(), 8);
         }
 
         Ok(())
@@ -95,12 +146,13 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {
     }
 
     fn required_bits(&self) -> u64 {
-        if self.length == 13 {
-            104
-        } else if self.length == 12 {
-            92
-        } else {
-            80
+        match self.length {
+            25 => 200,
+            19 => 152,
+            13 => 104,
+            12 => 92,
+            10 => 80,
+            _ => unreachable!(),
         }
     }
 
@@ -109,20 +161,88 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {
     }
 }
 
-/// Target display: 1000-nit, P3, D65, ST.2084, Full (HOME)
 impl Default for ExtMetadataBlockLevel8 {
+    /// The default trim for a 100 nits target display
     fn default() -> Self {
         Self {
             length: 10,
-            target_display_index: 48,
+            target_display_index: 1,
             trim_slope: 2048,
             trim_offset: 2048,
             trim_power: 2048,
             trim_chroma_weight: 2048,
             trim_saturation_gain: 2048,
             ms_weight: 2048,
-            target_mid_contrast: 0,
-            clip_trim: 0,
+            target_mid_contrast: 2048,
+            clip_trim: 2048,
+            saturation_vector_field0: 128,
+            saturation_vector_field1: 128,
+            saturation_vector_field2: 128,
+            saturation_vector_field3: 128,
+            saturation_vector_field4: 128,
+            saturation_vector_field5: 128,
+            hue_vector_field0: 128,
+            hue_vector_field1: 128,
+            hue_vector_field2: 128,
+            hue_vector_field3: 128,
+            hue_vector_field4: 128,
+            hue_vector_field5: 128,
         }
+    }
+}
+
+#[cfg(feature = "serde_feature")]
+impl Serialize for ExtMetadataBlockLevel8 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let name = "ExtMetadataBlockLevel8";
+        let fields_count = match self.length {
+            25 => 21,
+            19 => 15,
+            13 => 9,
+            12 => 8,
+            10 => 7,
+            _ => unreachable!(),
+        };
+
+        let mut state = serializer.serialize_struct(name, fields_count)?;
+
+        state.serialize_field("target_display_index", &self.target_display_index)?;
+        state.serialize_field("trim_slope", &self.trim_slope)?;
+        state.serialize_field("trim_offset", &self.trim_offset)?;
+        state.serialize_field("trim_power", &self.trim_power)?;
+        state.serialize_field("trim_chroma_weight", &self.trim_chroma_weight)?;
+        state.serialize_field("trim_saturation_gain", &self.trim_saturation_gain)?;
+        state.serialize_field("ms_weight", &self.ms_weight)?;
+
+        if self.length > 10 {
+            state.serialize_field("target_mid_contrast", &self.target_mid_contrast)?;
+        }
+
+        if self.length > 12 {
+            state.serialize_field("clip_trim", &self.clip_trim)?;
+        }
+
+        if self.length > 13 {
+            state.serialize_field("saturation_vector_field0", &self.saturation_vector_field0)?;
+            state.serialize_field("saturation_vector_field1", &self.saturation_vector_field1)?;
+            state.serialize_field("saturation_vector_field2", &self.saturation_vector_field2)?;
+            state.serialize_field("saturation_vector_field3", &self.saturation_vector_field3)?;
+            state.serialize_field("saturation_vector_field4", &self.saturation_vector_field4)?;
+            state.serialize_field("saturation_vector_field5", &self.saturation_vector_field5)?;
+        }
+
+        if self.length > 19 {
+            state.serialize_field("hue_vector_field0", &self.hue_vector_field0)?;
+            state.serialize_field("hue_vector_field1", &self.hue_vector_field1)?;
+            state.serialize_field("hue_vector_field2", &self.hue_vector_field2)?;
+            state.serialize_field("hue_vector_field3", &self.hue_vector_field3)?;
+            state.serialize_field("hue_vector_field4", &self.hue_vector_field4)?;
+            state.serialize_field("hue_vector_field5", &self.hue_vector_field5)?;
+        }
+
+        state.end()
     }
 }

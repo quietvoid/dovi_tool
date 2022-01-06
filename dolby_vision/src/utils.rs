@@ -1,3 +1,5 @@
+use std::{cmp::min, convert::TryInto};
+
 #[cfg(feature = "serde_feature")]
 use {
     bitvec::prelude::*,
@@ -13,18 +15,11 @@ pub const ST2084_C3: f64 = (2392.0 / 4096.0) * 32.0;
 
 /// Helper function to calculate PQ codes from nits (cd/m2) values
 #[inline(always)]
-pub fn nits_to_pq(nits: u16) -> f64 {
-    let y = nits as f64 / ST2084_Y_MAX;
+pub fn nits_to_pq(nits: f64) -> f64 {
+    let y = nits / ST2084_Y_MAX;
 
     ((ST2084_C1 + ST2084_C2 * y.powf(ST2084_M1)) / (1.0 + ST2084_C3 * y.powf(ST2084_M1)))
         .powf(ST2084_M2)
-}
-
-/// Serializing a bitvec as a vec of bits
-#[cfg(feature = "serde_feature")]
-pub fn bitvec_ser_bits<S: Serializer>(bitvec: &BitVec<Msb0, u8>, s: S) -> Result<S::Ok, S::Error> {
-    let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
-    bits.serialize(s)
 }
 
 /// Copied from hevc_parser for convenience, and to avoid a dependency
@@ -61,4 +56,29 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
 
         i += 1;
     }
+}
+
+/// Assumes a list of size 8, otherwise panics
+pub fn f64_to_integer_primaries(primaries: &[f64]) -> [u16; 8] {
+    primaries
+        .iter()
+        .map(|v| {
+            let tmp = (v * 32767.0 + 32767.0).round() as u16;
+
+            match tmp {
+                // This value will not be 32768
+                32767.. => min(32767, tmp - 32767),
+                _ => tmp + 32769,
+            }
+        })
+        .collect::<Vec<u16>>()
+        .try_into()
+        .unwrap()
+}
+
+/// Serializing a bitvec as a vec of bits
+#[cfg(feature = "serde_feature")]
+pub fn bitvec_ser_bits<S: Serializer>(bitvec: &BitVec<Msb0, u8>, s: S) -> Result<S::Ok, S::Error> {
+    let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
+    bits.serialize(s)
 }

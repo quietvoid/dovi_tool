@@ -69,7 +69,7 @@ impl ExtMetadataBlockLevel2 {
 
     pub fn from_nits(target_nits: u16) -> ExtMetadataBlockLevel2 {
         ExtMetadataBlockLevel2 {
-            target_max_pq: (nits_to_pq(target_nits) * 4095.0).round() as u16,
+            target_max_pq: (nits_to_pq(target_nits.into()) * 4095.0).round() as u16,
             ..Default::default()
         }
     }

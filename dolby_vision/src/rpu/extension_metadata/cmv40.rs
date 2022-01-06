@@ -41,8 +41,8 @@ impl WithExtMetadataBlocks for CmV40DmData {
         let ext_metadata_block = match ext_block_level {
             3 => level3::ExtMetadataBlockLevel3::parse(reader),
             8 => level8::ExtMetadataBlockLevel8::parse(reader, ext_block_length),
-            9 => level9::ExtMetadataBlockLevel9::parse(reader),
-            10 => level10::ExtMetadataBlockLevel10::parse(reader),
+            9 => level9::ExtMetadataBlockLevel9::parse(reader, ext_block_length),
+            10 => level10::ExtMetadataBlockLevel10::parse(reader, ext_block_length),
             11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
             255 => bail!(
