@@ -462,8 +462,8 @@ mod tests {
 
         if let ExtMetadataBlock::Level3(level3) = shot3_vdr_dm_data.get_block(3).unwrap() {
             assert_eq!(level3.min_pq_offset, 2048);
-            assert_eq!(level3.max_pq_offset, 1871);
-            assert_eq!(level3.avg_pq_offset, 2048);
+            assert_eq!(level3.max_pq_offset, 2048);
+            assert_eq!(level3.avg_pq_offset, 1871);
         }
 
         if let ExtMetadataBlock::Level5(level5) = shot3_vdr_dm_data.get_block(5).unwrap() {
@@ -519,8 +519,8 @@ mod tests {
 
         if let ExtMetadataBlock::Level3(level3) = shot3_edit_vdr_dm_data.get_block(3).unwrap() {
             assert_eq!(level3.min_pq_offset, 2048);
-            assert_eq!(level3.max_pq_offset, 1871);
-            assert_eq!(level3.avg_pq_offset, 2048);
+            assert_eq!(level3.max_pq_offset, 2048);
+            assert_eq!(level3.avg_pq_offset, 1871);
         }
 
         if let ExtMetadataBlock::Level5(level5) = shot3_edit_vdr_dm_data.get_block(5).unwrap() {

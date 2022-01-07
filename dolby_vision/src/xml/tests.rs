@@ -129,3 +129,99 @@ fn parse_cmv4_0_2_with_l5() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn parse_cmv4_0_2_custom_displays() -> Result<()> {
+    let lib_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let assets_path = lib_path.parent().unwrap();
+
+    let opts = XmlParserOpts::default();
+    let parser = CmXmlParser::parse_file(
+        &assets_path.join("assets/tests/cmv4_0_2_custom_displays.xml"),
+        opts,
+    )?;
+
+    let config = parser.config;
+
+    assert_eq!(config.cm_version, CmVersion::V40);
+    let rpus = config.generate_rpu_list()?;
+
+    let rpu = &rpus[0];
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+
+    // L1, L5, L6 in DMv1
+    assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+
+    // L3, L8, L9, L10, L11, L254
+    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 6);
+
+    let level8 = vdr_dm_data.get_block(8).unwrap();
+
+    if let ExtMetadataBlock::Level8(block) = level8 {
+        assert_eq!(block.length, 25);
+        assert_eq!(block.target_display_index, 255);
+        assert_eq!(block.trim_slope, 2068);
+        assert_eq!(block.trim_offset, 2069);
+        assert_eq!(block.trim_power, 1987);
+        assert_eq!(block.trim_chroma_weight, 2130);
+        assert_eq!(block.trim_saturation_gain, 2150);
+        assert_eq!(block.ms_weight, 2171);
+        assert_eq!(block.target_mid_contrast, 2089);
+        assert_eq!(block.clip_trim, 2011);
+
+        assert_eq!(block.saturation_vector_field0, 128);
+        assert_eq!(block.saturation_vector_field1, 128);
+        assert_eq!(block.saturation_vector_field2, 128);
+        assert_eq!(block.saturation_vector_field3, 128);
+        assert_eq!(block.saturation_vector_field4, 150);
+        assert_eq!(block.saturation_vector_field5, 128);
+
+        assert_eq!(block.hue_vector_field0, 128);
+        assert_eq!(block.hue_vector_field1, 160);
+        assert_eq!(block.hue_vector_field2, 128);
+        assert_eq!(block.hue_vector_field3, 128);
+        assert_eq!(block.hue_vector_field4, 128);
+        assert_eq!(block.hue_vector_field5, 128);
+    } else {
+        panic!("No L8 block");
+    }
+
+    let level9 = vdr_dm_data.get_block(9).unwrap();
+    if let ExtMetadataBlock::Level9(block) = level9 {
+        assert_eq!(block.length, 17);
+        assert_eq!(block.source_primary_index, 255);
+
+        assert_eq!(block.source_primary_red_x, 22314);
+        assert_eq!(block.source_primary_red_y, 10551);
+        assert_eq!(block.source_primary_green_x, 8693);
+        assert_eq!(block.source_primary_green_y, 22740);
+        assert_eq!(block.source_primary_blue_x, 5079);
+        assert_eq!(block.source_primary_blue_y, 2163);
+        assert_eq!(block.source_primary_white_x, 10249);
+        assert_eq!(block.source_primary_white_y, 10807);
+    } else {
+        panic!("No L9 block");
+    }
+
+    let level10 = vdr_dm_data.get_block(10).unwrap();
+    if let ExtMetadataBlock::Level10(block) = level10 {
+        assert_eq!(block.length, 21);
+        assert_eq!(block.target_display_index, 255);
+
+        assert_eq!(block.target_max_pq, 2081);
+        assert_eq!(block.target_min_pq, 62);
+        assert_eq!(block.target_primary_index, 255);
+        assert_eq!(block.target_primary_red_x, 21004);
+        assert_eq!(block.target_primary_red_y, 10879);
+        assert_eq!(block.target_primary_green_x, 10813);
+        assert_eq!(block.target_primary_green_y, 20971);
+        assert_eq!(block.target_primary_blue_x, 5079);
+        assert_eq!(block.target_primary_blue_y, 2163);
+        assert_eq!(block.target_primary_white_x, 10249);
+        assert_eq!(block.target_primary_white_y, 10807);
+    } else {
+        panic!("No L10 block");
+    }
+
+    Ok(())
+}

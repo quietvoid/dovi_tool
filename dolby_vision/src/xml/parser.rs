@@ -89,7 +89,9 @@ impl CmXmlParser {
                 parser.config.shots.sort_by_key(|s| s.start);
 
                 // Add default L10 blocks
-                parser.parse_global_level10_targets()?;
+                if parser.is_cmv4() {
+                    parser.parse_global_level10_targets()?;
+                }
 
                 parser.config.length = parser.config.shots.iter().map(|s| s.duration).sum();
             } else {
@@ -230,7 +232,55 @@ impl CmXmlParser {
                 .parse::<u16>()
                 .unwrap();
 
-            if self.xml_version >= 0x500 {
+            let min_nits = target_node
+                .children()
+                .find(|e| e.has_tag_name("MinimumBrightness"))
+                .unwrap()
+                .text()
+                .unwrap()
+                .parse::<f64>()
+                .unwrap();
+
+            let primary_red = target_node
+                .descendants()
+                .find(|e| e.has_tag_name("Red"))
+                .unwrap()
+                .text()
+                .unwrap();
+
+            let primary_green = target_node
+                .descendants()
+                .find(|e| e.has_tag_name("Green"))
+                .unwrap()
+                .text()
+                .unwrap();
+
+            let primary_blue = target_node
+                .descendants()
+                .find(|e| e.has_tag_name("Blue"))
+                .unwrap()
+                .text()
+                .unwrap();
+
+            let primary_white = target_node
+                .children()
+                .find(|e| e.has_tag_name("WhitePoint"))
+                .unwrap()
+                .text()
+                .unwrap();
+
+            let primaries: Vec<f64> = [primary_red, primary_green, primary_blue, primary_white]
+                .join(&self.separator.to_string())
+                .split(self.separator)
+                .map(|v| v.parse::<f64>().unwrap())
+                .collect();
+
+            ensure!(
+                primaries.len() == 8,
+                "Primaries + WP should be a total of 8 values"
+            );
+
+            let include_target = if self.xml_version >= 0x500 {
                 let application_type = target_node
                     .children()
                     .find(|e| e.has_tag_name("ApplicationType"))
@@ -240,73 +290,19 @@ impl CmXmlParser {
                     .to_string();
 
                 // Only parse HOME targets
-                if application_type == "HOME" {
-                    let min_nits = target_node
-                        .children()
-                        .find(|e| e.has_tag_name("MinimumBrightness"))
-                        .unwrap()
-                        .text()
-                        .unwrap()
-                        .parse::<f64>()
-                        .unwrap();
-
-                    let primary_red = target_node
-                        .descendants()
-                        .find(|e| e.has_tag_name("Red"))
-                        .unwrap()
-                        .text()
-                        .unwrap();
-
-                    let primary_green = target_node
-                        .descendants()
-                        .find(|e| e.has_tag_name("Green"))
-                        .unwrap()
-                        .text()
-                        .unwrap();
-
-                    let primary_blue = target_node
-                        .descendants()
-                        .find(|e| e.has_tag_name("Blue"))
-                        .unwrap()
-                        .text()
-                        .unwrap();
-
-                    let primary_white = target_node
-                        .children()
-                        .find(|e| e.has_tag_name("WhitePoint"))
-                        .unwrap()
-                        .text()
-                        .unwrap();
-
-                    let primaries: Vec<f64> =
-                        [primary_red, primary_green, primary_blue, primary_white]
-                            .join(&self.separator.to_string())
-                            .split(self.separator)
-                            .map(|v| v.parse::<f64>().unwrap())
-                            .collect();
-
-                    ensure!(
-                        primaries.len() == 8,
-                        "Primaries + WP should be a total of 8 values"
-                    );
-
-                    targets.insert(
-                        id.clone(),
-                        TargetDisplay {
-                            id: id.clone(),
-                            peak_nits,
-                            min_nits,
-                            primaries: primaries.try_into().unwrap(),
-                        },
-                    );
-                }
+                application_type == "HOME"
             } else {
+                true
+            };
+
+            if include_target {
                 targets.insert(
                     id.clone(),
                     TargetDisplay {
-                        id,
+                        id: id.clone(),
                         peak_nits,
-                        ..Default::default()
+                        min_nits,
+                        primaries: primaries.try_into().unwrap(),
                     },
                 );
             }
@@ -492,7 +488,10 @@ impl CmXmlParser {
         for (id, target) in &self.target_displays {
             let index = self.find_primary_index(&target.primaries, false)?;
 
+            let length = if index == 255 { 21 } else { 5 };
+
             let mut block = ExtMetadataBlockLevel10 {
+                length,
                 target_display_index: target.id.parse::<u8>().unwrap(),
                 target_max_pq: min(
                     4095,
@@ -612,6 +611,8 @@ impl CmXmlParser {
             .unwrap()
             .text()
             .unwrap();
+
+        // [min, avg, max]
         let measurements: Vec<&str> = measurements.split(self.separator).collect();
 
         ensure!(
@@ -622,9 +623,9 @@ impl CmXmlParser {
         Ok(ExtMetadataBlockLevel3 {
             min_pq_offset: ((measurements[0].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
-            max_pq_offset: ((measurements[1].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
+            avg_pq_offset: ((measurements[1].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
-            avg_pq_offset: ((measurements[2].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
+            max_pq_offset: ((measurements[2].parse::<f32>().unwrap() * 2048.0) + 2048.0).round()
                 as u16,
         })
     }
@@ -832,7 +833,7 @@ impl CmXmlParser {
             if is_source {
                 primary_index
             } else {
-                // TODO: Why are the target primaries offset by the preset source primaries?
+                // FIXME: Why are the target primaries offset by the preset source primaries?
                 primary_index + level9::PREDEFINED_COLORSPACE_PRIMARIES.len()
             }
         } else {
@@ -864,7 +865,10 @@ impl CmXmlParser {
 
         let index = self.find_primary_index(&primaries, true)?;
 
+        let length = if index == 255 { 17 } else { 1 };
+
         let mut block = ExtMetadataBlockLevel9 {
+            length,
             source_primary_index: index,
             ..Default::default()
         };

@@ -138,8 +138,10 @@ impl CmV29DmData {
         );
         ensure!(
             level255_count <= 1,
-            format!("{}: There must be at most one L255 metadata block",
-                Self::VERSION)
+            format!(
+                "{}: There must be at most one L255 metadata block",
+                Self::VERSION
+            )
         );
         ensure!(
             level4_count <= 1,
