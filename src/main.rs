@@ -1,6 +1,6 @@
+use clap::Parser;
 use regex::Regex;
 use std::path::Path;
-use structopt::StructOpt;
 
 use anyhow::{bail, format_err, Result};
 use bitvec_helpers::bitvec_writer;
@@ -15,33 +15,34 @@ use dovi::{
     rpu_injector::RpuInjector, CliOptions, Format,
 };
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
+#[clap(name = env!("CARGO_PKG_NAME"), about = "Stuff about Dolby Vision", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
 struct Opt {
-    #[structopt(
+    #[clap(
         name = "mode",
-        short = "m",
+        short = 'm',
         long,
         help = "Sets the mode for RPU processing. --help for more info",
-        long_help = "Sets the mode for RPU processing.\nMode 1: Converts the RPU to be MEL compatible\nMode 2: Converts the RPU to be profile 8.1 compatible\nMode 3: Converts profile 5 to 8"
+        long_help = "Sets the mode for RPU processing.\nMode 1: Converts the RPU to be MEL compatible\nMode 2: Converts the RPU to be profile 8.1 compatible\nMode 3: Converts profile 5 to 8.1"
     )]
     mode: Option<u8>,
 
-    #[structopt(
+    #[clap(
         long,
-        short = "c",
+        short = 'c',
         help = "Set active area offsets to 0 (meaning no letterbox bars)"
     )]
     crop: bool,
 
-    #[structopt(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
+    #[clap(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
     drop_hdr10plus: bool,
 
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
 fn main() -> Result<()> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     let mut cli_options = CliOptions {
         mode: opt.mode,
