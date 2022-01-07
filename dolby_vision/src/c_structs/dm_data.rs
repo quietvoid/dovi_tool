@@ -23,6 +23,7 @@ pub struct DmData {
     level10: Level10BlockList,
     level11: *const ExtMetadataBlockLevel11,
     level254: *const ExtMetadataBlockLevel254,
+    level255: *const ExtMetadataBlockLevel255,
 }
 
 #[repr(C)]
@@ -78,6 +79,7 @@ impl DmData {
                     self.level1 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel1
                 }
+                ExtMetadataBlock::Level2(_) => {}
                 ExtMetadataBlock::Level3(b) => {
                     self.level3 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel3
@@ -94,10 +96,12 @@ impl DmData {
                     self.level6 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel6
                 }
+                ExtMetadataBlock::Level8(_) => {}
                 ExtMetadataBlock::Level9(b) => {
                     self.level9 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel9
                 }
+                ExtMetadataBlock::Level10(_) => {}
                 ExtMetadataBlock::Level11(b) => {
                     self.level11 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel11
@@ -106,7 +110,11 @@ impl DmData {
                     self.level254 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel254
                 }
-                _ => {}
+                ExtMetadataBlock::Level255(b) => {
+                    self.level255 =
+                        Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel255
+                }
+                ExtMetadataBlock::Reserved(_) => {}
             };
         }
 
@@ -133,6 +141,7 @@ impl DmData {
         self.level10.free();
         Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11);
         Box::from_raw(self.level254 as *mut ExtMetadataBlockLevel254);
+        Box::from_raw(self.level255 as *mut ExtMetadataBlockLevel255);
     }
 }
 
@@ -151,6 +160,7 @@ impl Default for DmData {
             level10: Default::default(),
             level11: null(),
             level254: null(),
+            level255: null(),
         }
     }
 }

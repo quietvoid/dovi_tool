@@ -2,6 +2,7 @@
 
 - Add support for variable length blocks: L8, L9, L10.
 - Add L9 metadata by default when generating CM v4.0 RPUs.
+- Add support for L255 block in DM v1 payload.
 
 XML parser:
 - Improve specific version support up to XML version 5.1.0.
