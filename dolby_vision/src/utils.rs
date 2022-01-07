@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 #[cfg(feature = "serde_feature")]
 use {
     bitvec::prelude::*,
@@ -56,18 +54,6 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
 
         i += 1;
     }
-}
-
-/// Assumes a list of size 8, otherwise panics
-pub fn f64_to_integer_primaries(primaries: &[f64]) -> [u16; 8] {
-    const SCALE: f64 = 1.0 / 32767.0;
-
-    primaries
-        .iter()
-        .map(|v| (v / SCALE).round() as u16)
-        .collect::<Vec<u16>>()
-        .try_into()
-        .unwrap()
 }
 
 /// Serializing a bitvec as a vec of bits

@@ -1,5 +1,6 @@
 {
     "convert_to_cmv4": true,
+    "level9": "DCIP3D65",
     "level11": {
         "content_type": 1,
         "whitepoint": 0,

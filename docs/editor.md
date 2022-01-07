@@ -4,9 +4,11 @@ The editor expects a JSON config like the example below:
     // Mode to convert the RPU (refer to README)
     "mode": int,
 
-    // Adds CM v4.0 metadata with L11 content type metadata
-    // Optional, defaults to false
-    // If L11 is not specified, it is defaulted to Cinema, D65 and Reference Mode
+    // Adds CM v4.0 metadata with these defaults:
+    //   L9 with DCI-P3 mastering display primaries
+    //   L11 content type set to Cinema, D65 and Reference Mode
+    //
+    // Optional, defaults to false.
     "convert_to_cmv4": boolean,
 
     // Whether to remove polynomial/MMR mapping coefficients from the metadata
@@ -76,6 +78,15 @@ The editor expects a JSON config like the example below:
         "max_content_light_level": int,
         "max_frame_average_light_level": int
     },
+
+
+    // Level 9 Mastering Display Primaries
+    // Optional, replaces existing L9.
+    // Implies converting to CM V4.0.
+    //
+    // String value, must match enum.
+    // Default: "DCIP3D65".
+    "level9": MasteringDisplayPrimaries,
 
     // Level 11 Content type metadata
     // Optional, replaces existing L11

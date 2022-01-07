@@ -4,7 +4,9 @@ use std::{collections::HashMap, path::PathBuf};
 use anyhow::{bail, ensure, Result};
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
+    ExtMetadataBlockLevel9,
 };
+use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::extension_metadata::{CmV40DmData, DmData};
 use dolby_vision::rpu::generate::GenerateConfig;
 use serde::{Deserialize, Serialize};
@@ -46,6 +48,7 @@ pub struct EditConfig {
     max_pq: Option<u16>,
 
     level6: Option<ExtMetadataBlockLevel6>,
+    level9: Option<MasteringDisplayPrimaries>,
     level11: Option<ExtMetadataBlockLevel11>,
 }
 
@@ -107,14 +110,9 @@ impl Editor {
         editor.rpus =
             parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());
 
-        // Set default L11
-        if config.convert_to_cmv4 && config.level11.is_none() {
-            config.level11 = Some(ExtMetadataBlockLevel11::default_reference_cinema());
-        }
-
         // Override to CM v4.0
-        if !config.convert_to_cmv4 && config.level11.is_some() {
-            config.convert_to_cmv4 = true;
+        if !config.convert_to_cmv4 {
+            config.convert_to_cmv4 = config.level11.is_some() || config.level9.is_some();
         }
 
         if let Some(ref mut rpus) = editor.rpus {
@@ -170,6 +168,10 @@ impl EditConfig {
 
         if let Some(l6) = &self.level6 {
             self.set_level6_metadata(rpus, l6)?;
+        }
+
+        if let Some(l9) = &self.level9 {
+            self.set_level9_metadata(rpus, l9.clone())?;
         }
 
         if let Some(l11) = &self.level11 {
@@ -300,7 +302,39 @@ impl EditConfig {
                 if vdr_dm_data.cmv40_metadata.is_none() {
                     vdr_dm_data.cmv40_metadata =
                         Some(DmData::V40(CmV40DmData::new_with_l254_402()));
+
+                    // Defaults
+                    vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level9(
+                        ExtMetadataBlockLevel9::default_dci_p3(),
+                    ))?;
+                    vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level11(
+                        ExtMetadataBlockLevel11::default_reference_cinema(),
+                    ))?;
                 }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_level9_metadata(
+        &self,
+        rpus: &mut Vec<Option<DoviRpu>>,
+        primaries: MasteringDisplayPrimaries,
+    ) -> Result<()> {
+        let primary_index = primaries as u8;
+
+        let level9 = ExtMetadataBlockLevel9 {
+            length: 1,
+            source_primary_index: primary_index,
+            ..Default::default()
+        };
+
+        for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
+            rpu.modified = true;
+
+            if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level9(level9.clone()))?;
             }
         }
 

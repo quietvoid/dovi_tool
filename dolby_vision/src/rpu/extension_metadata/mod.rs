@@ -8,6 +8,9 @@ pub mod blocks;
 pub mod cmv29;
 pub mod cmv40;
 
+pub mod primaries;
+pub use primaries::*;
+
 pub use cmv29::CmV29DmData;
 pub use cmv40::CmV40DmData;
 

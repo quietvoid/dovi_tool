@@ -1,5 +1,6 @@
 use anyhow::Result;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use std::fs::File;
 use std::{io::Read, path::PathBuf};
 
@@ -438,7 +439,7 @@ fn cmv40_full_rpu() -> Result<()> {
             }),
             ExtMetadataBlock::Level9(ExtMetadataBlockLevel9 {
                 length: 1,
-                source_primary_index: 0,
+                source_primary_index: MasteringDisplayPrimaries::DCIP3D65 as u8,
                 ..Default::default()
             }),
             ExtMetadataBlock::Level10(ExtMetadataBlockLevel10 {
@@ -602,8 +603,8 @@ fn generate_default_cmv40() -> Result<()> {
 
     // Only L5 and L6
     assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 2);
-    // Only L11 and L254
-    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 2);
+    // Only L9, L11 and L254
+    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
 
     if let ExtMetadataBlock::Level5(level5) = vdr_dm_data.get_block(5).unwrap() {
         assert_eq!(level5.get_offsets(), (0, 0, 0, 0));
@@ -614,6 +615,11 @@ fn generate_default_cmv40() -> Result<()> {
         assert_eq!(level6.max_display_mastering_luminance, 1000);
         assert_eq!(level6.max_content_light_level, 1000);
         assert_eq!(level6.max_frame_average_light_level, 400);
+    }
+
+    if let ExtMetadataBlock::Level9(level9) = vdr_dm_data.get_block(9).unwrap() {
+        assert_eq!(level9.length, 1);
+        assert_eq!(level9.source_primary_index, 0);
     }
 
     if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {

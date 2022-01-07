@@ -4,19 +4,9 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-use super::{ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo};
+use crate::rpu::extension_metadata::MasteringDisplayPrimaries;
 
-pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
-    [0.68, 0.32, 0.265, 0.69, 0.15, 0.06, 0.3127, 0.329], //  0, DCI-P3 D65
-    [0.64, 0.33, 0.30, 0.60, 0.15, 0.06, 0.3127, 0.329],  //  1, BT.709
-    [0.708, 0.292, 0.170, 0.797, 0.131, 0.046, 0.3127, 0.329], //  2, BT.2020
-    [0.63, 0.34, 0.31, 0.595, 0.155, 0.07, 0.3127, 0.329], //  3, BT.601 NTSC / SMPTE-C
-    [0.64, 0.33, 0.29, 0.60, 0.15, 0.06, 0.3127, 0.329],  //  4, BT.601 PAL / BT.470 BG
-    [0.68, 0.32, 0.265, 0.69, 0.15, 0.06, 0.314, 0.351],  //  5, DCI-P3
-    [0.7347, 0.2653, 0.0, 1.0, 0.0001, -0.077, 0.32168, 0.33767], //  6, ACES
-    [0.73, 0.28, 0.14, 0.855, 0.10, -0.05, 0.3127, 0.329], //  7, S-Gamut
-    [0.766, 0.275, 0.225, 0.80, 0.089, -0.087, 0.3127, 0.329], //  8, S-Gamut-3.Cine
-];
+use super::{ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Source/mastering display color primaries
 ///
@@ -122,6 +112,14 @@ impl ExtMetadataBlockLevel9 {
         self.source_primary_white_x = primaries.white_x;
         self.source_primary_white_y = primaries.white_y;
     }
+
+    pub fn default_dci_p3() -> ExtMetadataBlockLevel9 {
+        Self {
+            length: 1,
+            source_primary_index: MasteringDisplayPrimaries::DCIP3D65 as u8,
+            ..Default::default()
+        }
+    }
 }
 
 impl ExtMetadataBlockInfo for ExtMetadataBlockLevel9 {
@@ -151,7 +149,7 @@ impl Default for ExtMetadataBlockLevel9 {
     fn default() -> Self {
         Self {
             length: 1,
-            source_primary_index: 0,
+            source_primary_index: MasteringDisplayPrimaries::DCIP3D65 as u8,
             source_primary_red_x: 0,
             source_primary_red_y: 0,
             source_primary_green_x: 0,

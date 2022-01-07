@@ -5,7 +5,9 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::{Deserialize, Serialize};
 
 use super::dovi_rpu::DoviRpu;
-use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel11};
+use super::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel9,
+};
 use super::extension_metadata::*;
 use super::generate::GenerateConfig;
 use super::profiles::profile81::Profile81;
@@ -462,6 +464,11 @@ impl VdrDmData {
     pub fn set_static_metadata(&mut self, config: &GenerateConfig) -> Result<()> {
         self.replace_metadata_block(ExtMetadataBlock::Level5(config.level5.clone()))?;
         self.replace_metadata_block(ExtMetadataBlock::Level6(config.level6.clone()))?;
+
+        // Default to inserting both L9 (required) and L11 metadata
+        self.replace_metadata_block(ExtMetadataBlock::Level9(
+            ExtMetadataBlockLevel9::default_dci_p3(),
+        ))?;
         self.replace_metadata_block(ExtMetadataBlock::Level11(
             ExtMetadataBlockLevel11::default_reference_cinema(),
         ))?;

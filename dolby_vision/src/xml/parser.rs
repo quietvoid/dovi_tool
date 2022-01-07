@@ -7,12 +7,13 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use crate::rpu::extension_metadata::blocks::*;
+use crate::rpu::extension_metadata::{blocks::*, primaries};
 use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
 use crate::rpu::vdr_dm_data::CmVersion;
 use crate::utils::nits_to_pq;
 
 use level10::PRESET_TARGET_DISPLAYS;
+use primaries::ColorPrimaries;
 
 #[derive(Default, Debug)]
 pub struct CmXmlParser {
@@ -818,7 +819,7 @@ impl CmXmlParser {
 
     fn find_primary_index(&self, primaries: &[f64; 8], is_source: bool) -> Result<u8> {
         let presets = if is_source {
-            level9::PREDEFINED_COLORSPACE_PRIMARIES
+            primaries::PREDEFINED_COLORSPACE_PRIMARIES
         } else {
             level10::PREDEFINED_REALDEVICE_PRIMARIES
         };
@@ -836,7 +837,7 @@ impl CmXmlParser {
                 primary_index
             } else {
                 // FIXME: Why are the target primaries offset by the preset source primaries?
-                primary_index + level9::PREDEFINED_COLORSPACE_PRIMARIES.len()
+                primary_index + primaries::PREDEFINED_COLORSPACE_PRIMARIES.len()
             }
         } else {
             255
