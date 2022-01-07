@@ -120,7 +120,7 @@
                   <AspectRatios>1.77778 1.55556</AspectRatios>
                 </Level5>
                 <Level9 level="9">
-                  <SourceColorModel>0</SourceColorModel>
+                  <SourceColorModel>255</SourceColorModel>
                   <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
                 </Level9>
               </DVDynamicData>
@@ -169,7 +169,7 @@
                   <HueVectorField>0 0 0 0 0 0</HueVectorField>
                 </Level8>
                 <Level9 level="9">
-                  <SourceColorModel>0</SourceColorModel>
+                  <SourceColorModel>255</SourceColorModel>
                   <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
                 </Level9>
               </DVDynamicData>
@@ -190,7 +190,7 @@
                   <L1Offset>0 -0.0863522 0</L1Offset>
                 </Level3>
                 <Level9 level="9">
-                  <SourceColorModel>0</SourceColorModel>
+                  <SourceColorModel>255</SourceColorModel>
                   <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
                 </Level9>
               </DVDynamicData>
