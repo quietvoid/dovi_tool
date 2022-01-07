@@ -12,13 +12,13 @@ hevc_parser = "0.3.1"
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
-anyhow = "1.0.45"
+anyhow = "1.0.51"
 clap = { version = "3.0.5", features = ["derive", "wrap_help"] }
 indicatif = "0.16.2"
 regex = "1.5.4"
 bitvec = "0.22.3"
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.132", features = ["derive"] }
+serde_json = { version = "1.0.73", features = ["preserve_order"] }
 rayon = "1.5.1"
 
 [[bin]]
