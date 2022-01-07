@@ -48,6 +48,11 @@ pub struct GenerateConfig {
     /// Defaults to 1000,0.0001
     pub level6: ExtMetadataBlockLevel6,
 
+    /// In the case of XML generation, the L254 metadata can vary.
+    /// Not allowed to be deserialized because it's handled by the lib.
+    #[cfg_attr(feature = "serde_feature", serde(skip))]
+    pub level254: Option<ExtMetadataBlockLevel254>,
+
     /// List of metadata blocks to use for every RPU generated.
     ///
     /// Per-shot or per-frame metadata replaces the default
@@ -202,6 +207,7 @@ impl Default for GenerateConfig {
                 max_content_light_level: 0,
                 max_frame_average_light_level: 0,
             },
+            level254: Default::default(),
             shots: Default::default(),
         }
     }
@@ -338,7 +344,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot1_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot1_vdr_dm_data.get_block(11).unwrap() {
@@ -412,6 +418,7 @@ mod tests {
         let mut shot2_level8_iter = shot2_vdr_dm_data.level_blocks_iter(8);
 
         if let ExtMetadataBlock::Level8(shot2_l8) = shot2_level8_iter.next().unwrap() {
+            assert_eq!(shot2_l8.length, 13);
             assert_eq!(shot2_l8.target_display_index, 1);
             assert_eq!(shot2_l8.trim_slope, 2048);
             assert_eq!(shot2_l8.trim_offset, 2048);
@@ -419,6 +426,8 @@ mod tests {
             assert_eq!(shot2_l8.trim_chroma_weight, 2048);
             assert_eq!(shot2_l8.trim_saturation_gain, 2048);
             assert_eq!(shot2_l8.ms_weight, 2048);
+            assert_eq!(shot2_l8.target_mid_contrast, 2048);
+            assert_eq!(shot2_l8.clip_trim, 2011);
         }
         if let ExtMetadataBlock::Level8(shot2_l8) = shot2_level8_iter.next().unwrap() {
             assert_eq!(shot2_l8.target_display_index, 48);
@@ -431,7 +440,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot2_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot2_vdr_dm_data.get_block(11).unwrap() {
@@ -459,8 +468,8 @@ mod tests {
 
         if let ExtMetadataBlock::Level3(level3) = shot3_vdr_dm_data.get_block(3).unwrap() {
             assert_eq!(level3.min_pq_offset, 2048);
-            assert_eq!(level3.max_pq_offset, 1871);
-            assert_eq!(level3.avg_pq_offset, 2048);
+            assert_eq!(level3.max_pq_offset, 2048);
+            assert_eq!(level3.avg_pq_offset, 1871);
         }
 
         if let ExtMetadataBlock::Level5(level5) = shot3_vdr_dm_data.get_block(5).unwrap() {
@@ -475,7 +484,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot3_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot3_vdr_dm_data.get_block(11).unwrap() {
@@ -516,8 +525,8 @@ mod tests {
 
         if let ExtMetadataBlock::Level3(level3) = shot3_edit_vdr_dm_data.get_block(3).unwrap() {
             assert_eq!(level3.min_pq_offset, 2048);
-            assert_eq!(level3.max_pq_offset, 1871);
-            assert_eq!(level3.avg_pq_offset, 2048);
+            assert_eq!(level3.max_pq_offset, 2048);
+            assert_eq!(level3.avg_pq_offset, 1871);
         }
 
         if let ExtMetadataBlock::Level5(level5) = shot3_edit_vdr_dm_data.get_block(5).unwrap() {
@@ -545,7 +554,7 @@ mod tests {
         }
 
         if let ExtMetadataBlock::Level9(level9) = shot3_edit_vdr_dm_data.get_block(9).unwrap() {
-            assert_eq!(level9.source_primary_index, 255);
+            assert_eq!(level9.source_primary_index, 0);
         }
 
         if let ExtMetadataBlock::Level11(level11) = shot3_edit_vdr_dm_data.get_block(11).unwrap() {

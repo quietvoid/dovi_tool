@@ -1,5 +1,8 @@
 The generator can create a profile 8.1 RPU binary.  
-Any extension metadata can be added.
+
+Any extension metadata can be added, but adding blocks is for advanced usage.  
+Ideally, most custom blocks usage should be scripted, especially when shots are involved.  
+For the structure expected for deserialization, see [metadata blocks](../dolby_vision/src/rpu/extension_metadata/blocks).
 
 A JSON config example:
 

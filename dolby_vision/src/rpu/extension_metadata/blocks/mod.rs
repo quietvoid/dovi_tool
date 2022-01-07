@@ -32,10 +32,25 @@ pub use level8::ExtMetadataBlockLevel8;
 pub use level9::ExtMetadataBlockLevel9;
 pub use reserved::ReservedExtMetadataBlock;
 
+use crate::utils::f64_to_integer_primaries;
+
 use super::WithExtMetadataBlocks;
 
 /// cbindgen:ignore
 pub const MAX_12_BIT_VALUE: u16 = 4095;
+
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+pub struct ColorPrimaries {
+    pub red_x: u16,
+    pub red_y: u16,
+    pub green_x: u16,
+    pub green_y: u16,
+    pub blue_x: u16,
+    pub blue_y: u16,
+    pub white_x: u16,
+    pub white_y: u16,
+}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
@@ -194,12 +209,12 @@ impl ExtMetadataBlock {
     pub fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
         &self,
         reader: &mut BitVecReader,
-        expected_length: u64,
+        block_length: u64,
     ) -> Result<()> {
         let level = self.level();
 
         ensure!(
-            expected_length == self.length_bytes(),
+            block_length == self.length_bytes(),
             format!(
                 "{}: Invalid metadata block. Block level {} should have length {}",
                 T::VERSION,
@@ -220,5 +235,27 @@ impl ExtMetadataBlock {
         }
 
         Ok(())
+    }
+}
+
+impl ColorPrimaries {
+    pub fn from_array_int(primaries: &[u16; 8]) -> ColorPrimaries {
+        Self {
+            red_x: primaries[0],
+            red_y: primaries[1],
+            green_x: primaries[2],
+            green_y: primaries[3],
+            blue_x: primaries[4],
+            blue_y: primaries[5],
+            white_x: primaries[6],
+            white_y: primaries[7],
+        }
+    }
+
+    pub fn from_array_float(primaries: &[f64; 8]) -> ColorPrimaries {
+        // Float to integer primaries
+        let primaries_int = f64_to_integer_primaries(primaries);
+
+        Self::from_array_int(&primaries_int)
     }
 }

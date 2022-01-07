@@ -30,7 +30,7 @@ impl ExtMetadataBlockLevel254 {
         Ok(())
     }
 
-    pub fn cmv40_default() -> ExtMetadataBlockLevel254 {
+    pub fn cmv402_default() -> ExtMetadataBlockLevel254 {
         ExtMetadataBlockLevel254 {
             dm_mode: 0,
             dm_version_index: 2,

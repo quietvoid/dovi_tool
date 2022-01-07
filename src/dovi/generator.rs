@@ -196,10 +196,10 @@ fn parse_hdr10plus_for_l1(hdr10plus_path: &Path, config: &mut GenerateConfig) ->
                     let max_rgb = maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
 
                     let min_pq = 0;
-                    let max_pq = (nits_to_pq((max_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                        .round() as u16;
-                    let avg_pq = (nits_to_pq((avg_rgb as f64 / 10.0).round() as u16) * 4095.0)
-                        .round() as u16;
+                    let max_pq =
+                        (nits_to_pq((max_rgb as f64 / 10.0).round()) * 4095.0).round() as u16;
+                    let avg_pq =
+                        (nits_to_pq((avg_rgb as f64 / 10.0).round()) * 4095.0).round() as u16;
 
                     let mut shot = VideoShot {
                         start: frame_no,

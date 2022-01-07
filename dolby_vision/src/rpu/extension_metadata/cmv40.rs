@@ -40,9 +40,9 @@ impl WithExtMetadataBlocks for CmV40DmData {
 
         let ext_metadata_block = match ext_block_level {
             3 => level3::ExtMetadataBlockLevel3::parse(reader),
-            8 => level8::ExtMetadataBlockLevel8::parse(reader),
-            9 => level9::ExtMetadataBlockLevel9::parse(reader),
-            10 => level10::ExtMetadataBlockLevel10::parse(reader),
+            8 => level8::ExtMetadataBlockLevel8::parse(reader, ext_block_length),
+            9 => level9::ExtMetadataBlockLevel9::parse(reader, ext_block_length),
+            10 => level10::ExtMetadataBlockLevel10::parse(reader, ext_block_length),
             11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
             255 => bail!(
@@ -183,12 +183,19 @@ impl CmV40DmData {
         Ok(())
     }
 
-    pub fn new_with_l254() -> Self {
+    pub fn new_with_l254_402() -> Self {
         Self {
             num_ext_blocks: 1,
             ext_metadata_blocks: vec![ExtMetadataBlock::Level254(
-                ExtMetadataBlockLevel254::cmv40_default(),
+                ExtMetadataBlockLevel254::cmv402_default(),
             )],
+        }
+    }
+
+    pub fn new_with_custom_l254(level254: &ExtMetadataBlockLevel254) -> Self {
+        Self {
+            num_ext_blocks: 1,
+            ext_metadata_blocks: vec![ExtMetadataBlock::Level254(level254.clone())],
         }
     }
 }
