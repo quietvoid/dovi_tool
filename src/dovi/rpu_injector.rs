@@ -110,7 +110,7 @@ impl RpuInjector {
 
                 if nals.iter().any(|e| e.nal_type == NAL_UNSPEC62) {
                     already_checked_for_rpu = true;
-                    println!("\nWarning: Input file already has RPUs, they will be replaced.\n");
+                    println!("\nWarning: Input file already has RPUs, they will be replaced.");
                 }
             } else {
                 parser.split_nals(&chunk, &offsets, last, true)?;
