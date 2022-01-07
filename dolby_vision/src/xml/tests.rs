@@ -245,3 +245,50 @@ fn parse_cmv4_0_2_custom_displays() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn parse_cmv4_2_xml_510() -> Result<()> {
+    let lib_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let assets_path = lib_path.parent().unwrap();
+
+    let opts = XmlParserOpts::default();
+    let parser =
+        CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv4_2_xml_510.xml"), opts)?;
+
+    // Only HOME targets
+    assert_eq!(parser.target_displays.len(), 3);
+
+    let config = parser.config;
+
+    assert_eq!(config.cm_version, CmVersion::V40);
+    let rpus = config.generate_rpu_list()?;
+
+    let rpu = &rpus[0];
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+
+    // L1, L5, L6 in DMv1
+    assert_eq!(vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+
+    // L3, L9, L11, L254 in DMv2
+    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 4);
+
+    // Level 9 block recognized as preset
+    let level9 = vdr_dm_data.get_block(9).unwrap();
+    if let ExtMetadataBlock::Level9(block) = level9 {
+        assert_eq!(block.length, 1);
+        assert_eq!(block.source_primary_index, 0);
+    } else {
+        panic!("No L9 block");
+    }
+
+    let level11 = vdr_dm_data.get_block(11).unwrap();
+    if let ExtMetadataBlock::Level11(block) = level11 {
+        assert_eq!(block.content_type, 2);
+        assert_eq!(block.whitepoint, 0);
+        assert_eq!(block.reference_mode_flag, false);
+    } else {
+        panic!("No L11 block");
+    }
+
+    Ok(())
+}

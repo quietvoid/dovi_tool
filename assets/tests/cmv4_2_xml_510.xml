@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DolbyLabsMDF xmlns="http://www.dolby.com/schemas/dvmd/5_1_0">
+  <!-- Unofficial XML sample, just edited version -->
+  <Version>5.1.0</Version>
+  <RevisionHistory>
+    <Revision>
+      <DateTime>2020-02-17T11:29:59Z</DateTime>
+      <Author>Blackmagic Design</Author>
+      <Software>DaVinci Resolve Studio</Software>
+      <SoftwareVersion>16.1.2.026</SoftwareVersion>
+    </Revision>
+  </RevisionHistory>
+  <Outputs>
+    <Output>
+      <CompositionName>Black</CompositionName>
+      <UniqueID>118cbebe-317f-4d84-9b10-604289433563</UniqueID>
+      <NumberVideoTracks>1</NumberVideoTracks>
+      <CanvasAspectRatio>1.77778</CanvasAspectRatio>
+      <ImageAspectRatio>1.77778</ImageAspectRatio>
+      <Video>
+        <Track>
+          <TrackName>V1</TrackName>
+          <UniqueID>852c64bc-9b4c-4546-b013-a333f6a871ca</UniqueID>
+          <EditRate>24000 1001</EditRate>
+          <ColorEncoding>
+            <Primaries>
+              <Red>0.68 0.32</Red>
+              <Green>0.265 0.69</Green>
+              <Blue>0.15 0.06</Blue>
+            </Primaries>
+            <WhitePoint>0.3127 0.329</WhitePoint>
+            <PeakBrightness>10000</PeakBrightness>
+            <MinimumBrightness>0</MinimumBrightness>
+            <Encoding>pq</Encoding>
+            <ColorSpace>rgb</ColorSpace>
+            <SignalRange>computer</SignalRange>
+          </ColorEncoding>
+          <Level6 level="6">
+            <MaxCLL>0</MaxCLL>
+            <MaxFALL>0</MaxFALL>
+          </Level6>
+          <PluginNode>
+            <DVGlobalData level="0">
+              <MasteringDisplay>
+                <ID>20</ID>
+                <ApplicationType>ALL</ApplicationType>
+                <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>1000</PeakBrightness>
+                <MinimumBrightness>0.0001</MinimumBrightness>
+                <DiagonalSize>42</DiagonalSize>
+              </MasteringDisplay>
+              <TargetDisplay>
+                <ID>42</ID>
+                <ApplicationType>CINEMA</ApplicationType>
+                <Name>108-nit, P3, D65, ST.2084, Full (CINEMA)</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>108</PeakBrightness>
+                <MinimumBrightness>0.005</MinimumBrightness>
+                <EOTF>pq</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+              <TargetDisplay>
+                <ID>1</ID>
+                <ApplicationType>HOME</ApplicationType>
+                <Name>100-nit, BT.709, BT.1886, Full</Name>
+                <Primaries>
+                  <Red>0.64 0.33</Red>
+                  <Green>0.3 0.6</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>100</PeakBrightness>
+                <MinimumBrightness>0.005</MinimumBrightness>
+                <EOTF>gamma_bt1886</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+              <TargetDisplay>
+                <ID>27</ID>
+                <ApplicationType>HOME</ApplicationType>
+                <Name>600-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>600</PeakBrightness>
+                <MinimumBrightness>0</MinimumBrightness>
+                <EOTF>pq</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+              <TargetDisplay>
+                <ID>48</ID>
+                <ApplicationType>HOME</ApplicationType>
+                <Name>1000-nit, P3, D65, ST.2084, Full</Name>
+                <Primaries>
+                  <Red>0.68 0.32</Red>
+                  <Green>0.265 0.69</Green>
+                  <Blue>0.15 0.06</Blue>
+                </Primaries>
+                <WhitePoint>0.3127 0.329</WhitePoint>
+                <PeakBrightness>1000</PeakBrightness>
+                <MinimumBrightness>0</MinimumBrightness>
+                <EOTF>pq</EOTF>
+                <DiagonalSize>42</DiagonalSize>
+              </TargetDisplay>
+            </DVGlobalData>
+            <Level11 level="11">
+              <ContentType>2</ContentType>
+              <IntendedWhitePoint>0</IntendedWhitePoint>
+            </Level11>
+            <Level254 level="254">
+              <DMMode>0</DMMode>
+              <DMVersion>2</DMVersion>
+              <CMVersion>4 2</CMVersion>
+            </Level254>
+          </PluginNode>
+          <Shot>
+            <UniqueID>07e96e28-5bd9-47ef-8e21-4bbac5986052</UniqueID>
+            <Record>
+              <In>86400</In>
+              <Duration>24</Duration>
+            </Record>
+            <PluginNode>
+              <DVDynamicData>
+                <Level1 level="1">
+                  <ImageCharacter>0 0.2 0.508078</ImageCharacter>
+                </Level1>
+                <Level3 level="3">
+                  <L1Offset>0 -0.2 -0.508078</L1Offset>
+                </Level3>
+                <Level9 level="9">
+                  <SourceColorModel>255</SourceColorModel>
+                  <SourceColorPrimary>0.68 0.32 0.265 0.69 0.15 0.06 0.3127 0.329</SourceColorPrimary>
+                </Level9>
+              </DVDynamicData>
+            </PluginNode>
+          </Shot>
+        </Track>
+      </Video>
+    </Output>
+  </Outputs>
+</DolbyLabsMDF>

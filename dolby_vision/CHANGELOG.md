@@ -1,6 +1,11 @@
 ## 1.6.1
 
 - Add support for variable length blocks: L8, L9, L10.
+- Add L9 metadata by default when generating CM v4.0 RPUs.
+
+XML parser:
+- Improve specific version support up to XML version 5.1.0.
+- Add L10/L11 metadata parsing from XML.
 
 ## 1.6.0
 

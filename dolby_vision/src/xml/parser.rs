@@ -21,7 +21,7 @@ pub struct CmXmlParser {
     xml_version: u16,
     separator: char,
 
-    target_displays: HashMap<String, TargetDisplay>,
+    pub target_displays: HashMap<String, TargetDisplay>,
 
     pub config: GenerateConfig,
 }
@@ -81,6 +81,8 @@ impl CmXmlParser {
                     max_frame_average_light_level,
                 };
                 parser.config.level254 = parser.parse_level254(&video);
+
+                parser.add_level11(&video)?;
 
                 parser.target_displays = parser.parse_target_displays(&video)?;
 
@@ -282,11 +284,17 @@ impl CmXmlParser {
             let include_target = if self.xml_version >= 0x500 {
                 let application_type = target_node
                     .children()
-                    .find(|e| e.has_tag_name("ApplicationType"))
-                    .unwrap()
-                    .text()
-                    .unwrap()
-                    .to_string();
+                    .find(|e| e.has_tag_name("ApplicationType"));
+
+                ensure!(
+                    application_type.is_some(),
+                    format!(
+                        "XML v5.0+: Missing ApplicationType for Target display ID {}",
+                        id
+                    )
+                );
+
+                let application_type = application_type.unwrap().text().unwrap().to_string();
 
                 // Only parse HOME targets
                 application_type == "HOME"
@@ -333,6 +341,38 @@ impl CmXmlParser {
             // No L254 in the case of CM v2.9
             None
         }
+    }
+
+    fn add_level11(&mut self, video: &Node) -> Result<()> {
+        if let Some(node) = video.descendants().find(|e| e.has_tag_name("Level11")) {
+            let content_type: Option<u8> = if let Some(content_type_node) =
+                node.children().find(|e| e.has_tag_name("ContentType"))
+            {
+                content_type_node.text().map(|e| e.parse::<u8>().unwrap())
+            } else {
+                None
+            };
+
+            let whitepoint: Option<u8> = if let Some(wp_node) = node
+                .children()
+                .find(|e| e.has_tag_name("IntendedWhitePoint"))
+            {
+                wp_node.text().map(|e| e.parse::<u8>().unwrap())
+            } else {
+                None
+            };
+
+            if let (Some(content_type), Some(whitepoint)) = (content_type, whitepoint) {
+                self.config
+                    .default_metadata_blocks
+                    .push(ExtMetadataBlock::Level11(ExtMetadataBlockLevel11 {
+                        content_type,
+                        whitepoint,
+                        ..Default::default()
+                    }))
+            }
+        }
+        Ok(())
     }
 
     fn parse_shots(&self, video: &Node) -> Result<Vec<VideoShot>> {
