@@ -8,6 +8,15 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
 /// Creative intent trim passes per target display peak brightness
 /// For CM v4.0, L8 metadata only is present and used to compute L2
+///
+/// This block can have varying byte lengths: 10, 12, 13, 19, 25
+/// Depending on the length, the fields parsed default to zero and may not be set.
+/// Up to (including):
+///     - 10: ms_weight
+///     - 12: target_mid_contrast
+///     - 13: clip_trim
+///     - 19: saturation_vector_field[0-5]
+///     - 25: hue_vector_field[0-5]
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]

@@ -1,4 +1,8 @@
-### 1.6.0
+## 1.6.1
+
+- Add support for variable length blocks: L8, L9, L10.
+
+## 1.6.0
 
 - Fixed deserialize default value for `GenerateConfig`.`cm_version` field.
 - Added `default_metadata_blocks` to `GenerateConfig` struct.

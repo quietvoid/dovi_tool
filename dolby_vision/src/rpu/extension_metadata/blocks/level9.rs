@@ -19,6 +19,12 @@ pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
 ];
 
 /// Source/mastering display color primaries
+///
+/// This block can have varying byte lengths: 1 or 17
+/// Depending on the length, the fields parsed default to zero and may not be set.
+/// Up to (including):
+///     - 1: source_primary_index
+///     - 17: source_primary_{red,green,blue,white}_{x,y}
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]

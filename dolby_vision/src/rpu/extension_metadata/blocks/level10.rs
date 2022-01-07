@@ -30,6 +30,12 @@ pub const PREDEFINED_REALDEVICE_PRIMARIES: &[[f64; 8]] = &[
 ];
 
 /// Custom target display information
+///
+/// This block can have varying byte lengths: 5 or 21
+/// Depending on the length, the fields parsed default to zero and may not be set.
+/// Up to (including):
+///     - 5: target_primary_index
+///     - 21: target_primary_{red,green,blue,white}_{x,y}
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]

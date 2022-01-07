@@ -971,3 +971,23 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn mel_variable_l8_length13() -> Result<()> {
+    let (original_data, dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/mel_variable_l8_length13.bin"))?;
+    assert!(!dovi_rpu.modified);
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
+    assert!(!reparsed_rpu.modified);
+    assert_eq!(reparsed_rpu.dovi_profile, 7);
+
+    assert_eq!(dovi_rpu.rpu_data_crc32, reparsed_rpu.rpu_data_crc32);
+
+    Ok(())
+}
