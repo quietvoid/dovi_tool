@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
-/// Metadata level present in CM v4.0
+/// Metadata level present in CM v2.9
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]

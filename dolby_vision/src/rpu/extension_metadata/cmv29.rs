@@ -16,7 +16,7 @@ pub struct CmV29DmData {
 
 impl WithExtMetadataBlocks for CmV29DmData {
     const VERSION: &'static str = "CM v2.9";
-    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[1, 2, 4, 5, 6];
+    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[1, 2, 4, 5, 6, 255];
 
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64) {
         self.num_ext_blocks = num_ext_blocks;
@@ -44,7 +44,8 @@ impl WithExtMetadataBlocks for CmV29DmData {
             4 => level4::ExtMetadataBlockLevel4::parse(reader),
             5 => level5::ExtMetadataBlockLevel5::parse(reader),
             6 => level6::ExtMetadataBlockLevel6::parse(reader),
-            3 | 8 | 10 | 11 | 254 | 255 => bail!(
+            255 => level255::ExtMetadataBlockLevel255::parse(reader),
+            3 | 8 | 10 | 11 | 254 => bail!(
                 "Invalid block level {} for {} RPU",
                 Self::VERSION,
                 ext_block_level
@@ -91,7 +92,7 @@ impl CmV29DmData {
     }
 
     /// Validates different level block counts.
-    /// The specification requires one block of L1, L4, L5 and L6.
+    /// The specification requires one block of L1, L4, L5, L6 and L255.
     /// However they are not really required, so YMMV.
     pub fn validate(&self) -> Result<()> {
         let blocks = self.blocks_ref();
@@ -105,6 +106,8 @@ impl CmV29DmData {
 
         let level2_count = blocks.iter().filter(|b| b.level() == 2).count();
 
+        let level255_count = blocks.iter().filter(|b| b.level() == 255).count();
+
         let level4_count = blocks.iter().filter(|b| b.level() == 4).count();
 
         let level5_count = blocks.iter().filter(|b| b.level() == 5).count();
@@ -114,7 +117,7 @@ impl CmV29DmData {
         ensure!(
             invalid_blocks_count == 0,
             format!(
-                "{}: Only allowed blocks level 1, 2, 4, 5, and 6",
+                "{}: Only allowed blocks level 1, 2, 4, 5, 6, and 255",
                 Self::VERSION
             )
         );
@@ -132,6 +135,11 @@ impl CmV29DmData {
                 "{}: There must be at most 8 L2 metadata blocks",
                 Self::VERSION
             )
+        );
+        ensure!(
+            level255_count <= 1,
+            format!("{}: There must be at most one L255 metadata block",
+                Self::VERSION)
         );
         ensure!(
             level4_count <= 1,
