@@ -298,7 +298,8 @@ impl EditConfig {
 
             if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
                 if vdr_dm_data.cmv40_metadata.is_none() {
-                    vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254()));
+                    vdr_dm_data.cmv40_metadata =
+                        Some(DmData::V40(CmV40DmData::new_with_l254_402()));
                 }
             }
         }

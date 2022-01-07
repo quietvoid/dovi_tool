@@ -37,6 +37,9 @@ fn parse_cmv2_9() -> Result<()> {
     assert_eq!(config.level6.max_content_light_level, 756);
     assert_eq!(config.level6.max_frame_average_light_level, 97);
 
+    // No L254
+    assert!(config.level254.is_none());
+
     let shot1 = &config.shots[0];
     let shot1_blocks = &shot1.metadata_blocks;
     assert_eq!(shot1.duration, 12);
@@ -79,6 +82,13 @@ fn parse_cmv4_0_2() -> Result<()> {
     assert_eq!(config.level6.max_content_light_level, 3948);
     assert_eq!(config.level6.max_frame_average_light_level, 120);
 
+    // XML L254
+    assert!(config.level254.is_some());
+
+    let level254 = config.level254.as_ref().unwrap();
+    assert_eq!(level254.dm_mode, 0);
+    assert_eq!(level254.dm_version_index, 2);
+
     let shot1 = &config.shots[0];
     let shot1_blocks = &shot1.metadata_blocks;
     assert_eq!(shot1.duration, 120);
@@ -104,6 +114,16 @@ fn parse_cmv4_0_2() -> Result<()> {
     let shot3_blocks = &shot3.metadata_blocks;
     assert_eq!(shot3.duration, 40);
     assert_eq!(shot3_blocks.len(), 3);
+
+    let rpus = config.generate_rpu_list()?;
+    let rpu = &rpus[0];
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    let level254 = vdr_dm_data.get_block(254).unwrap();
+
+    if let ExtMetadataBlock::Level254(block) = &level254 {
+        assert_eq!(block.dm_mode, 0);
+        assert_eq!(block.dm_version_index, 2);
+    }
 
     Ok(())
 }

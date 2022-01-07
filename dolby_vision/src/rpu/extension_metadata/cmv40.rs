@@ -183,12 +183,19 @@ impl CmV40DmData {
         Ok(())
     }
 
-    pub fn new_with_l254() -> Self {
+    pub fn new_with_l254_402() -> Self {
         Self {
             num_ext_blocks: 1,
             ext_metadata_blocks: vec![ExtMetadataBlock::Level254(
-                ExtMetadataBlockLevel254::cmv40_default(),
+                ExtMetadataBlockLevel254::cmv402_default(),
             )],
+        }
+    }
+
+    pub fn new_with_custom_l254(level254: &ExtMetadataBlockLevel254) -> Self {
+        Self {
+            num_ext_blocks: 1,
+            ext_metadata_blocks: vec![ExtMetadataBlock::Level254(level254.clone())],
         }
     }
 }

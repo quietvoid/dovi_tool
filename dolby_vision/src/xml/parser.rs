@@ -79,11 +79,9 @@ impl CmXmlParser {
                     max_content_light_level,
                     max_frame_average_light_level,
                 };
+                parser.config.level254 = parser.parse_level254(&video);
 
                 parser.target_displays = parser.parse_target_displays(&video)?;
-
-                // TODO: Specify how?
-                let (dm_mode, dm_version_index) = parser.parse_level254(&video);
 
                 parser.config.shots = parser.parse_shots(&video)?;
                 parser.config.shots.sort_by_key(|s| s.start);
@@ -311,7 +309,7 @@ impl CmXmlParser {
         Ok(targets)
     }
 
-    fn parse_level254(&self, video: &Node) -> (u8, u8) {
+    fn parse_level254(&self, video: &Node) -> Option<ExtMetadataBlockLevel254> {
         if let Some(node) = video.descendants().find(|e| e.has_tag_name("Level254")) {
             let dm_mode = if let Some(dmm) = node.children().find(|e| e.has_tag_name("DMMode")) {
                 dmm.text().map_or(0, |e| e.parse::<u8>().unwrap())
@@ -326,9 +324,13 @@ impl CmXmlParser {
                     2
                 };
 
-            (dm_mode, dm_version_index)
+            Some(ExtMetadataBlockLevel254 {
+                dm_mode,
+                dm_version_index,
+            })
         } else {
-            (0, 2)
+            // No L254 in the case of CM v2.9
+            None
         }
     }
 

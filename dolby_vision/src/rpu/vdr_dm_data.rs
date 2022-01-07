@@ -444,7 +444,12 @@ impl VdrDmData {
             }
             CmVersion::V40 => {
                 vdr_dm_data.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()));
-                vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254()));
+
+                vdr_dm_data.cmv40_metadata = if let Some(level254) = &config.level254 {
+                    Some(DmData::V40(CmV40DmData::new_with_custom_l254(level254)))
+                } else {
+                    Some(DmData::V40(CmV40DmData::new_with_l254_402()))
+                }
             }
         }
 
@@ -462,12 +467,12 @@ impl VdrDmData {
         ))?;
 
         if !config.default_metadata_blocks.is_empty() {
-            let level_block_list: &[u8] = &[5, 6, 254];
+            const LEVEL_BLOCK_LIST: &[u8] = &[5, 6, 254];
 
             let allowed_default_blocks = config
                 .default_metadata_blocks
                 .iter()
-                .filter(|block| !level_block_list.contains(&block.level()));
+                .filter(|block| !LEVEL_BLOCK_LIST.contains(&block.level()));
 
             for block in allowed_default_blocks {
                 self.replace_metadata_block(block.clone())?;

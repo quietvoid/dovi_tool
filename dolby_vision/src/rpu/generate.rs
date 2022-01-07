@@ -48,6 +48,11 @@ pub struct GenerateConfig {
     /// Defaults to 1000,0.0001
     pub level6: ExtMetadataBlockLevel6,
 
+    /// In the case of XML generation, the L254 metadata can vary.
+    /// Not allowed to be deserialized because it's handled by the lib.
+    #[cfg_attr(feature = "serde_feature", serde(skip))]
+    pub level254: Option<ExtMetadataBlockLevel254>,
+
     /// List of metadata blocks to use for every RPU generated.
     ///
     /// Per-shot or per-frame metadata replaces the default
@@ -202,6 +207,7 @@ impl Default for GenerateConfig {
                 max_content_light_level: 0,
                 max_frame_average_light_level: 0,
             },
+            level254: Default::default(),
             shots: Default::default(),
         }
     }
