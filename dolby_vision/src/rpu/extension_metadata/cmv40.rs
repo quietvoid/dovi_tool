@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec_helpers::bitvec_reader::BitVecReader;
 
 #[cfg(feature = "serde_feature")]
@@ -45,6 +45,11 @@ impl WithExtMetadataBlocks for CmV40DmData {
             10 => level10::ExtMetadataBlockLevel10::parse(reader),
             11 => level11::ExtMetadataBlockLevel11::parse(reader),
             254 => level254::ExtMetadataBlockLevel254::parse(reader),
+            255 => bail!(
+                "Invalid block level {} for {} RPU",
+                Self::VERSION,
+                ext_block_level
+            ),
             _ => {
                 ensure!(
                     false,

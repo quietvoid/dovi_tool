@@ -363,6 +363,7 @@ impl VdrDmData {
             ExtMetadataBlock::Level254(_) => {
                 bail!("Cannot replace automatically generated Level254 block")
             }
+            ExtMetadataBlock::Level255(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Reserved(_) => bail!("Cannot replace specific reserved block"),
         }
     }

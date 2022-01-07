@@ -9,6 +9,7 @@ pub mod level10;
 pub mod level11;
 pub mod level2;
 pub mod level254;
+pub mod level255;
 pub mod level3;
 pub mod level4;
 pub mod level5;
@@ -22,6 +23,7 @@ pub use level10::ExtMetadataBlockLevel10;
 pub use level11::ExtMetadataBlockLevel11;
 pub use level2::ExtMetadataBlockLevel2;
 pub use level254::ExtMetadataBlockLevel254;
+pub use level255::ExtMetadataBlockLevel255;
 pub use level3::ExtMetadataBlockLevel3;
 pub use level4::ExtMetadataBlockLevel4;
 pub use level5::ExtMetadataBlockLevel5;
@@ -49,6 +51,7 @@ pub enum ExtMetadataBlock {
     Level10(ExtMetadataBlockLevel10),
     Level11(ExtMetadataBlockLevel11),
     Level254(ExtMetadataBlockLevel254),
+    Level255(ExtMetadataBlockLevel255),
     Reserved(ReservedExtMetadataBlock),
 }
 
@@ -80,6 +83,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.bytes_size(),
             ExtMetadataBlock::Level11(b) => b.bytes_size(),
             ExtMetadataBlock::Level254(b) => b.bytes_size(),
+            ExtMetadataBlock::Level255(b) => b.bytes_size(),
             ExtMetadataBlock::Reserved(b) => b.bytes_size(),
         }
     }
@@ -97,6 +101,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.bits_size(),
             ExtMetadataBlock::Level11(b) => b.bits_size(),
             ExtMetadataBlock::Level254(b) => b.bits_size(),
+            ExtMetadataBlock::Level255(b) => b.bits_size(),
             ExtMetadataBlock::Reserved(b) => b.bits_size(),
         }
     }
@@ -114,6 +119,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.required_bits(),
             ExtMetadataBlock::Level11(b) => b.required_bits(),
             ExtMetadataBlock::Level254(b) => b.required_bits(),
+            ExtMetadataBlock::Level255(b) => b.required_bits(),
             ExtMetadataBlock::Reserved(b) => b.required_bits(),
         }
     }
@@ -131,6 +137,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.level(),
             ExtMetadataBlock::Level11(b) => b.level(),
             ExtMetadataBlock::Level254(b) => b.level(),
+            ExtMetadataBlock::Level255(b) => b.level(),
             ExtMetadataBlock::Reserved(b) => b.level(),
         }
     }
@@ -148,6 +155,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.sort_key(),
             ExtMetadataBlock::Level11(b) => b.sort_key(),
             ExtMetadataBlock::Level254(b) => b.sort_key(),
+            ExtMetadataBlock::Level255(b) => b.sort_key(),
             ExtMetadataBlock::Reserved(b) => b.sort_key(),
         }
     }
@@ -165,6 +173,7 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level10(b) => b.write(writer),
             ExtMetadataBlock::Level11(b) => b.write(writer),
             ExtMetadataBlock::Level254(b) => b.write(writer),
+            ExtMetadataBlock::Level255(b) => b.write(writer),
             ExtMetadataBlock::Reserved(b) => b.write(writer),
         }
     }

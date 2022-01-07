@@ -49,7 +49,7 @@ impl ReservedExtMetadataBlock {
 
 impl ExtMetadataBlockInfo for ReservedExtMetadataBlock {
     fn level(&self) -> u8 {
-        255
+        0
     }
 
     fn bytes_size(&self) -> u64 {
