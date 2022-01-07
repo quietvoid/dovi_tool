@@ -74,6 +74,8 @@ impl RpuInjector {
 
         let mut offsets = Vec::with_capacity(2048);
 
+        let mut already_checked_for_rpu = false;
+
         while let Ok(n) = reader.read(&mut main_buf) {
             let read_bytes = n;
             if read_bytes == 0 && end.is_empty() && chunk.is_empty() {
@@ -103,7 +105,17 @@ impl RpuInjector {
                 last
             };
 
-            parser.split_nals(&chunk, &offsets, last, true)?;
+            if !already_checked_for_rpu {
+                already_checked_for_rpu = true;
+
+                let nals = parser.split_nals(&chunk, &offsets, last, true)?;
+
+                if nals.iter().any(|e| e.nal_type == NAL_UNSPEC62) {
+                    println!("\nWarning: Input file already has RPUs, they will be replaced.\n");
+                }
+            } else {
+                parser.split_nals(&chunk, &offsets, last, true)?;
+            }
 
             chunk.clear();
 
@@ -264,8 +276,11 @@ impl RpuInjector {
                     //    continue;
                     //}
 
-                    writer.write_all(OUT_NAL_HEADER)?;
-                    writer.write_all(&chunk[nal.start..nal.end])?;
+                    if nal.nal_type != NAL_UNSPEC62 {
+                        // Skip writing existing RPUs, only one allowed
+                        writer.write_all(OUT_NAL_HEADER)?;
+                        writer.write_all(&chunk[nal.start..nal.end])?;
+                    }
 
                     let global_index = nals_parsed + cur_index;
 
