@@ -3,7 +3,7 @@ name = "dovi_tool"
 version = "1.4.4"
 authors = ["quietvoid"]
 edition = "2018"
-rust-version = "1.51.0"
+rust-version = "1.55.0"
 license = "MIT"
 
 [dependencies]
