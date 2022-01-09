@@ -34,6 +34,7 @@ pub enum MasteringDisplayPrimaries {
     DCIP3D65 = 0,
     BT709,
     BT2020,
+    SMPTEC,
     BT601,
     DCIP3,
     ACES,

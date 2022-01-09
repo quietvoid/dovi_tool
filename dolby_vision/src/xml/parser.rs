@@ -857,11 +857,19 @@ impl CmXmlParser {
         })
     }
 
-    fn find_primary_index(&self, primaries: &[f64; 8], is_source: bool) -> Result<u8> {
-        let presets = if is_source {
-            primaries::PREDEFINED_COLORSPACE_PRIMARIES
+    fn find_primary_index(&self, primaries: &[f64; 8], check_realdevice: bool) -> Result<u8> {
+        // Check PREDEFINED_COLORSPACE_PRIMARIES anyway
+        if check_realdevice {
+            let primary_index = self.find_primary_index(primaries, false)?;
+            if primary_index < 255 {
+                return Ok(primary_index);
+            } 
+        };
+
+        let presets = if check_realdevice {
+            level9::PREDEFINED_REALDEVICE_PRIMARIES
         } else {
-            level10::PREDEFINED_REALDEVICE_PRIMARIES
+            primaries::PREDEFINED_COLORSPACE_PRIMARIES
         };
 
         let matching_primaries = presets.iter().enumerate().find(|(_, preset_primaries)| {
@@ -873,11 +881,10 @@ impl CmXmlParser {
 
         // Exact match to preset primaries
         let primary_index = if let Some((primary_index, _)) = matching_primaries {
-            if is_source {
-                primary_index
-            } else {
-                // FIXME: Why are the target primaries offset by the preset source primaries?
+            if check_realdevice {
                 primary_index + primaries::PREDEFINED_COLORSPACE_PRIMARIES.len()
+            } else {
+                primary_index
             }
         } else {
             255
