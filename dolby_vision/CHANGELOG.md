@@ -1,3 +1,7 @@
+## ??
+
+- Updated `bitvec` dependency to 1.0.0.
+
 ## 1.6.1
 
 - Add support for variable length blocks: L8, L9, L10.

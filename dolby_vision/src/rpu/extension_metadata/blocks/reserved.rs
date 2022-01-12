@@ -18,7 +18,7 @@ pub struct ReservedExtMetadataBlock {
         feature = "serde_feature",
         serde(serialize_with = "crate::utils::bitvec_ser_bits", skip_deserializing)
     )]
-    pub data: BitVec<Msb0, u8>,
+    pub data: BitVec<u8, Msb0>,
 }
 
 impl ReservedExtMetadataBlock {

@@ -863,7 +863,7 @@ impl CmXmlParser {
             let primary_index = self.find_primary_index(primaries, false)?;
             if primary_index < 255 {
                 return Ok(primary_index);
-            } 
+            }
         };
 
         let presets = if check_realdevice {

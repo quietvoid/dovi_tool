@@ -8,7 +8,7 @@ The `dolby_vision` crate is also hosted in this repo, see [README](dolby_vision/
 
 ### Toolchain
 
-The minimum Rust version to build `dovi_tool` is 1.55.0.
+The minimum Rust version to build `dovi_tool` is 1.56.0.
 
 &nbsp;
 

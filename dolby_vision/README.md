@@ -7,8 +7,7 @@ See [changelog](CHANGELOG.md) for API changes.
 
 ### Toolchain
 
-For use as a Rust crate, Rust 1.51.0 can be used.  
-To build the C-API library, the minimum Rust version is 1.55.0.  
+The minimum Rust version to use `dolby_vision` is 1.56.0.
 
 &nbsp;
 
