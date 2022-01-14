@@ -194,7 +194,7 @@ dependencies = [
 
 [[package]]
 name = "dovi_tool"
-version = "1.4.4"
+version = "1.4.5"
 dependencies = [
  "anyhow",
  "bitvec",
