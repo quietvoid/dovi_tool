@@ -187,7 +187,7 @@ pub enum Command {
             short = 'x',
             long,
             help = "XML metadata file to generate from",
-            conflicts_with_all = &["json", "hdr10plus_json", "madvr-file"],
+            conflicts_with_all = &["json", "hdr10plus-json", "madvr-file"],
             parse(from_os_str)
         )]
         xml: Option<PathBuf>,
