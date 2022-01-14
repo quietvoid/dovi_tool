@@ -161,7 +161,7 @@ pub enum Command {
             long,
             short = 'j',
             help = "Sets the generator config JSON file to use",
-            conflicts_with_all = &["xml", "madvr-file"],
+            conflicts_with = "xml",
             parse(from_os_str)
         )]
         json_file: Option<PathBuf>,
@@ -174,13 +174,20 @@ pub enum Command {
         )]
         rpu_out: Option<PathBuf>,
 
-        #[clap(long, help = "HDR10+ JSON file to generate from", parse(from_os_str))]
+        #[clap(
+            name = "hdr10plus-json",
+            long,
+            help = "HDR10+ JSON file to generate from",
+            conflicts_with = "madvr-file",
+            parse(from_os_str)
+        )]
         hdr10plus_json: Option<PathBuf>,
 
         #[clap(
             short = 'x',
             long,
             help = "XML metadata file to generate from",
+            conflicts_with_all = &["json", "hdr10plus_json", "madvr-file"],
             parse(from_os_str)
         )]
         xml: Option<PathBuf>,
@@ -192,6 +199,7 @@ pub enum Command {
         canvas_height: Option<u16>,
 
         #[clap(
+            name = "madvr-file",
             long,
             help = "madVR measurement file to generate from",
             parse(from_os_str)
