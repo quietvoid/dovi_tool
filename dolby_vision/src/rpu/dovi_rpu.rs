@@ -269,6 +269,13 @@ impl DoviRpu {
         Ok(())
     }
 
+    /// Modes:
+    ///     0: Don't modify the RPU
+    ///     1: Converts the RPU to be MEL compatible
+    ///     2: Converts the RPU to be profile 8.1 compatible
+    ///     3: Converts profile 5 to 8
+    ///
+    /// noop when profile 8 and mode 2 is used
     pub fn convert_with_mode(&mut self, mode: u8) -> Result<()> {
         if mode != 0 {
             self.modified = true;
@@ -282,8 +289,12 @@ impl DoviRpu {
             };
         } else if self.dovi_profile == 5 && mode == 3 {
             self.p5_to_p81()?;
-        } else if self.dovi_profile == 8 && mode == 1 {
-            self.convert_to_mel()?;
+        } else if self.dovi_profile == 8 && (mode == 1 || mode == 2) {
+            match mode {
+                1 => self.convert_to_mel()?,
+                2 => self.modified = false, // Ignore conversion
+                _ => (),
+            };
         } else if mode != 0 {
             bail!("Invalid profile for mode {} conversion!", mode);
         }

@@ -997,3 +997,18 @@ fn mel_variable_l8_length13() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn p8_bypass() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    dovi_rpu.convert_with_mode(2)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}

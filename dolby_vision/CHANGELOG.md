@@ -1,6 +1,7 @@
 ## ??
 
 - Updated `bitvec` dependency to 1.0.0.
+- Allowed noop conversion when converting a profile 8 RPU with mode 2.
 
 ## 1.6.1
 
