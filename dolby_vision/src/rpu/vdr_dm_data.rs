@@ -73,16 +73,18 @@ pub enum CmVersion {
     V40,
 }
 
-pub fn vdr_dm_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+pub fn vdr_dm_data_payload(
+    dovi_rpu: &mut DoviRpu,
+    reader: &mut BitVecReader,
+    final_length: usize,
+) -> Result<()> {
     let mut vdr_dm_data = VdrDmData::parse(reader)?;
 
     if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData>(reader)? {
         vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
     }
 
-    let final_length = if dovi_rpu.last_byte == 0 { 48 } else { 40 };
-
-    // 40 or 48 w/ CRC32 + 16 bits required level 254
+    // 16 bits min for required level 254
     if reader.available() >= final_length + 16 {
         if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
             vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));

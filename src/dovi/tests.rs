@@ -1012,3 +1012,19 @@ fn p8_bypass() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn trailing_bytes_rpu() -> Result<()> {
+    let (original_data, mut dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/trailing_bytes_rpu.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    dovi_rpu.convert_with_mode(0)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}

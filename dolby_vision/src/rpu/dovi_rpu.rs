@@ -20,6 +20,8 @@ use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
 
+const FINAL_BYTE: u8 = 0x80;
+
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct DoviRpu {
@@ -55,7 +57,7 @@ pub struct DoviRpu {
     pub rpu_data_crc32: u32,
 
     #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
-    pub last_byte: u8,
+    pub trailing_bytes: Vec<u8>,
 
     #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
     pub modified: bool,
@@ -97,19 +99,27 @@ impl DoviRpu {
 
     #[inline(always)]
     fn parse(data: &[u8]) -> Result<DoviRpu> {
-        let len = data.len();
+        let trailing_bytes: Vec<u8> = data
+            .iter()
+            .rev()
+            .take_while(|b| **b == 0)
+            .cloned()
+            .collect();
 
-        let mut received_crc32 = compute_crc32(&data[1..len - 5]);
-        let last_byte = data[len - 1];
+        // Ignore trailing bytes
+        let rpu_end = data.len() - trailing_bytes.len();
+        let last_byte = data[rpu_end - 1];
 
-        // Final RPU exception
-        if last_byte == 0 && data[len - 2] == 0x80 {
-            received_crc32 = compute_crc32(&data[1..len - 6]);
-        } else if last_byte != 0x80 {
+        // Minus 4 bytes for the CRC32, 1 for the 0x80 ending byte
+        let crc32_start = rpu_end - 5;
+
+        let received_crc32 = compute_crc32(&data[1..crc32_start]);
+
+        if last_byte != FINAL_BYTE {
             bail!("Invalid RPU last byte: {}", last_byte);
         }
 
-        let mut dovi_rpu = DoviRpu::read_rpu_data(data.to_owned(), last_byte)?;
+        let mut dovi_rpu = DoviRpu::read_rpu_data(data.to_owned(), trailing_bytes)?;
 
         if received_crc32 != dovi_rpu.rpu_data_crc32 {
             bail!(
@@ -125,15 +135,15 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    fn read_rpu_data(bytes: Vec<u8>, end_byte: u8) -> Result<DoviRpu> {
+    fn read_rpu_data(bytes: Vec<u8>, trailing_bytes: Vec<u8>) -> Result<DoviRpu> {
         let mut reader = BitVecReader::new(bytes);
         let mut dovi_rpu = DoviRpu {
-            last_byte: end_byte,
+            trailing_bytes,
             ..Default::default()
         };
 
-        // EOF case
-        let final_length = if end_byte == 0 { 48 } else { 40 };
+        // CRC32 + 0x80 + trailing
+        let final_length = (8 * 4) + 8 + (dovi_rpu.trailing_bytes.len() * 8);
 
         rpu_data_header(&mut dovi_rpu, &mut reader)?;
 
@@ -148,7 +158,7 @@ impl DoviRpu {
             }
 
             if dovi_rpu.header.vdr_dm_metadata_present_flag {
-                vdr_dm_data_payload(&mut dovi_rpu, &mut reader)?;
+                vdr_dm_data_payload(&mut dovi_rpu, &mut reader, final_length)?;
             }
 
             // rpu_alignment_zero_bit
@@ -166,7 +176,7 @@ impl DoviRpu {
             dovi_rpu.rpu_data_crc32 = reader.get_n(32);
 
             let last_byte: u8 = reader.get_n(8);
-            ensure!(last_byte == 0x80, "last byte should be 0x80");
+            ensure!(last_byte == FINAL_BYTE, "last byte should be 0x80");
         }
 
         // Update the profile and validate
@@ -232,8 +242,11 @@ impl DoviRpu {
         writer.write_n(&computed_crc32.to_be_bytes(), 32);
         writer.write_n(&[0x80], 8);
 
-        if self.last_byte != 0x80 {
-            writer.write_n(&[self.last_byte], 8);
+        // Trailing bytes
+        if !self.trailing_bytes.is_empty() {
+            self.trailing_bytes
+                .iter()
+                .for_each(|b| writer.write_n(&[*b], 8));
         }
 
         Ok(writer.as_slice().to_owned())
@@ -377,7 +390,6 @@ impl DoviRpu {
             rpu_data_mapping: Some(RpuDataMapping::p8_default()),
             rpu_data_nlq: None,
             vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
-            last_byte: 0x80,
             ..Default::default()
         })
     }

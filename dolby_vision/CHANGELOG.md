@@ -1,7 +1,9 @@
-## ??
+## 1.6.2
 
 - Updated `bitvec` dependency to 1.0.0.
 - Allowed noop conversion when converting a profile 8 RPU with mode 2.
+- Removed `last_byte` field from `DoviRpu`, replaced by `trailing_bytes` Vec.
+    - Fixes parsing when the NAL has multiple trailing 0 bytes.
 
 ## 1.6.1
 

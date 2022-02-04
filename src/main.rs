@@ -56,7 +56,7 @@ fn main() -> Result<()> {
         cli_options.mode = Some(0);
     }
 
-    let res = match opt.cmd {
+    match opt.cmd {
         Command::Demux {
             input,
             stdin,
@@ -94,13 +94,7 @@ fn main() -> Result<()> {
             generator.generate()
         }
         Command::Export { input, output } => Exporter::export(input, output),
-    };
-
-    if let Err(e) = res {
-        println!("Error: {:?}", e);
     }
-
-    Ok(())
 }
 
 pub fn input_format(input: &Path) -> Result<Format> {
