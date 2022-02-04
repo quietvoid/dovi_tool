@@ -91,6 +91,8 @@ pub struct RpuDataNlq {
 /// C struct for vdr_dm_data()
 #[repr(C)]
 pub struct VdrDmData {
+    compressed: bool,
+
     affected_dm_metadata_id: u64,
     current_dm_metadata_id: u64,
     scene_refresh_flag: u64,
@@ -221,6 +223,7 @@ impl From<&RuRpuDataNlq> for RpuDataNlq {
 impl From<&RuVdrDmData> for VdrDmData {
     fn from(data: &RuVdrDmData) -> Self {
         Self {
+            compressed: data.compressed,
             affected_dm_metadata_id: data.affected_dm_metadata_id,
             current_dm_metadata_id: data.current_dm_metadata_id,
             scene_refresh_flag: data.scene_refresh_flag,

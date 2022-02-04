@@ -1,3 +1,7 @@
+## ??
+
+- Add support for compressed RPU format.
+
 ## 1.6.2
 
 - Updated `bitvec` dependency to 1.0.0.

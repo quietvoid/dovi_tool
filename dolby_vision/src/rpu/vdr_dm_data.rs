@@ -18,9 +18,12 @@ use super::extension_metadata::WithExtMetadataBlocks;
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct VdrDmData {
+    pub compressed: bool,
+
     pub affected_dm_metadata_id: u64,
     pub current_dm_metadata_id: u64,
     pub scene_refresh_flag: u64,
+
     pub ycc_to_rgb_coef0: i16,
     pub ycc_to_rgb_coef1: i16,
     pub ycc_to_rgb_coef2: i16,
@@ -78,7 +81,20 @@ pub fn vdr_dm_data_payload(
     reader: &mut BitVecReader,
     final_length: usize,
 ) -> Result<()> {
-    let mut vdr_dm_data = VdrDmData::parse(reader)?;
+    let compressed_dm_data = dovi_rpu.header.reserved_zero_3bits == 1;
+
+    let mut vdr_dm_data = if compressed_dm_data {
+        VdrDmData {
+            compressed: true,
+
+            affected_dm_metadata_id: reader.get_ue()?,
+            current_dm_metadata_id: reader.get_ue()?,
+            scene_refresh_flag: reader.get_ue()?,
+            ..Default::default()
+        }
+    } else {
+        VdrDmData::parse(reader)?
+    };
 
     if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData>(reader)? {
         vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
@@ -148,16 +164,20 @@ impl VdrDmData {
             self.affected_dm_metadata_id <= 15,
             "affected_dm_metadata_id should be <= 15"
         );
-        ensure!(
-            self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16,
-            "signal_bit_depth should be between 8 and 16"
-        );
 
-        if self.signal_eotf_param0 == 0
-            && self.signal_eotf_param1 == 0
-            && self.signal_eotf_param2 == 0
-        {
-            ensure!(self.signal_eotf == 65535, "signal_eotf should be 65535");
+        // FIXME: Compressed DM metadata, should be set from a state somehow
+        if !self.compressed {
+            ensure!(
+                self.signal_bit_depth >= 8 && self.signal_bit_depth <= 16,
+                "signal_bit_depth should be between 8 and 16"
+            );
+
+            if self.signal_eotf_param0 == 0
+                && self.signal_eotf_param1 == 0
+                && self.signal_eotf_param2 == 0
+            {
+                ensure!(self.signal_eotf == 65535, "signal_eotf should be 65535");
+            }
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {
@@ -176,43 +196,45 @@ impl VdrDmData {
         writer.write_ue(self.current_dm_metadata_id);
         writer.write_ue(self.scene_refresh_flag);
 
-        writer.write_n(&self.ycc_to_rgb_coef0.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef1.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef2.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef3.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef4.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef5.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef6.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef7.to_be_bytes(), 16);
-        writer.write_n(&self.ycc_to_rgb_coef8.to_be_bytes(), 16);
+        if !self.compressed {
+            writer.write_n(&self.ycc_to_rgb_coef0.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef1.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef2.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef3.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef4.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef5.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef6.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef7.to_be_bytes(), 16);
+            writer.write_n(&self.ycc_to_rgb_coef8.to_be_bytes(), 16);
 
-        writer.write_n(&self.ycc_to_rgb_offset0.to_be_bytes(), 32);
-        writer.write_n(&self.ycc_to_rgb_offset1.to_be_bytes(), 32);
-        writer.write_n(&self.ycc_to_rgb_offset2.to_be_bytes(), 32);
+            writer.write_n(&self.ycc_to_rgb_offset0.to_be_bytes(), 32);
+            writer.write_n(&self.ycc_to_rgb_offset1.to_be_bytes(), 32);
+            writer.write_n(&self.ycc_to_rgb_offset2.to_be_bytes(), 32);
 
-        writer.write_n(&self.rgb_to_lms_coef0.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef1.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef2.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef3.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef4.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef5.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef6.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef7.to_be_bytes(), 16);
-        writer.write_n(&self.rgb_to_lms_coef8.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef0.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef1.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef2.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef3.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef4.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef5.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef6.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef7.to_be_bytes(), 16);
+            writer.write_n(&self.rgb_to_lms_coef8.to_be_bytes(), 16);
 
-        writer.write_n(&self.signal_eotf.to_be_bytes(), 16);
-        writer.write_n(&self.signal_eotf_param0.to_be_bytes(), 16);
-        writer.write_n(&self.signal_eotf_param1.to_be_bytes(), 16);
-        writer.write_n(&self.signal_eotf_param2.to_be_bytes(), 32);
+            writer.write_n(&self.signal_eotf.to_be_bytes(), 16);
+            writer.write_n(&self.signal_eotf_param0.to_be_bytes(), 16);
+            writer.write_n(&self.signal_eotf_param1.to_be_bytes(), 16);
+            writer.write_n(&self.signal_eotf_param2.to_be_bytes(), 32);
 
-        writer.write_n(&self.signal_bit_depth.to_be_bytes(), 5);
-        writer.write_n(&self.signal_color_space.to_be_bytes(), 2);
-        writer.write_n(&self.signal_chroma_format.to_be_bytes(), 2);
-        writer.write_n(&self.signal_full_range_flag.to_be_bytes(), 2);
+            writer.write_n(&self.signal_bit_depth.to_be_bytes(), 5);
+            writer.write_n(&self.signal_color_space.to_be_bytes(), 2);
+            writer.write_n(&self.signal_chroma_format.to_be_bytes(), 2);
+            writer.write_n(&self.signal_full_range_flag.to_be_bytes(), 2);
 
-        writer.write_n(&self.source_min_pq.to_be_bytes(), 12);
-        writer.write_n(&self.source_max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.source_diagonal.to_be_bytes(), 10);
+            writer.write_n(&self.source_min_pq.to_be_bytes(), 12);
+            writer.write_n(&self.source_max_pq.to_be_bytes(), 12);
+            writer.write_n(&self.source_diagonal.to_be_bytes(), 10);
+        }
 
         if let Some(cmv29) = &self.cmv29_metadata {
             cmv29.write(writer)?;
