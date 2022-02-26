@@ -103,6 +103,10 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
 
     parser.get_offsets(&data, &mut offsets);
 
+    if offsets.is_empty() {
+        bail!("No NALU start codes found in the file. Maybe not a valid RPU?");
+    }
+
     let count = offsets.len();
     let last = *offsets.last().unwrap();
     let mut warned = false;
