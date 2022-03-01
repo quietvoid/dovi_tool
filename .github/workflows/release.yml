@@ -16,13 +16,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [linux, macos, windows]
+        build: [Linux, macOS, Windows]
         include: 
-          - build: linux
+          - build: Linux
             os: ubuntu-latest
-          - build: macos
+          - build: macOS
             os: macos-latest
-          - build: windows
+          - build: Windows
             os: windows-latest
 
     steps:
@@ -40,23 +40,23 @@ jobs:
           echo "RELEASE_PKG_VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)" >> $GITHUB_ENV
 
       - name: Install musl-tools (Linux)
-        if: matrix.build == 'linux'
+        if: matrix.build == 'Linux'
         run: |
           sudo apt-get update -y
           sudo apt-get install musl-tools -y
 
       - name: Build (Linux)
-        if: matrix.build == 'linux'
+        if: matrix.build == 'Linux'
         run: |
           rustup target add ${{ env.LINUX_TARGET }}
           cargo build --release --target ${{ env.LINUX_TARGET }}
 
-      - name: Build (MacOS)
-        if: matrix.build == 'macos'
+      - name: Build (macOS)
+        if: matrix.build == 'macOS'
         run: cargo build --release
 
       - name: Build (Windows)
-        if: matrix.build == 'windows'
+        if: matrix.build == 'Windows'
         run: cargo build --release
 
       - name: Create artifact directory
@@ -64,21 +64,21 @@ jobs:
           mkdir ${{ env.RELEASE_DIR }}
 
       - name: Create tarball (Linux)
-        if: matrix.build == 'linux'
+        if: matrix.build == 'Linux'
         run: |
           strip ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }}
           mv ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
           tar -cvzf ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.LINUX_TARGET }}.tar.gz ./${{ env.RELEASE_BIN }}
 
       - name: Create zipfile (Windows)
-        if: matrix.build == 'windows'
+        if: matrix.build == 'Windows'
         shell: bash
         run: |
           mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
           7z a ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./${{ env.RELEASE_BIN }}.exe
 
       - name: Create zipfile (macOS)
-        if: matrix.build == 'macos'
+        if: matrix.build == 'macOS'
         run: |
           strip ./target/release/${{ env.RELEASE_BIN }}
           mv ./target/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
