@@ -2,17 +2,17 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{input_format, io, CliOptions, Format};
-use io::{DoviReader, DoviWriter};
+use super::{general_read_write, CliOptions, IoFormat};
+use general_read_write::{DoviReader, DoviWriter};
 
 pub struct RpuExtractor {
-    format: Format,
+    format: IoFormat,
     input: PathBuf,
     rpu_out: PathBuf,
 }
 
 impl RpuExtractor {
-    pub fn new(format: Format, input: PathBuf, rpu_out: PathBuf) -> Self {
+    pub fn new(format: IoFormat, input: PathBuf, rpu_out: PathBuf) -> Self {
         Self {
             format,
             input,
@@ -34,7 +34,7 @@ impl RpuExtractor {
             },
         };
 
-        let format = input_format(&input)?;
+        let format = hevc_parser::io::format_from_path(&input)?;
 
         let rpu_out = match rpu_out {
             Some(path) => path,
@@ -49,7 +49,7 @@ impl RpuExtractor {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
-            Format::Matroska => bail!("unsupported"),
+            IoFormat::Matroska => bail!("Extractor: Matroska input is unsupported"),
             _ => self.extract_rpu_from_el(Some(&pb), options),
         }
     }

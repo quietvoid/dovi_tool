@@ -2,18 +2,18 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{input_format, io, CliOptions, Format};
+use super::{general_read_write, CliOptions, IoFormat};
 
-use io::{DoviReader, DoviWriter};
+use general_read_write::{DoviReader, DoviWriter};
 
 pub struct Converter {
-    format: Format,
+    format: IoFormat,
     input: PathBuf,
     output: PathBuf,
 }
 
 impl Converter {
-    pub fn new(format: Format, input: PathBuf, output: PathBuf) -> Self {
+    pub fn new(format: IoFormat, input: PathBuf, output: PathBuf) -> Self {
         Self {
             format,
             input,
@@ -35,7 +35,7 @@ impl Converter {
             },
         };
 
-        let format = input_format(&input)?;
+        let format = hevc_parser::io::format_from_path(&input)?;
 
         let output = match output {
             Some(path) => path,
@@ -53,7 +53,7 @@ impl Converter {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
-            Format::Matroska => bail!("unsupported"),
+            IoFormat::Matroska => bail!("Converter: Matroska input is unsupported"),
             _ => self.convert_raw_hevc(Some(&pb), options),
         }
     }

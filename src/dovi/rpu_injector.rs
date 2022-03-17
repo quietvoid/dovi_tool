@@ -10,8 +10,7 @@ use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
 
 use super::{
-    get_aud, input_format, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, Format,
-    OUT_NAL_HEADER,
+    get_aud, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, IoFormat, OUT_NAL_HEADER,
 };
 
 pub struct RpuInjector {
@@ -32,9 +31,9 @@ impl RpuInjector {
         no_add_aud: bool,
         cli_options: CliOptions,
     ) -> Result<()> {
-        let format = input_format(&input)?;
+        let format = hevc_parser::io::format_from_path(&input)?;
 
-        if let Format::Raw = format {
+        if let IoFormat::Raw = format {
             let output = match output {
                 Some(path) => path,
                 None => PathBuf::from("injected_output.hevc"),
@@ -55,7 +54,7 @@ impl RpuInjector {
         }
     }
 
-    fn process_input(&self, parser: &mut HevcParser, format: Format) -> Result<()> {
+    fn process_input(&self, parser: &mut HevcParser, format: IoFormat) -> Result<()> {
         println!("Processing input video for frame order info...");
         stdout().flush().ok();
 
@@ -211,7 +210,7 @@ impl RpuInjector {
             println!("Rewriting file with interleaved RPU NALs..");
             stdout().flush().ok();
 
-            let pb = super::initialize_progress_bar(&Format::Raw, &self.input)?;
+            let pb = super::initialize_progress_bar(&IoFormat::Raw, &self.input)?;
             let mut parser = HevcParser::default();
 
             let chunk_size = 100_000;

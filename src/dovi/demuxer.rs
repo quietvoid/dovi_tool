@@ -2,12 +2,12 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{input_format, io, CliOptions, Format};
+use super::{general_read_write, CliOptions, IoFormat};
 
-use io::{DoviReader, DoviWriter};
+use general_read_write::{DoviReader, DoviWriter};
 
 pub struct Demuxer {
-    format: Format,
+    format: IoFormat,
     input: PathBuf,
     bl_out: PathBuf,
     el_out: PathBuf,
@@ -16,7 +16,7 @@ pub struct Demuxer {
 
 impl Demuxer {
     pub fn new(
-        format: Format,
+        format: IoFormat,
         input: PathBuf,
         bl_out: PathBuf,
         el_out: PathBuf,
@@ -47,7 +47,7 @@ impl Demuxer {
             },
         };
 
-        let format = input_format(&input)?;
+        let format = hevc_parser::io::format_from_path(&input)?;
 
         let bl_out = match bl_out {
             Some(path) => path,
@@ -67,7 +67,7 @@ impl Demuxer {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         match self.format {
-            Format::Matroska => bail!("unsupported"),
+            IoFormat::Matroska => bail!("Demuxer: Matroska input is unsupported"),
             _ => self.demux_raw_hevc(Some(&pb), options),
         }
     }

@@ -239,4 +239,57 @@ pub enum Command {
         )]
         output: Option<PathBuf>,
     },
+
+    Mux {
+        #[clap(
+            name = "bl",
+            long,
+            short = 'b',
+            help = "Sets the base layer HEVC file to use",
+            parse(from_os_str)
+        )]
+        bl: PathBuf,
+
+        #[clap(
+            name = "el",
+            long,
+            short = 'e',
+            help = "Sets the input enhancement layer HEVC file to use",
+            parse(from_os_str)
+        )]
+        el: PathBuf,
+
+        #[clap(
+            long,
+            short = 'o',
+            help = "Output BL+EL+RPU HEVC file location",
+            parse(from_os_str)
+        )]
+        output: Option<PathBuf>,
+
+        #[clap(
+            long,
+            takes_value = false,
+            help = "Disable adding AUD NALUs between frames"
+        )]
+        no_add_aud: bool,
+
+        #[clap(
+            long,
+            takes_value = false,
+            help = "Write the EOS/EOB NALUs before the EL. Defaults to false. See --help for more info",
+            long_help = "Write the EOS/EOB NALUs before the EL. Defaults to false.\n\
+                         In the case of the last frame containing EOS/EOB NALUs, they are written after the EL by default.\n\n\
+                         This behaviour is different from yusesope and MakeMKV's mux, but conforms to the HEVC spec.\n\
+                         To match their behaviour, enable the --eos-before-el flag."
+        )]
+        eos_before_el: bool,
+
+        #[clap(
+            short = 'd',
+            long,
+            help = "Discard the EL video NALUs, keeping only the RPU"
+        )]
+        discard: bool,
+    },
 }
