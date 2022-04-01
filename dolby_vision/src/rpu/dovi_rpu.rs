@@ -326,7 +326,7 @@ impl DoviRpu {
 
         header.nlq_method_idc = Some(0);
         header.nlq_num_pivots_minus2 = Some(0);
-        header.num_x_partitions_minus1 = 2046;
+        header.nlq_pred_pivot_value = Some(vec![0, (1 << header.bl_bit_depth_minus8 + 8) - 1]);
 
         if let Some(ref mut rpu_data_nlq) = self.rpu_data_nlq {
             rpu_data_nlq.convert_to_mel();
@@ -348,6 +348,7 @@ impl DoviRpu {
 
         header.nlq_method_idc = None;
         header.nlq_num_pivots_minus2 = None;
+        header.nlq_pred_pivot_value = None;
 
         header.num_x_partitions_minus1 = 0;
         header.num_y_partitions_minus1 = 0;
