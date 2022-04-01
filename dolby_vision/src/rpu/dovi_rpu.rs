@@ -326,7 +326,9 @@ impl DoviRpu {
 
         header.nlq_method_idc = Some(0);
         header.nlq_num_pivots_minus2 = Some(0);
-        header.nlq_pred_pivot_value = Some(vec![0, (1 << header.bl_bit_depth_minus8 + 8) - 1]);
+
+        // BL is always 10 bit in current spec
+        header.nlq_pred_pivot_value = Some([0, 1023]);
 
         if let Some(ref mut rpu_data_nlq) = self.rpu_data_nlq {
             rpu_data_nlq.convert_to_mel();

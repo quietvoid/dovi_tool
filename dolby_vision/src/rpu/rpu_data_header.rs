@@ -6,6 +6,8 @@ use serde::Serialize;
 
 use super::{dovi_rpu::DoviRpu, NUM_COMPONENTS};
 
+const NLQ_NUM_PIVOTS: usize = 2;
+
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct RpuDataHeader {
@@ -37,7 +39,7 @@ pub struct RpuDataHeader {
     pub pred_pivot_value: [Vec<u64>; NUM_COMPONENTS],
     pub nlq_method_idc: Option<u8>,
     pub nlq_num_pivots_minus2: Option<u8>,
-    pub nlq_pred_pivot_value: Option<Vec<u64>>,
+    pub nlq_pred_pivot_value: Option<[u64; NLQ_NUM_PIVOTS]>,
     pub num_x_partitions_minus1: u64,
     pub num_y_partitions_minus1: u64,
 }
@@ -97,6 +99,8 @@ impl RpuDataHeader {
                     rpu_nal.mapping_color_space = reader.get_ue()?;
                     rpu_nal.mapping_chroma_format_idc = reader.get_ue()?;
 
+                    let bl_bit_depth = (rpu_nal.bl_bit_depth_minus8 + 8) as usize;
+
                     for cmp in 0..NUM_COMPONENTS {
                         rpu_nal.num_pivots_minus_2[cmp] = reader.get_ue()?;
 
@@ -105,8 +109,7 @@ impl RpuDataHeader {
                             .resize_with(pivot_idx_count, Default::default);
 
                         for pivot_idx in 0..pivot_idx_count {
-                            rpu_nal.pred_pivot_value[cmp][pivot_idx] =
-                                reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
+                            rpu_nal.pred_pivot_value[cmp][pivot_idx] = reader.get_n(bl_bit_depth);
                         }
                     }
 
@@ -115,12 +118,10 @@ impl RpuDataHeader {
                         rpu_nal.nlq_method_idc = Some(reader.get_n(3));
                         rpu_nal.nlq_num_pivots_minus2 = Some(0);
 
-                        let mut nlq_pred_pivot_value = vec![0; 2];
-
-                        for nlq_pivot_idx in 0..2 {
-                            nlq_pred_pivot_value[nlq_pivot_idx] =
-                                reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
-                        }
+                        let mut nlq_pred_pivot_value = [0; NLQ_NUM_PIVOTS];
+                        nlq_pred_pivot_value
+                            .iter_mut()
+                            .for_each(|pv| *pv = reader.get_n(bl_bit_depth));
 
                         rpu_nal.nlq_pred_pivot_value = Some(nlq_pred_pivot_value);
                     }
@@ -165,6 +166,17 @@ impl RpuDataHeader {
                     self.vdr_rpu_profile == 1,
                     "profile 7: vdr_rpu_profile should be 1"
                 );
+                ensure!(
+                    self.nlq_pred_pivot_value.is_some(),
+                    "profile 7: nlq_pred_pivot_value should be defined"
+                );
+
+                if let Some(nlq_pred_pivot_value) = self.nlq_pred_pivot_value {
+                    ensure!(
+                        nlq_pred_pivot_value.iter().sum::<u64>() == 1023,
+                        "profile 7: nlq_pred_pivot_value elements should add up to the BL bit depth"
+                    );
+                }
             }
             8 => {
                 ensure!(
@@ -305,12 +317,12 @@ impl RpuDataHeader {
                         }
 
                         if let Some(nlq_pred_pivot_value) = &self.nlq_pred_pivot_value {
-                            for nlq_pivot_idx in 0..2 {
+                            nlq_pred_pivot_value.iter().for_each(|pv| {
                                 writer.write_n(
-                                    &nlq_pred_pivot_value[nlq_pivot_idx].to_be_bytes(),
+                                    &pv.to_be_bytes(),
                                     (self.bl_bit_depth_minus8 + 8) as usize,
                                 )
-                            }
+                            });
                         }
                     }
 

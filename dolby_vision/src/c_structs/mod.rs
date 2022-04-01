@@ -46,6 +46,8 @@ pub struct RpuDataHeader {
     pub nlq_method_idc: i32,
     /// Set to -1 to represent Option::None
     pub nlq_num_pivots_minus2: i32,
+    /// Length of zero when not present. Only present in profile 4 and 7.
+    pub nlq_pred_pivot_value: U64Data,
     pub num_x_partitions_minus1: u64,
     pub num_y_partitions_minus1: u64,
 }
@@ -163,6 +165,7 @@ impl From<&RuRpuDataHeader> for RpuDataHeader {
             pred_pivot_value: components_to_cdata::<Vec<u64>, U64Data>(&header.pred_pivot_value),
             nlq_method_idc: header.nlq_method_idc.map_or(-1, |e| e as i32),
             nlq_num_pivots_minus2: header.nlq_num_pivots_minus2.map_or(-1, |e| e as i32),
+            nlq_pred_pivot_value: U64Data::from(header.nlq_pred_pivot_value),
             num_x_partitions_minus1: header.num_x_partitions_minus1,
             num_y_partitions_minus1: header.num_y_partitions_minus1,
         }
