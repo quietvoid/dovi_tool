@@ -37,6 +37,7 @@ pub struct RpuDataHeader {
     pub pred_pivot_value: [Vec<u64>; NUM_COMPONENTS],
     pub nlq_method_idc: Option<u8>,
     pub nlq_num_pivots_minus2: Option<u8>,
+    pub nlq_pred_pivot_value: Option<Vec<u64>>,
     pub num_x_partitions_minus1: u64,
     pub num_y_partitions_minus1: u64,
 }
@@ -113,6 +114,16 @@ impl RpuDataHeader {
                     if rpu_nal.rpu_format & 0x700 == 0 && !rpu_nal.disable_residual_flag {
                         rpu_nal.nlq_method_idc = Some(reader.get_n(3));
                         rpu_nal.nlq_num_pivots_minus2 = Some(0);
+
+                        // Hard coded for now, acceptable for known profiles
+                        let mut nlq_pred_pivot_value = vec![0; 2];
+
+                        for nlq_pivot_idx in 0..2 {
+                            nlq_pred_pivot_value[nlq_pivot_idx] =
+                                reader.get_n((rpu_nal.bl_bit_depth_minus8 + 8) as usize);
+                        }
+
+                        rpu_nal.nlq_pred_pivot_value = Some(nlq_pred_pivot_value);
                     }
 
                     rpu_nal.num_x_partitions_minus1 = reader.get_ue()?;
@@ -285,6 +296,15 @@ impl RpuDataHeader {
                         if let Some(nlq_method_idc) = self.nlq_method_idc {
                             writer.write_n(&nlq_method_idc.to_be_bytes(), 3);
                         }
+
+                        if let Some(nlq_pred_pivot_value) = &self.nlq_pred_pivot_value {
+                            for nlq_pivot_idx in 0..2 {
+                                writer.write_n(
+                                    &nlq_pred_pivot_value[nlq_pivot_idx].to_be_bytes(),
+                                    (self.bl_bit_depth_minus8 + 8) as usize,
+                                )
+                            }
+                        }
                     }
 
                     writer.write_ue(self.num_x_partitions_minus1);
@@ -324,6 +344,7 @@ impl RpuDataHeader {
             pred_pivot_value: [vec![0, 1023], vec![0, 1023], vec![0, 1023]],
             nlq_method_idc: None,
             nlq_num_pivots_minus2: None,
+            nlq_pred_pivot_value: None,
             num_x_partitions_minus1: 0,
             num_y_partitions_minus1: 0,
         }
