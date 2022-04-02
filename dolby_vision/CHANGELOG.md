@@ -1,5 +1,9 @@
 ## ??
 
+- 
+
+## 1.6.3
+
 - Add support for compressed RPU format.
 - Add `RpuDataHeader::nlq_pred_pivot_value` field, parsed for profile 4 and 7.
 
