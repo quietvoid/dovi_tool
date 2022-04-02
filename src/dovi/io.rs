@@ -15,6 +15,8 @@ use super::{is_st2094_40_sei, CliOptions, Format, OUT_NAL_HEADER};
 pub struct DoviReader {
     options: CliOptions,
     rpu_nals: Vec<RpuNal>,
+
+    previous_rpu_index: u64,
 }
 
 pub struct DoviWriter {
@@ -81,6 +83,7 @@ impl DoviReader {
         DoviReader {
             options,
             rpu_nals: Vec::new(),
+            previous_rpu_index: 0,
         }
     }
 
@@ -208,6 +211,20 @@ impl DoviReader {
                 continue;
             }
 
+            // Skip duplicate NALUs if they are after a first RPU for the frame
+            // Note: Only useful when parsing the NALUs (RPU extraction)
+            if self.previous_rpu_index > 0
+                && nal.nal_type == NAL_UNSPEC62
+                && nal.decoded_frame_index == self.previous_rpu_index
+            {
+                println!(
+                    "Warning: Unexpected RPU NALU found for frame {}. Discarding.",
+                    self.previous_rpu_index
+                );
+
+                continue;
+            }
+
             if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;
@@ -248,6 +265,8 @@ impl DoviReader {
                     }
                 }
                 NAL_UNSPEC62 => {
+                    self.previous_rpu_index = nal.decoded_frame_index;
+
                     if let Some(ref mut el_writer) = dovi_writer.el_writer {
                         el_writer.write_all(OUT_NAL_HEADER)?;
                     }
