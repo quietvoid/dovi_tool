@@ -139,7 +139,7 @@ impl Editor {
 }
 
 impl EditConfig {
-    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn execute(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         // Drop metadata frames
         if let Some(ranges) = &self.remove {
             self.remove_frames(ranges, rpus)?;
@@ -181,7 +181,7 @@ impl EditConfig {
         Ok(())
     }
 
-    fn convert_with_mode(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn convert_with_mode(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         println!("Converting with mode {}...", self.mode);
         let list = rpus.iter_mut().filter_map(|e| e.as_mut());
 
@@ -216,7 +216,7 @@ impl EditConfig {
         }
     }
 
-    fn remove_frames(&self, ranges: &[String], rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn remove_frames(&self, ranges: &[String], rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         let mut amount = 0;
 
         for range in ranges {
@@ -268,7 +268,7 @@ impl EditConfig {
         Ok(())
     }
 
-    fn change_source_levels(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn change_source_levels(&self, rpus: &mut [Option<DoviRpu>]) {
         rpus.iter_mut().filter_map(|e| e.as_mut()).for_each(|rpu| {
             rpu.modified = true;
 
@@ -280,7 +280,7 @@ impl EditConfig {
 
     fn set_level6_metadata(
         &self,
-        rpus: &mut Vec<Option<DoviRpu>>,
+        rpus: &mut [Option<DoviRpu>],
         level6: &ExtMetadataBlockLevel6,
     ) -> Result<()> {
         for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
@@ -294,7 +294,7 @@ impl EditConfig {
         Ok(())
     }
 
-    fn add_cmv4_dm_data(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn add_cmv4_dm_data(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
             rpu.modified = true;
 
@@ -319,7 +319,7 @@ impl EditConfig {
 
     fn set_level9_metadata(
         &self,
-        rpus: &mut Vec<Option<DoviRpu>>,
+        rpus: &mut [Option<DoviRpu>],
         primaries: MasteringDisplayPrimaries,
     ) -> Result<()> {
         let primary_index = primaries as u8;
@@ -343,7 +343,7 @@ impl EditConfig {
 
     fn set_level11_metadata(
         &self,
-        rpus: &mut Vec<Option<DoviRpu>>,
+        rpus: &mut [Option<DoviRpu>],
         level11: &ExtMetadataBlockLevel11,
     ) -> Result<()> {
         for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
@@ -357,7 +357,7 @@ impl EditConfig {
         Ok(())
     }
 
-    fn remove_mapping(&self, rpus: &mut Vec<Option<DoviRpu>>) {
+    fn remove_mapping(&self, rpus: &mut [Option<DoviRpu>]) {
         println!("Removing polynomial/MMR mapping...");
         let list = rpus.iter_mut().filter_map(|e| e.as_mut());
 
@@ -368,7 +368,7 @@ impl EditConfig {
 }
 
 impl ActiveArea {
-    fn execute(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn execute(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         if self.crop {
             self.crop(rpus)?;
         }
@@ -386,7 +386,7 @@ impl ActiveArea {
         Ok(())
     }
 
-    fn crop(&self, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn crop(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         println!("Cropping...");
         for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
             rpu.crop()?;
@@ -395,11 +395,7 @@ impl ActiveArea {
         Ok(())
     }
 
-    fn do_edits(
-        &self,
-        edits: &HashMap<String, u16>,
-        rpus: &mut Vec<Option<DoviRpu>>,
-    ) -> Result<()> {
+    fn do_edits(&self, edits: &HashMap<String, u16>, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         if let Some(presets) = &self.presets {
             println!("Editing active area offsets...");
 
@@ -443,7 +439,7 @@ impl ActiveArea {
         Ok(())
     }
 
-    fn drop_specific_l5(&self, drop_opt: &str, rpus: &mut Vec<Option<DoviRpu>>) -> Result<()> {
+    fn drop_specific_l5(&self, drop_opt: &str, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
         let param = drop_opt.to_lowercase();
 
         println!("Dropping L5 metadata with opt '{}'", param);

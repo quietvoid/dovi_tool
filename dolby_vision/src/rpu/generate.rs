@@ -150,7 +150,7 @@ impl GenerateConfig {
         Ok(list)
     }
 
-    pub fn encode_option_rpus(rpus: &mut Vec<Option<DoviRpu>>) -> Vec<Vec<u8>> {
+    pub fn encode_option_rpus(rpus: &mut [Option<DoviRpu>]) -> Vec<Vec<u8>> {
         let encoded_rpus = rpus
             .iter_mut()
             .filter_map(|e| e.as_mut())
@@ -161,7 +161,7 @@ impl GenerateConfig {
         encoded_rpus
     }
 
-    pub fn encode_rpus(rpus: &mut Vec<DoviRpu>) -> Vec<Vec<u8>> {
+    pub fn encode_rpus(rpus: &mut [DoviRpu]) -> Vec<Vec<u8>> {
         let encoded_rpus = rpus
             .iter_mut()
             .map(|e| e.write_hevc_unspec62_nalu())
