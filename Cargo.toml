@@ -7,18 +7,18 @@ rust-version = "1.56.0"
 license = "MIT"
 
 [dependencies]
-bitvec_helpers = "1.0.1"
-hevc_parser = "0.3.2"
+bitvec_helpers = "1.0.2"
+hevc_parser = "0.3.4"
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
-anyhow = "1.0.52"
-clap = { version = "3.0.5", features = ["derive", "wrap_help"] }
+anyhow = "1.0.56"
+clap = { version = "3.1.8", features = ["derive", "wrap_help"] }
 indicatif = "0.16.2"
-regex = "1.5.4"
+regex = "1.5.5"
 bitvec = "1.0.0"
-serde = { version = "1.0.133", features = ["derive"] }
-serde_json = { version = "1.0.74", features = ["preserve_order"] }
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
 rayon = "1.5.1"
 
 [[bin]]
