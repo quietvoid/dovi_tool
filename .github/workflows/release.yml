@@ -38,6 +38,7 @@ jobs:
         shell: bash
         run: |
           echo "RELEASE_PKG_VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)" >> $GITHUB_ENV
+          echo "LIBDOVI_PKG_VERSION=$(cargo pkgid --manifest-path dolby_vision/Cargo.toml | cut -d# -f2 | cut -d: -f2)" >> $GITHUB_ENV
 
       - name: Install musl-tools (Linux)
         if: matrix.build == 'Linux'
@@ -59,6 +60,19 @@ jobs:
         if: matrix.build == 'Windows'
         run: cargo build --release
 
+      - name: Install cargo-c (Windows)
+        if: matrix.build == 'Windows'
+        run: |
+          $LINK = "https://github.com/lu-zero/cargo-c/releases/latest/download"
+          $CARGO_C_FILE = "cargo-c-windows-msvc"
+          curl -LO "$LINK/$CARGO_C_FILE.zip"
+          7z e -y "$CARGO_C_FILE.zip" -o"${env:USERPROFILE}\.cargo\bin"
+
+      - name: Build C lib (Windows)
+        if: matrix.build == 'Windows'
+        run: |
+          cargo cbuild --manifest-path dolby_vision/Cargo.toml --release
+
       - name: Create artifact directory
         run: |
           mkdir ${{ env.RELEASE_DIR }}
@@ -76,6 +90,9 @@ jobs:
         run: |
           mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
           7z a ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./${{ env.RELEASE_BIN }}.exe
+
+          mv ./target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
+          7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
       - name: Create zipfile (macOS)
         if: matrix.build == 'macOS'
