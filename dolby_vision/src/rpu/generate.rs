@@ -350,7 +350,7 @@ mod tests {
         if let ExtMetadataBlock::Level11(level11) = shot1_vdr_dm_data.get_block(11).unwrap() {
             assert_eq!(level11.content_type, 1);
             assert_eq!(level11.whitepoint, 0);
-            assert_eq!(level11.reference_mode_flag, true);
+            assert!(level11.reference_mode_flag);
         }
 
         // SHOT 2
@@ -446,7 +446,7 @@ mod tests {
         if let ExtMetadataBlock::Level11(level11) = shot2_vdr_dm_data.get_block(11).unwrap() {
             assert_eq!(level11.content_type, 1);
             assert_eq!(level11.whitepoint, 0);
-            assert_eq!(level11.reference_mode_flag, true);
+            assert!(level11.reference_mode_flag);
         }
 
         // SHOT 3
@@ -490,7 +490,7 @@ mod tests {
         if let ExtMetadataBlock::Level11(level11) = shot3_vdr_dm_data.get_block(11).unwrap() {
             assert_eq!(level11.content_type, 1);
             assert_eq!(level11.whitepoint, 0);
-            assert_eq!(level11.reference_mode_flag, true);
+            assert!(level11.reference_mode_flag);
         }
 
         // Frame edit in shot 3, offset 10 = 229
@@ -560,7 +560,7 @@ mod tests {
         if let ExtMetadataBlock::Level11(level11) = shot3_edit_vdr_dm_data.get_block(11).unwrap() {
             assert_eq!(level11.content_type, 1);
             assert_eq!(level11.whitepoint, 0);
-            assert_eq!(level11.reference_mode_flag, true);
+            assert!(level11.reference_mode_flag);
         }
 
         Ok(())

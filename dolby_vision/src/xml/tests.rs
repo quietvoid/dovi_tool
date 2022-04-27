@@ -45,16 +45,16 @@ fn parse_cmv2_9() -> Result<()> {
     assert_eq!(shot1.duration, 12);
     assert_eq!(shot1_blocks.len(), 4);
 
-    assert_num_blocks_for_level(&shot1_blocks, 1, 1);
-    assert_num_blocks_for_level(&shot1_blocks, 2, 3);
+    assert_num_blocks_for_level(shot1_blocks, 1, 1);
+    assert_num_blocks_for_level(shot1_blocks, 2, 3);
 
     let shot2 = &config.shots[1];
     let shot2_blocks = &shot2.metadata_blocks;
     assert_eq!(shot2.duration, 96);
     assert_eq!(shot2_blocks.len(), 4);
 
-    assert_num_blocks_for_level(&shot2_blocks, 1, 1);
-    assert_num_blocks_for_level(&shot2_blocks, 2, 3);
+    assert_num_blocks_for_level(shot2_blocks, 1, 1);
+    assert_num_blocks_for_level(shot2_blocks, 2, 3);
 
     Ok(())
 }
@@ -94,21 +94,21 @@ fn parse_cmv4_0_2() -> Result<()> {
     assert_eq!(shot1.duration, 120);
     assert_eq!(shot1_blocks.len(), 4);
 
-    assert_num_blocks_for_level(&shot1_blocks, 1, 1);
-    assert_num_blocks_for_level(&shot1_blocks, 3, 1);
-    assert_num_blocks_for_level(&shot1_blocks, 5, 1);
-    assert_num_blocks_for_level(&shot1_blocks, 9, 1);
+    assert_num_blocks_for_level(shot1_blocks, 1, 1);
+    assert_num_blocks_for_level(shot1_blocks, 3, 1);
+    assert_num_blocks_for_level(shot1_blocks, 5, 1);
+    assert_num_blocks_for_level(shot1_blocks, 9, 1);
 
     let shot2 = &config.shots[1];
     let shot2_blocks = &shot2.metadata_blocks;
     assert_eq!(shot2.duration, 99);
     assert_eq!(shot2_blocks.len(), 8);
 
-    assert_num_blocks_for_level(&shot2_blocks, 1, 1);
-    assert_num_blocks_for_level(&shot2_blocks, 2, 3);
-    assert_num_blocks_for_level(&shot2_blocks, 3, 1);
-    assert_num_blocks_for_level(&shot2_blocks, 8, 2);
-    assert_num_blocks_for_level(&shot2_blocks, 9, 1);
+    assert_num_blocks_for_level(shot2_blocks, 1, 1);
+    assert_num_blocks_for_level(shot2_blocks, 2, 3);
+    assert_num_blocks_for_level(shot2_blocks, 3, 1);
+    assert_num_blocks_for_level(shot2_blocks, 8, 2);
+    assert_num_blocks_for_level(shot2_blocks, 9, 1);
 
     let shot3 = &config.shots[2];
     let shot3_blocks = &shot3.metadata_blocks;
@@ -285,7 +285,7 @@ fn parse_cmv4_2_xml_510() -> Result<()> {
     if let ExtMetadataBlock::Level11(block) = level11 {
         assert_eq!(block.content_type, 2);
         assert_eq!(block.whitepoint, 0);
-        assert_eq!(block.reference_mode_flag, false);
+        assert!(!block.reference_mode_flag);
     } else {
         panic!("No L11 block");
     }

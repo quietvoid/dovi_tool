@@ -625,7 +625,7 @@ fn generate_default_cmv40() -> Result<()> {
     if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {
         assert_eq!(level11.content_type, 1);
         assert_eq!(level11.whitepoint, 0);
-        assert_eq!(level11.reference_mode_flag, true);
+        assert!(level11.reference_mode_flag);
     }
 
     Ok(())
@@ -710,7 +710,7 @@ fn generate_full() -> Result<()> {
     if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {
         assert_eq!(level11.content_type, 4);
         assert_eq!(level11.whitepoint, 0);
-        assert_eq!(level11.reference_mode_flag, true);
+        assert!(level11.reference_mode_flag);
     }
 
     Ok(())

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    name: Check, test, rustfmt and clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy, rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --workspace --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --check
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --workspace --all-features --all-targets -- --deny warnings --verbose
