@@ -134,6 +134,13 @@ pub enum Command {
             parse(from_os_str)
         )]
         output: Option<PathBuf>,
+
+        #[clap(
+            long,
+            takes_value = false,
+            help = "Disable adding AUD NALUs between frames"
+        )]
+        no_add_aud: bool,
     },
 
     Info {

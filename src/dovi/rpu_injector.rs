@@ -9,15 +9,16 @@ use rayon::prelude::*;
 use hevc_parser::hevc::*;
 use hevc_parser::HevcParser;
 
-//use crate::dovi::get_aud;
 use super::{
-    input_format, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, Format, OUT_NAL_HEADER,
+    get_aud, input_format, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, Format,
+    OUT_NAL_HEADER,
 };
 
 pub struct RpuInjector {
     input: PathBuf,
     rpu_in: PathBuf,
     output: PathBuf,
+    no_add_aud: bool,
     options: CliOptions,
 
     rpus: Option<Vec<DoviRpu>>,
@@ -28,6 +29,7 @@ impl RpuInjector {
         input: PathBuf,
         rpu_in: PathBuf,
         output: Option<PathBuf>,
+        no_add_aud: bool,
         cli_options: CliOptions,
     ) -> Result<()> {
         let format = input_format(&input)?;
@@ -38,7 +40,7 @@ impl RpuInjector {
                 None => PathBuf::from("injected_output.hevc"),
             };
 
-            let mut injector = RpuInjector::new(input, rpu_in, output, cli_options)?;
+            let mut injector = RpuInjector::new(input, rpu_in, output, no_add_aud, cli_options)?;
             let mut parser = HevcParser::default();
 
             injector.process_input(&mut parser, format)?;
@@ -145,12 +147,14 @@ impl RpuInjector {
         input: PathBuf,
         rpu_in: PathBuf,
         output: PathBuf,
+        no_add_aud: bool,
         cli_options: CliOptions,
     ) -> Result<RpuInjector> {
         let mut injector = RpuInjector {
             input,
             rpu_in,
             output,
+            no_add_aud,
             options: cli_options,
             rpus: None,
         };
@@ -230,11 +234,17 @@ impl RpuInjector {
 
             let mut nals_parsed = 0;
 
-            // AUDs
-            //let first_decoded_index = frames.iter().position(|f| f.decoded_number == 0).unwrap();
-            //writer.write_all(&get_aud(&frames[first_decoded_index]))?;
-
             let mut last_metadata_written: Option<Vec<u8>> = None;
+            let mut last_frame_index = 0;
+
+            // First frame AUD
+            if !self.no_add_aud {
+                let first_decoded_frame = frames
+                    .iter()
+                    .find(|f| f.decoded_number == last_frame_index)
+                    .unwrap();
+                writer.write_all(&get_aud(first_decoded_frame))?;
+            }
 
             while let Ok(n) = reader.read(&mut main_buf) {
                 let read_bytes = n;
@@ -268,17 +278,30 @@ impl RpuInjector {
                 let nals = parser.split_nals(&chunk, &offsets, last, true)?;
 
                 for (cur_index, nal) in nals.iter().enumerate() {
+                    // On new frame, write AUD
+                    if !self.no_add_aud {
+                        // Skip existing AUDs
+                        if nal.nal_type == NAL_AUD {
+                            continue;
+                        }
+
+                        if last_frame_index != nal.decoded_frame_index {
+                            let decoded_frame = frames
+                                .iter()
+                                .find(|f| f.decoded_number == nal.decoded_frame_index)
+                                .unwrap();
+                            writer.write_all(&get_aud(decoded_frame))?;
+
+                            last_frame_index = decoded_frame.decoded_number;
+                        }
+                    }
+
                     if self.options.drop_hdr10plus
                         && nal.nal_type == NAL_SEI_PREFIX
                         && is_st2094_40_sei(&chunk[nal.start..nal.end])?
                     {
                         continue;
                     }
-
-                    // AUDs
-                    //if nal.nal_type == NAL_AUD {
-                    //    continue;
-                    //}
 
                     if nal.nal_type != NAL_UNSPEC62 {
                         // Skip writing existing RPUs, only one allowed
@@ -312,11 +335,6 @@ impl RpuInjector {
                                 writer.write_all(data)?;
                             }
                         }
-
-                        // AUDs
-                        //if rpu_index < rpus.len() - 1 {
-                        //    writer.write_all(&get_aud(&frames[rpu_index]))?;
-                        //}
                     }
                 }
 

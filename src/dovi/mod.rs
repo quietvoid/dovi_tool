@@ -171,25 +171,31 @@ pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
     Ok(())
 }
 
-pub fn _get_aud(frame: &Frame) -> Vec<u8> {
+pub fn get_aud(frame: &Frame) -> Vec<u8> {
     let pic_type: u8 = match &frame.frame_type {
-        2 => 0,
-        1 => 1,
-        0 => 2,
+        2 => 0, // I
+        1 => 1, // P, I
+        0 => 2, // B, P, I
         _ => 7,
     };
 
     let mut data = OUT_NAL_HEADER.to_vec();
     let mut writer = BitVecWriter::new();
 
-    // forbidden_zero_bit
-    writer.write(false);
+    writer.write(false); // forbidden_zero_bit
 
-    writer.write_n(&(NAL_AUD).to_be_bytes(), 6);
-    writer.write_n(&(0_u8).to_be_bytes(), 6);
-    writer.write_n(&(0_u8).to_be_bytes(), 3);
+    writer.write_n(&(NAL_AUD).to_be_bytes(), 6); // nal_unit_type
+    writer.write_n(&(0_u8).to_be_bytes(), 6); // nuh_layer_id
+    writer.write_n(&(1_u8).to_be_bytes(), 3); // nuh_temporal_id_plus1
 
-    writer.write_n(&pic_type.to_be_bytes(), 3);
+    writer.write_n(&pic_type.to_be_bytes(), 3); // pic_type
+
+    // rbsp_trailing_bits()
+    writer.write(true); // rbsp_stop_one_bit
+
+    while !writer.is_aligned() {
+        writer.write(false); // rbsp_alignment_zero_bit
+    }
 
     data.extend_from_slice(writer.as_slice());
 
