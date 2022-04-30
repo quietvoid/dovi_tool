@@ -8,18 +8,19 @@ license = "MIT"
 
 [dependencies]
 bitvec_helpers = "1.0.2"
-hevc_parser = "0.3.4"
+hevc_parser = { version = "0.4.2", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
-anyhow = "1.0.56"
-clap = { version = "3.1.8", features = ["derive", "wrap_help"] }
+anyhow = "1.0.57"
+clap = { version = "3.1.13", features = ["derive", "wrap_help"] }
 indicatif = "0.16.2"
 regex = "1.5.5"
 bitvec = "1.0.0"
 serde = { version = "1.0.136", features = ["derive"] }
-serde_json = { version = "1.0.79", features = ["preserve_order"] }
-rayon = "1.5.1"
+serde_json = { version = "1.0.80", features = ["preserve_order"] }
+rayon = "1.5.2"
+itertools = "0.10.3"
 
 [[bin]]
 name = "dovi_tool"

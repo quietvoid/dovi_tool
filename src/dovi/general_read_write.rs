@@ -8,9 +8,7 @@ use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::HevcParser;
 
-use dolby_vision::rpu::dovi_rpu::DoviRpu;
-
-use super::{is_st2094_40_sei, CliOptions, Format, OUT_NAL_HEADER};
+use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat, OUT_NAL_HEADER};
 
 pub struct DoviReader {
     options: CliOptions,
@@ -89,7 +87,7 @@ impl DoviReader {
 
     pub fn read_write_from_io(
         &mut self,
-        format: &Format,
+        format: &IoFormat,
         input: &Path,
         pb: Option<&ProgressBar>,
         dovi_writer: &mut DoviWriter,
@@ -98,7 +96,7 @@ impl DoviReader {
         let stdin = std::io::stdin();
         let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
 
-        if let Format::Raw = format {
+        if let IoFormat::Raw = format {
             let file = File::open(input)?;
             reader = Box::new(BufReader::with_capacity(100_000, file));
         }
@@ -124,25 +122,22 @@ impl DoviReader {
                 break;
             }
 
-            if *format == Format::RawStdin {
+            if *format == IoFormat::RawStdin {
                 chunk.extend_from_slice(&main_buf[..read_bytes]);
 
                 loop {
-                    match reader.read(&mut sec_buf) {
-                        Ok(num) => {
-                            if num > 0 {
-                                read_bytes += num;
+                    let num = reader.read(&mut sec_buf)?;
 
-                                chunk.extend_from_slice(&sec_buf[..num]);
+                    if num > 0 {
+                        read_bytes += num;
 
-                                if read_bytes >= chunk_size {
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
+                        chunk.extend_from_slice(&sec_buf[..num]);
+
+                        if read_bytes >= chunk_size {
+                            break;
                         }
-                        Err(e) => bail!("{:?}", e),
+                    } else {
+                        break;
                     }
                 }
             } else if read_bytes < chunk_size {
@@ -233,22 +228,13 @@ impl DoviReader {
                 sl_writer.write_all(OUT_NAL_HEADER)?;
 
                 if nal.nal_type == NAL_UNSPEC62 {
-                    if let Some(mode) = self.options.mode {
-                        match DoviRpu::parse_unspec62_nalu(&chunk[nal.start..nal.end]) {
-                            Ok(mut dovi_rpu) => {
-                                dovi_rpu.convert_with_mode(mode)?;
+                    if let Some(_mode) = self.options.mode {
+                        let modified_data =
+                            convert_encoded_from_opts(&self.options, &chunk[nal.start..nal.end])?;
 
-                                if self.options.crop {
-                                    dovi_rpu.crop()?;
-                                }
+                        sl_writer.write_all(&modified_data)?;
 
-                                let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;
-                                sl_writer.write_all(&modified_data)?;
-
-                                continue;
-                            }
-                            Err(e) => bail!("{}", e),
-                        }
+                        continue;
                     }
                 }
 
@@ -271,44 +257,35 @@ impl DoviReader {
                         el_writer.write_all(OUT_NAL_HEADER)?;
                     }
 
+                    let rpu_data = &chunk[nal.start..nal.end];
+
                     // No mode: Copy
                     // Mode 0: Parse, untouched
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
                     // Mode 3: 5 to 8.1
-                    if let Some(mode) = self.options.mode {
-                        match DoviRpu::parse_unspec62_nalu(&chunk[nal.start..nal.end]) {
-                            Ok(mut dovi_rpu) => {
-                                dovi_rpu.convert_with_mode(mode)?;
+                    if let Some(_mode) = self.options.mode {
+                        let modified_data = convert_encoded_from_opts(&self.options, rpu_data)?;
 
-                                if self.options.crop {
-                                    dovi_rpu.crop()?;
-                                }
-
-                                let modified_data = dovi_rpu.write_hevc_unspec62_nalu()?;
-
-                                if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
-                                    // RPU for x265, remove 0x7C01
-                                    self.rpu_nals.push(RpuNal {
-                                        decoded_index: self.rpu_nals.len(),
-                                        presentation_number: 0,
-                                        data: modified_data[2..].to_owned(),
-                                    });
-                                } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                                    el_writer.write_all(&modified_data)?;
-                                }
-                            }
-                            Err(e) => bail!("{}", e),
+                        if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                            // RPU for x265, remove 0x7C01
+                            self.rpu_nals.push(RpuNal {
+                                decoded_index: self.rpu_nals.len(),
+                                presentation_number: 0,
+                                data: modified_data[2..].to_owned(),
+                            });
+                        } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                            el_writer.write_all(&modified_data)?;
                         }
                     } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
                         // RPU for x265, remove 0x7C01
                         self.rpu_nals.push(RpuNal {
                             decoded_index: self.rpu_nals.len(),
                             presentation_number: 0,
-                            data: chunk[nal.start + 2..nal.end].to_vec(),
+                            data: rpu_data[2..].to_vec(),
                         });
                     } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
-                        el_writer.write_all(&chunk[nal.start..nal.end])?;
+                        el_writer.write_all(rpu_data)?;
                     }
                 }
                 _ => {

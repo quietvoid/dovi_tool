@@ -3,11 +3,12 @@ pub mod demuxer;
 pub mod editor;
 pub mod exporter;
 pub mod generator;
+pub mod muxer;
 pub mod rpu_extractor;
 pub mod rpu_info;
 pub mod rpu_injector;
 
-mod io;
+mod general_read_write;
 
 #[cfg(test)]
 mod tests;
@@ -24,23 +25,16 @@ use super::bitvec_writer::BitVecWriter;
 
 use dolby_vision::rpu;
 
-use super::input_format;
 use hevc_parser::{
     hevc::{Frame, NAL_AUD},
+    io::IoFormat,
     HevcParser, NALUStartCode,
 };
 use rpu::dovi_rpu::DoviRpu;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
-#[derive(Debug, PartialEq)]
-pub enum Format {
-    Raw,
-    RawStdin,
-    Matroska,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct CliOptions {
     pub mode: Option<u8>,
     pub crop: bool,
@@ -48,11 +42,11 @@ pub struct CliOptions {
     pub drop_hdr10plus: bool,
 }
 
-pub fn initialize_progress_bar(format: &Format, input: &Path) -> Result<ProgressBar> {
+pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<ProgressBar> {
     let pb: ProgressBar;
     let bytes_count;
 
-    if let Format::RawStdin = format {
+    if let IoFormat::RawStdin = format {
         pb = ProgressBar::hidden();
     } else {
         let file = File::open(input).expect("No file found");
@@ -68,16 +62,6 @@ pub fn initialize_progress_bar(format: &Format, input: &Path) -> Result<Progress
     }
 
     Ok(pb)
-}
-
-impl std::fmt::Display for Format {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Format::Matroska => write!(f, "Matroska file"),
-            Format::Raw => write!(f, "HEVC file"),
-            Format::RawStdin => write!(f, "HEVC pipe"),
-        }
-    }
 }
 
 pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
@@ -233,4 +217,18 @@ pub fn is_st2094_40_sei(sei_payload: &[u8]) -> Result<bool> {
     }
 
     Ok(false)
+}
+
+pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u8>> {
+    let mut dovi_rpu = DoviRpu::parse_unspec62_nalu(data)?;
+
+    if let Some(mode) = opts.mode {
+        dovi_rpu.convert_with_mode(mode)?;
+    }
+
+    if opts.crop {
+        dovi_rpu.crop()?;
+    }
+
+    dovi_rpu.write_hevc_unspec62_nalu()
 }
