@@ -163,7 +163,7 @@ For working with an HEVC source file, there are multiple options that apply to m
 
     **Example to convert RPU to profile 8.1 while muxing**:
     ```console
-    dovi_tool -m 2 demux file.hevc --discard
+    dovi_tool -m 2 mux --bl BL.hevc --el EL.hevc --discard
     ```
 
 &nbsp;
