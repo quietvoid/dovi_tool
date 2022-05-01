@@ -335,7 +335,8 @@ fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
     let last_slice_nal = last_slice.1 .1;
 
     // Use last non EOS/EOB NALU
-    let non_eos_eob_nal_count = frame.nals
+    let non_eos_eob_nal_count = frame
+        .nals
         .iter()
         .filter(|nal| !matches!(nal.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
         .count();

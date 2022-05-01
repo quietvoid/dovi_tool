@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::{general_read_write, CliOptions, IoFormat};
 
-use general_read_write::{DoviReader, DoviWriter};
+use general_read_write::{DoviProcessor, DoviWriter};
 
 pub struct Demuxer {
     format: IoFormat,
@@ -68,21 +68,20 @@ impl Demuxer {
 
         match self.format {
             IoFormat::Matroska => bail!("Demuxer: Matroska input is unsupported"),
-            _ => self.demux_raw_hevc(Some(&pb), options),
+            _ => self.demux_raw_hevc(pb, options),
         }
     }
 
-    fn demux_raw_hevc(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
-        let mut dovi_reader = DoviReader::new(options);
-
+    fn demux_raw_hevc(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
         let bl_out = if self.el_only {
             None
         } else {
             Some(self.bl_out.as_path())
         };
 
-        let mut dovi_writer = DoviWriter::new(bl_out, Some(self.el_out.as_path()), None, None);
+        let dovi_writer = DoviWriter::new(bl_out, Some(self.el_out.as_path()), None, None);
+        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
 
-        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer)
+        dovi_processor.read_write_from_io(&self.format)
     }
 }

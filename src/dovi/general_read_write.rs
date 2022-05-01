@@ -1,20 +1,27 @@
+use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
+use std::path::PathBuf;
+use std::{fs::File, path::Path};
+
 use anyhow::{bail, Result};
 use indicatif::ProgressBar;
-use std::io::Read;
-use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
-use std::{fs::File, path::Path};
 
 use hevc_parser::hevc::NALUnit;
 use hevc_parser::hevc::{NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
+use hevc_parser::io::{processor, IoProcessor};
 use hevc_parser::HevcParser;
+use processor::{HevcProcessor, HevcProcessorOpts};
 
 use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat, OUT_NAL_HEADER};
 
-pub struct DoviReader {
+pub struct DoviProcessor {
+    input: PathBuf,
     options: CliOptions,
     rpu_nals: Vec<RpuNal>,
 
     previous_rpu_index: u64,
+
+    progress_bar: ProgressBar,
+    dovi_writer: DoviWriter,
 }
 
 pub struct DoviWriter {
@@ -76,128 +83,46 @@ impl DoviWriter {
     }
 }
 
-impl DoviReader {
-    pub fn new(options: CliOptions) -> DoviReader {
-        DoviReader {
+impl DoviProcessor {
+    pub fn new(
+        options: CliOptions,
+        input: PathBuf,
+        dovi_writer: DoviWriter,
+        progress_bar: ProgressBar,
+    ) -> DoviProcessor {
+        DoviProcessor {
+            input,
             options,
             rpu_nals: Vec::new(),
             previous_rpu_index: 0,
+            progress_bar,
+            dovi_writer,
         }
     }
 
-    pub fn read_write_from_io(
-        &mut self,
-        format: &IoFormat,
-        input: &Path,
-        pb: Option<&ProgressBar>,
-        dovi_writer: &mut DoviWriter,
-    ) -> Result<()> {
-        //BufReader & BufWriter
+    pub fn read_write_from_io(&mut self, format: &IoFormat) -> Result<()> {
+        let chunk_size = 100_000;
+
+        let parse_nals = self.dovi_writer.rpu_writer.is_some();
+
+        let processor_opts = HevcProcessorOpts {
+            parse_nals,
+            ..Default::default()
+        };
+        let mut processor = HevcProcessor::new(format.clone(), processor_opts, chunk_size);
+
         let stdin = std::io::stdin();
         let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
 
         if let IoFormat::Raw = format {
-            let file = File::open(input)?;
+            let file = File::open(&self.input)?;
             reader = Box::new(BufReader::with_capacity(100_000, file));
         }
 
-        let chunk_size = 100_000;
-
-        let mut main_buf = vec![0; 100_000];
-        let mut sec_buf = vec![0; 50_000];
-
-        let mut chunk = Vec::with_capacity(chunk_size);
-        let mut end: Vec<u8> = Vec::with_capacity(100_000);
-
-        let mut consumed = 0;
-
-        let mut parser = HevcParser::default();
-
-        let mut offsets = Vec::with_capacity(2048);
-        let parse_nals = dovi_writer.rpu_writer.is_some();
-
-        while let Ok(n) = reader.read(&mut main_buf) {
-            let mut read_bytes = n;
-            if read_bytes == 0 && end.is_empty() && chunk.is_empty() {
-                break;
-            }
-
-            if *format == IoFormat::RawStdin {
-                chunk.extend_from_slice(&main_buf[..read_bytes]);
-
-                loop {
-                    let num = reader.read(&mut sec_buf)?;
-
-                    if num > 0 {
-                        read_bytes += num;
-
-                        chunk.extend_from_slice(&sec_buf[..num]);
-
-                        if read_bytes >= chunk_size {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-            } else if read_bytes < chunk_size {
-                chunk.extend_from_slice(&main_buf[..read_bytes]);
-            } else {
-                chunk.extend_from_slice(&main_buf);
-            }
-
-            parser.get_offsets(&chunk, &mut offsets);
-
-            if offsets.is_empty() {
-                continue;
-            }
-
-            let last = if read_bytes < chunk_size {
-                *offsets.last().unwrap()
-            } else {
-                let last = offsets.pop().unwrap();
-
-                end.clear();
-                end.extend_from_slice(&chunk[last..]);
-
-                last
-            };
-
-            let nals: Vec<NALUnit> = parser.split_nals(&chunk, &offsets, last, parse_nals)?;
-            self.write_nals(&chunk, dovi_writer, &nals)?;
-
-            chunk.clear();
-
-            if !end.is_empty() {
-                chunk.extend_from_slice(&end);
-                end.clear();
-            }
-
-            consumed += read_bytes;
-
-            if consumed >= 100_000_000 {
-                if let Some(pb) = pb {
-                    pb.inc(1);
-                    consumed = 0;
-                }
-            }
-        }
-
-        if let Some(pb) = pb {
-            pb.finish_and_clear();
-        }
-
-        parser.finish();
-
-        self.flush_writer(&parser, dovi_writer)
+        processor.process_io(&mut reader, self)
     }
 
-    pub fn write_nals(
-        &mut self,
-        chunk: &[u8],
-        dovi_writer: &mut DoviWriter,
-        nals: &[NALUnit],
-    ) -> Result<()> {
+    pub fn write_nals(&mut self, chunk: &[u8], nals: &[NALUnit]) -> Result<()> {
         for nal in nals {
             if self.options.drop_hdr10plus
                 && nal.nal_type == NAL_SEI_PREFIX
@@ -220,7 +145,7 @@ impl DoviReader {
                 continue;
             }
 
-            if let Some(ref mut sl_writer) = dovi_writer.sl_writer {
+            if let Some(ref mut sl_writer) = self.dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;
                 }
@@ -245,7 +170,7 @@ impl DoviReader {
 
             match nal.nal_type {
                 NAL_UNSPEC63 => {
-                    if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                    if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
                         el_writer.write_all(OUT_NAL_HEADER)?;
                         el_writer.write_all(&chunk[nal.start + 2..nal.end])?;
                     }
@@ -253,7 +178,7 @@ impl DoviReader {
                 NAL_UNSPEC62 => {
                     self.previous_rpu_index = nal.decoded_frame_index;
 
-                    if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                    if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
                         el_writer.write_all(OUT_NAL_HEADER)?;
                     }
 
@@ -267,29 +192,29 @@ impl DoviReader {
                     if let Some(_mode) = self.options.mode {
                         let modified_data = convert_encoded_from_opts(&self.options, rpu_data)?;
 
-                        if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                        if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
                             // RPU for x265, remove 0x7C01
                             self.rpu_nals.push(RpuNal {
                                 decoded_index: self.rpu_nals.len(),
                                 presentation_number: 0,
                                 data: modified_data[2..].to_owned(),
                             });
-                        } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                        } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
                             el_writer.write_all(&modified_data)?;
                         }
-                    } else if let Some(ref mut _rpu_writer) = dovi_writer.rpu_writer {
+                    } else if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
                         // RPU for x265, remove 0x7C01
                         self.rpu_nals.push(RpuNal {
                             decoded_index: self.rpu_nals.len(),
                             presentation_number: 0,
                             data: rpu_data[2..].to_vec(),
                         });
-                    } else if let Some(ref mut el_writer) = dovi_writer.el_writer {
+                    } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
                         el_writer.write_all(rpu_data)?;
                     }
                 }
                 _ => {
-                    if let Some(ref mut bl_writer) = dovi_writer.bl_writer {
+                    if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
                         bl_writer.write_all(OUT_NAL_HEADER)?;
                         bl_writer.write_all(&chunk[nal.start..nal.end])?;
                     }
@@ -300,17 +225,17 @@ impl DoviReader {
         Ok(())
     }
 
-    fn flush_writer(&mut self, parser: &HevcParser, dovi_writer: &mut DoviWriter) -> Result<()> {
-        if let Some(ref mut bl_writer) = dovi_writer.bl_writer {
+    fn flush_writer(&mut self, parser: &HevcParser) -> Result<()> {
+        if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
             bl_writer.flush()?;
         }
 
-        if let Some(ref mut el_writer) = dovi_writer.el_writer {
+        if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
             el_writer.flush()?;
         }
 
         // Reorder RPUs to display output order
-        if let Some(ref mut rpu_writer) = dovi_writer.rpu_writer {
+        if let Some(ref mut rpu_writer) = self.dovi_writer.rpu_writer {
             let frames = parser.ordered_frames();
 
             if frames.is_empty() {
@@ -354,5 +279,24 @@ impl DoviReader {
         }
 
         Ok(())
+    }
+}
+
+impl IoProcessor for DoviProcessor {
+    fn input(&self) -> &std::path::PathBuf {
+        &self.input
+    }
+
+    fn update_progress(&mut self, delta: u64) {
+        self.progress_bar.inc(delta);
+    }
+
+    fn process_nals(&mut self, _parser: &HevcParser, nals: &[NALUnit], chunk: &[u8]) -> Result<()> {
+        self.write_nals(chunk, nals)
+    }
+
+    fn finalize(&mut self, parser: &HevcParser) -> Result<()> {
+        self.progress_bar.finish_and_clear();
+        self.flush_writer(parser)
     }
 }

@@ -3,7 +3,7 @@ use indicatif::ProgressBar;
 use std::path::PathBuf;
 
 use super::{general_read_write, CliOptions, IoFormat};
-use general_read_write::{DoviReader, DoviWriter};
+use general_read_write::{DoviProcessor, DoviWriter};
 
 pub struct RpuExtractor {
     format: IoFormat,
@@ -50,14 +50,14 @@ impl RpuExtractor {
 
         match self.format {
             IoFormat::Matroska => bail!("Extractor: Matroska input is unsupported"),
-            _ => self.extract_rpu_from_el(Some(&pb), options),
+            _ => self.extract_rpu_from_el(pb, options),
         }
     }
 
-    fn extract_rpu_from_el(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
-        let mut dovi_reader = DoviReader::new(options);
-        let mut dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out), None);
+    fn extract_rpu_from_el(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
+        let dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out), None);
+        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
 
-        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer)
+        dovi_processor.read_write_from_io(&self.format)
     }
 }
