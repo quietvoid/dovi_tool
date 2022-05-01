@@ -1,0 +1,17 @@
+{
+  "mode": 0,
+  "active_area": {
+    "presets": [
+      {
+        "id": 0,
+        "left": 0,
+        "right": 0,
+        "top": 210,
+        "bottom": 210
+      }
+    ],
+    "edits": {
+      "all": 0
+    }
+  }
+}

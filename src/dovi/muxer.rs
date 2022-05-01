@@ -12,6 +12,8 @@ use hevc_parser::io::{processor, FrameBuffer, IoProcessor, NalBuffer};
 use hevc_parser::HevcParser;
 use processor::{HevcProcessor, HevcProcessorOpts};
 
+use crate::commands::MuxArgs;
+
 use super::{
     convert_encoded_from_opts, get_aud, is_st2094_40_sei, CliOptions, IoFormat, OUT_NAL_HEADER,
 };
@@ -43,14 +45,18 @@ pub struct ElHandler {
 }
 
 impl Muxer {
-    pub fn mux_el(
-        bl: PathBuf,
-        el: PathBuf,
-        output: Option<PathBuf>,
-        no_add_aud: bool,
-        eos_before_el: bool,
-        cli_options: CliOptions,
-    ) -> Result<()> {
+    pub fn from_args(args: MuxArgs, mut cli_options: CliOptions) -> Result<Self> {
+        let MuxArgs {
+            bl,
+            el,
+            output,
+            no_add_aud,
+            eos_before_el,
+            discard,
+        } = args;
+
+        cli_options.discard_el = discard;
+
         let bl_format = hevc_parser::io::format_from_path(&bl)?;
         let el_format = hevc_parser::io::format_from_path(&el)?;
 
@@ -95,7 +101,7 @@ impl Muxer {
 
         let progress_bar = super::initialize_progress_bar(&bl_format, &bl)?;
 
-        let mut muxer = Muxer {
+        Ok(Self {
             input: bl,
             format: bl_format,
             progress_bar,
@@ -111,8 +117,11 @@ impl Muxer {
             el_processor: HevcProcessor::new(IoFormat::Raw, el_opts, chunk_size),
             el_handler,
             el_reader,
-        };
+        })
+    }
 
+    pub fn mux_el(args: MuxArgs, cli_options: CliOptions) -> Result<()> {
+        let mut muxer = Muxer::from_args(args, cli_options)?;
         muxer.interleave_el()
     }
 

@@ -2,7 +2,9 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{general_read_write, CliOptions, IoFormat};
+use crate::commands::ConvertArgs;
+
+use super::{general_read_write, input_from_either, CliOptions, IoFormat};
 
 use general_read_write::{DoviProcessor, DoviWriter};
 
@@ -13,28 +15,17 @@ pub struct Converter {
 }
 
 impl Converter {
-    pub fn new(format: IoFormat, input: PathBuf, output: PathBuf) -> Self {
-        Self {
-            format,
+    pub fn from_args(args: ConvertArgs, options: &mut CliOptions) -> Result<Self> {
+        let ConvertArgs {
             input,
+            input_pos,
             output,
-        }
-    }
+            discard,
+        } = args;
 
-    pub fn convert(
-        input: Option<PathBuf>,
-        stdin: Option<PathBuf>,
-        output: Option<PathBuf>,
-        options: CliOptions,
-    ) -> Result<()> {
-        let input = match input {
-            Some(input) => input,
-            None => match stdin {
-                Some(stdin) => stdin,
-                None => PathBuf::new(),
-            },
-        };
+        options.discard_el = discard;
 
+        let input = input_from_either("convert", input, input_pos)?;
         let format = hevc_parser::io::format_from_path(&input)?;
 
         let output = match output {
@@ -45,8 +36,16 @@ impl Converter {
             },
         };
 
-        let demuxer = Converter::new(format, input, output);
-        demuxer.process_input(options)
+        Ok(Self {
+            format,
+            input,
+            output,
+        })
+    }
+
+    pub fn convert(args: ConvertArgs, mut options: CliOptions) -> Result<()> {
+        let converter = Converter::from_args(args, &mut options)?;
+        converter.process_input(options)
     }
 
     fn process_input(&self, options: CliOptions) -> Result<()> {

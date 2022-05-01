@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{stdout, Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::commands::Command;
+use crate::commands::GenerateArgs;
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel6,
 };
@@ -27,8 +27,8 @@ pub struct Generator {
 }
 
 impl Generator {
-    pub fn from_command(cmd: Command) -> Result<Generator> {
-        if let Command::Generate {
+    pub fn from_args(args: GenerateArgs) -> Result<Generator> {
+        let GenerateArgs {
             json_file,
             rpu_out,
             hdr10plus_json,
@@ -37,33 +37,35 @@ impl Generator {
             canvas_height,
             madvr_file,
             use_custom_targets,
-        } = cmd
-        {
-            let out_path = if let Some(out_path) = rpu_out {
-                out_path
-            } else {
-                PathBuf::from("RPU_generated.bin".to_string())
-            };
+        } = args;
 
-            let generator = Generator {
-                json_path: json_file,
-                rpu_out: out_path,
-                hdr10plus_path: hdr10plus_json,
-                xml_path: xml,
-                canvas_width,
-                canvas_height,
-                madvr_path: madvr_file,
-                use_custom_targets,
-                config: None,
-            };
-
-            Ok(generator)
+        let out_path = if let Some(out_path) = rpu_out {
+            out_path
         } else {
-            bail!("Invalid command variant.");
-        }
+            PathBuf::from("RPU_generated.bin".to_string())
+        };
+
+        let generator = Generator {
+            json_path: json_file,
+            rpu_out: out_path,
+            hdr10plus_path: hdr10plus_json,
+            xml_path: xml,
+            canvas_width,
+            canvas_height,
+            madvr_path: madvr_file,
+            use_custom_targets,
+            config: None,
+        };
+
+        Ok(generator)
     }
 
-    pub fn generate(&mut self) -> Result<()> {
+    pub fn generate(args: GenerateArgs) -> Result<()> {
+        let mut generator = Generator::from_args(args)?;
+        generator.execute()
+    }
+
+    pub fn execute(&mut self) -> Result<()> {
         let config = if let Some(json_path) = &self.json_path {
             let json_file = File::open(json_path)?;
             let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
@@ -99,14 +101,7 @@ impl Generator {
         };
 
         self.config = Some(config);
-        self.execute()?;
 
-        println!("Done.");
-
-        Ok(())
-    }
-
-    fn execute(&self) -> Result<()> {
         if let Some(config) = &self.config {
             println!("Generating metadata...");
 
@@ -116,6 +111,8 @@ impl Generator {
         } else {
             bail!("No generation config to execute!");
         }
+
+        println!("Done.");
 
         Ok(())
     }

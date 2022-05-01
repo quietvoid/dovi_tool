@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::{stdout, Write};
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
@@ -10,11 +11,14 @@ use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::generate::GenerateConfig;
 use serde::{Deserialize, Serialize};
 
-use super::{parse_rpu_file, write_rpu_file, DoviRpu};
+use utilities_dovi::parse_rpu_file;
+
+use super::{input_from_either, write_rpu_file, DoviRpu};
+use crate::commands::EditorArgs;
 
 pub struct Editor {
     input: PathBuf,
-    json_path: PathBuf,
+    json_file: PathBuf,
     rpu_out: PathBuf,
 
     rpus: Option<Vec<Option<DoviRpu>>>,
@@ -83,7 +87,16 @@ pub struct DuplicateMetadata {
 }
 
 impl Editor {
-    pub fn edit(input: PathBuf, json_path: PathBuf, rpu_out: Option<PathBuf>) -> Result<()> {
+    pub fn from_args(args: EditorArgs) -> Result<Self> {
+        let EditorArgs {
+            input,
+            input_pos,
+            json_file,
+            rpu_out,
+        } = args;
+
+        let input = input_from_either("editor", input, input_pos)?;
+
         let out_path = if let Some(out_path) = rpu_out {
             out_path
         } else {
@@ -94,16 +107,23 @@ impl Editor {
             ))
         };
 
-        let mut editor = Editor {
+        Ok(Self {
             input,
-            json_path,
+            json_file,
             rpu_out: out_path,
             rpus: None,
-        };
+        })
+    }
 
-        let mut config: EditConfig = EditConfig::from_path(&editor.json_path)?;
+    pub fn edit(args: EditorArgs) -> Result<()> {
+        let mut editor = Editor::from_args(args)?;
+
+        let mut config: EditConfig = EditConfig::from_path(&editor.json_file)?;
 
         println!("{:#?}", config);
+
+        println!("Parsing RPU file...");
+        stdout().flush().ok();
 
         editor.rpus =
             parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());

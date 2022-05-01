@@ -170,7 +170,7 @@ For working with an HEVC source file, there are multiple options that apply to m
 
 &nbsp;
 * ### **mux**
-    Interleaves the enhancement layer frame after every frame from the base HEVC layer.  
+    Interleaves the enhancement layer into a base layer HEVC bitstream.  
     This is the inverse of **`demux`**.
 
     Muxing supports the base layer input as both raw HEVC bitstream and piped/streamed.

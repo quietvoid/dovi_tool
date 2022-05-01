@@ -1,12 +1,15 @@
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{stdout, BufWriter, Write};
 use std::path::PathBuf;
 
 use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::Serializer;
 
-use crate::dovi::parse_rpu_file;
+use utilities_dovi::parse_rpu_file;
+
+use crate::commands::ExportArgs;
+use crate::dovi::input_from_either;
 
 use super::DoviRpu;
 
@@ -17,7 +20,15 @@ pub struct Exporter {
 }
 
 impl Exporter {
-    pub fn export(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
+    pub fn export(args: ExportArgs) -> Result<()> {
+        let ExportArgs {
+            input,
+            input_pos,
+            output,
+        } = args;
+
+        let input = input_from_either("editor", input, input_pos)?;
+
         let out_path = if let Some(out_path) = output {
             out_path
         } else {
@@ -29,6 +40,9 @@ impl Exporter {
             output: out_path,
             rpus: None,
         };
+
+        println!("Parsing RPU file...");
+        stdout().flush().ok();
 
         exporter.rpus = parse_rpu_file(&exporter.input)?;
         exporter.execute()?;
