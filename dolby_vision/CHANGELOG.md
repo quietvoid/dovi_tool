@@ -1,6 +1,6 @@
 ## ??
 
-- 
+- Add `DoviRpu::convert_to_cmv40` helper method.
 
 ## 1.6.3
 

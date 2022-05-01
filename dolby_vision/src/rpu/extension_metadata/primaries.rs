@@ -15,7 +15,7 @@ pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
     [0.766, 0.275, 0.225, 0.80, 0.089, -0.087, 0.3127, 0.329], //  8, S-Gamut-3.Cine
 ];
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub struct ColorPrimaries {
     pub red_x: u16,
@@ -28,7 +28,7 @@ pub struct ColorPrimaries {
     pub white_y: u16,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum MasteringDisplayPrimaries {
     DCIP3D65 = 0,

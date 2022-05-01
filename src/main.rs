@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use anyhow::Result;
@@ -8,9 +10,16 @@ use commands::Command;
 
 mod dovi;
 use dovi::{
-    converter::Converter, demuxer::Demuxer, editor::Editor, exporter::Exporter,
-    generator::Generator, muxer::Muxer, rpu_extractor::RpuExtractor, rpu_info::RpuInfo,
-    rpu_injector::RpuInjector, CliOptions,
+    converter::Converter,
+    demuxer::Demuxer,
+    editor::{EditConfig, Editor},
+    exporter::Exporter,
+    generator::Generator,
+    muxer::Muxer,
+    rpu_extractor::RpuExtractor,
+    rpu_info::RpuInfo,
+    rpu_injector::RpuInjector,
+    CliOptions,
 };
 
 #[derive(Parser, Debug)]
@@ -38,6 +47,13 @@ struct Opt {
     #[clap(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
     drop_hdr10plus: bool,
 
+    #[clap(
+        long,
+        help = "Sets the edit JSON config file to use",
+        parse(from_os_str)
+    )]
+    edit_config: Option<PathBuf>,
+
     #[clap(subcommand)]
     cmd: Command,
 }
@@ -45,11 +61,18 @@ struct Opt {
 fn main() -> Result<()> {
     let opt = Opt::parse();
 
+    let edit_config = opt
+        .edit_config
+        .as_ref()
+        .map(EditConfig::from_path)
+        .and_then(Result::ok);
+
     let mut cli_options = CliOptions {
         mode: opt.mode,
         crop: opt.crop,
         discard_el: false,
         drop_hdr10plus: opt.drop_hdr10plus,
+        edit_config,
     };
 
     // Set mode 0 by default if cropping, otherwise it has no effect
