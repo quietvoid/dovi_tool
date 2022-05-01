@@ -30,7 +30,7 @@ dovi_tool <SUBCOMMAND> --help
 
 
 ## All options
-- `--help`, `--version`, `--crop`, `--drop-hdr10plus`, `--mode`, `--version`, `--edit-config`
+- `--help`, `--version`, `--crop`, `--drop-hdr10plus`, `--mode`, `--edit-config`
 ## All subcommands
 - Metadata utilities: **`info`**, **`generate`**, **`editor`**, **`export`**
 - HEVC parsing & handling: **`convert`**, **`demux`**, **`mux`**, **`extract-rpu`**, **`inject-rpu`**
