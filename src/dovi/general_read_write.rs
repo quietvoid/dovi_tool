@@ -152,15 +152,15 @@ impl DoviProcessor {
 
                 sl_writer.write_all(OUT_NAL_HEADER)?;
 
-                if nal.nal_type == NAL_UNSPEC62 {
-                    if self.options.mode.is_some() || self.options.edit_config.is_some() {
-                        let modified_data =
-                            convert_encoded_from_opts(&self.options, &chunk[nal.start..nal.end])?;
+                if nal.nal_type == NAL_UNSPEC62
+                    && (self.options.mode.is_some() || self.options.edit_config.is_some())
+                {
+                    let modified_data =
+                        convert_encoded_from_opts(&self.options, &chunk[nal.start..nal.end])?;
 
-                        sl_writer.write_all(&modified_data)?;
+                    sl_writer.write_all(&modified_data)?;
 
-                        continue;
-                    }
+                    continue;
                 }
 
                 sl_writer.write_all(&chunk[nal.start..nal.end])?;
