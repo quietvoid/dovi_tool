@@ -207,6 +207,7 @@ impl IoProcessor for Muxer {
                 }
 
                 self.frame_buffer.frame_number = nal.decoded_frame_index;
+                self.frame_buffer.nals.clear();
             }
 
             // Buffer original BL NALUs
@@ -267,6 +268,8 @@ impl IoProcessor for Muxer {
             if !self.eos_before_el {
                 Muxer::write_buffers(&mut self.el_handler.writer, self.frame_buffer.nals.iter())?;
             }
+
+            self.frame_buffer.nals.clear();
         }
 
         self.el_handler.writer.flush()?;
