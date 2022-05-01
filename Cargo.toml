@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "1.4.7"
+version = "1.5.0"
 authors = ["quietvoid"]
 edition = "2021"
 rust-version = "1.56.0"
@@ -13,11 +13,11 @@ dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 
 anyhow = "1.0.57"
-clap = { version = "3.1.13", features = ["derive", "wrap_help"] }
+clap = { version = "3.1.14", features = ["derive", "wrap_help"] }
 indicatif = "0.16.2"
 regex = "1.5.5"
 bitvec = "1.0.0"
-serde = { version = "1.0.136", features = ["derive"] }
+serde = { version = "1.0.137", features = ["derive"] }
 serde_json = { version = "1.0.80", features = ["preserve_order"] }
 rayon = "1.5.2"
 itertools = "0.10.3"

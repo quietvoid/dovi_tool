@@ -13,7 +13,7 @@ bitvec_helpers = "1.0.2"
 anyhow = "1.0.57"
 bitvec = "1.0.0"
 crc = "3.0.0"
-serde = { version = "1.0.136", features = ["derive"], "optional" = true }
+serde = { version = "1.0.137", features = ["derive"], "optional" = true }
 serde_json = { version = "1.0.80", features = ["preserve_order"], "optional" = true }
 roxmltree = { version = "0.14.1", optional = true }
 
