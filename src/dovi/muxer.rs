@@ -82,7 +82,10 @@ impl Muxer {
         let el_file = File::open(&el)?;
         let el_reader = Box::new(BufReader::with_capacity(chunk_size, el_file));
 
-        let el_opts = HevcProcessorOpts { buffer_frame: true };
+        let el_opts = HevcProcessorOpts {
+            buffer_frame: true,
+            ..Default::default()
+        };
         let el_handler = ElHandler {
             input: el,
             writer,
@@ -133,9 +136,7 @@ impl Muxer {
             reader = Box::new(BufReader::with_capacity(100_000, file));
         }
 
-        processor.process_io(&mut reader, self)?;
-
-        Ok(())
+        processor.process_io(&mut reader, self)
     }
 }
 
@@ -269,6 +270,8 @@ impl IoProcessor for Muxer {
         }
 
         self.el_handler.writer.flush()?;
+
+        self.progress_bar.finish_and_clear();
 
         Ok(())
     }

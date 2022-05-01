@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::{general_read_write, CliOptions, IoFormat};
 
-use general_read_write::{DoviReader, DoviWriter};
+use general_read_write::{DoviProcessor, DoviWriter};
 
 pub struct Converter {
     format: IoFormat,
@@ -54,14 +54,14 @@ impl Converter {
 
         match self.format {
             IoFormat::Matroska => bail!("Converter: Matroska input is unsupported"),
-            _ => self.convert_raw_hevc(Some(&pb), options),
+            _ => self.convert_raw_hevc(pb, options),
         }
     }
 
-    fn convert_raw_hevc(&self, pb: Option<&ProgressBar>, options: CliOptions) -> Result<()> {
-        let mut dovi_reader = DoviReader::new(options);
-        let mut dovi_writer = DoviWriter::new(None, None, None, Some(&self.output));
+    fn convert_raw_hevc(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
+        let dovi_writer = DoviWriter::new(None, None, None, Some(&self.output));
+        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
 
-        dovi_reader.read_write_from_io(&self.format, &self.input, pb, &mut dovi_writer)
+        dovi_processor.read_write_from_io(&self.format)
     }
 }
