@@ -6,7 +6,10 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::Serialize;
 
 use super::compute_crc32;
-use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel5};
+use super::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel9,
+};
+use super::extension_metadata::{CmV40DmData, DmData};
 use super::generate::GenerateConfig;
 use super::rpu_data_header::{rpu_data_header, RpuDataHeader};
 use super::rpu_data_mapping::RpuDataMapping;
@@ -430,5 +433,25 @@ impl DoviRpu {
             .map(|rpu| DoviRpu::parse_unspec62_nalu(rpu))
             .filter_map(Result::ok)
             .collect()
+    }
+
+    pub fn convert_to_cmv40(&mut self) -> Result<()> {
+        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+            if vdr_dm_data.cmv40_metadata.is_none() {
+                self.modified = true;
+
+                vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254_402()));
+
+                // Defaults
+                vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level9(
+                    ExtMetadataBlockLevel9::default_dci_p3(),
+                ))?;
+                vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level11(
+                    ExtMetadataBlockLevel11::default_reference_cinema(),
+                ))?;
+            }
+        }
+
+        Ok(())
     }
 }

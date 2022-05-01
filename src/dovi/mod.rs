@@ -21,6 +21,8 @@ use std::{fs::File, io::BufWriter, path::Path};
 
 use anyhow::{bail, Result};
 
+use self::editor::EditConfig;
+
 use super::bitvec_writer::BitVecWriter;
 
 use dolby_vision::rpu;
@@ -34,12 +36,13 @@ use rpu::dovi_rpu::DoviRpu;
 
 const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CliOptions {
     pub mode: Option<u8>,
     pub crop: bool,
     pub discard_el: bool,
     pub drop_hdr10plus: bool,
+    pub edit_config: Option<EditConfig>,
 }
 
 pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<ProgressBar> {
@@ -222,12 +225,17 @@ pub fn is_st2094_40_sei(sei_payload: &[u8]) -> Result<bool> {
 pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u8>> {
     let mut dovi_rpu = DoviRpu::parse_unspec62_nalu(data)?;
 
-    if let Some(mode) = opts.mode {
-        dovi_rpu.convert_with_mode(mode)?;
-    }
+    // Config overrides manual arguments
+    if let Some(edit_config) = &opts.edit_config {
+        edit_config.execute_single_rpu(&mut dovi_rpu)?;
+    } else {
+        if let Some(mode) = opts.mode {
+            dovi_rpu.convert_with_mode(mode)?;
+        }
 
-    if opts.crop {
-        dovi_rpu.crop()?;
+        if opts.crop {
+            dovi_rpu.crop()?;
+        }
     }
 
     dovi_rpu.write_hevc_unspec62_nalu()

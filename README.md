@@ -6,12 +6,39 @@ The **`dolby_vision`** crate is also hosted in this repo, see [README](dolby_vis
 
 &nbsp;
 
+## **Building**
 ### **Toolchain**
 
 The minimum Rust version to build **`dovi_tool`** is 1.56.0.
 
+### **Release binary**
+To build release binary in `target/release/dovi_tool` run:
+```console
+cargo build --release
+```
+
 &nbsp;
 
+## Usage
+```properties
+dovi_tool [OPTIONS] <SUBCOMMAND>
+```
+**To get more detailed options for a subcommand**  
+```properties
+dovi_tool <SUBCOMMAND> --help
+```
+
+
+## All options
+- `--help`, `--version`, `--crop`, `--drop-hdr10plus`, `--mode`, `--version`, `--edit-config`
+## All subcommands
+- Metadata utilities: **`info`**, **`generate`**, **`editor`**, **`export`**
+- HEVC parsing & handling: **`convert`**, **`demux`**, **`mux`**, **`extract-rpu`**, **`inject-rpu`**
+
+**More information and detailed examples for the subcommands below.**
+
+
+&nbsp;
 # **Dolby Vision metadata utilities**
 **`dovi_tool`** provides an important set of tools for analyzing, editing and generating Dolby Vision metadata.
 ## **Commands**
@@ -85,7 +112,8 @@ The minimum Rust version to build **`dovi_tool`** is 1.56.0.
 &nbsp;
 * ### **export**
     Allows exporting a binary RPU file to JSON for simpler analysis.
-    Example:
+
+    **Example**:
     ```console
     dovi_tool export -i RPU.bin -o RPU_export.json
     ```
@@ -102,6 +130,8 @@ For working with an HEVC source file, there are multiple options that apply to m
   * `3` - Converts profile 5 to 8.
 * `-c`, `--crop` Set active area offsets to 0 (meaning no letterbox bars).
 * `--drop-hdr10plus` Ignore HDR10+ metadata when writing the output HEVC.
+* `--edit-config` Path to editor config JSON file.
+    - Limited editing capabilities when working with HEVC. See [documentation](docs/editor.md).
 
 ## Commands
 * ### **convert**

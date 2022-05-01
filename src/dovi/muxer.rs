@@ -87,7 +87,7 @@ impl Muxer {
             input: el,
             writer,
             buffers: VecDeque::new(),
-            options: cli_options,
+            options: cli_options.clone(),
         };
 
         let progress_bar = super::initialize_progress_bar(&bl_format, &bl)?;
@@ -254,10 +254,11 @@ impl IoProcessor for Muxer {
                 // Write last EL frame
                 self.el_handler.write_next_frame()?;
             } else if let Some(last_frame) = self.el_handler.buffers.back() {
+                // Zero indexed
                 bail!(
-                    "Mismatched BL/EL frame count. Expected {} frames, got {} frames in EL",
+                    "Mismatched BL/EL frame count. Expected {} frames, got {} (or more) frames in EL",
                     total_frames,
-                    last_frame.frame_number
+                    last_frame.frame_number + 1
                 );
             }
 

@@ -1,3 +1,13 @@
+The RPUs can be edited in two ways:
+- Using the **`editor`** subcommand.
+- Using the **`--edit-config`** option when using HEVC commands.
+
+When doing HEVC operations, some capabilities are not supported:
+- Editing the active area for specific ranges of frames. Only `"all"` edit is supported.
+- Removing or duplicating RPUs.
+
+&nbsp;
+
 The editor expects a JSON config like the example below:
 ```json5
 {
