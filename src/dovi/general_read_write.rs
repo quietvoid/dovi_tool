@@ -153,7 +153,7 @@ impl DoviProcessor {
                 sl_writer.write_all(OUT_NAL_HEADER)?;
 
                 if nal.nal_type == NAL_UNSPEC62 {
-                    if let Some(_mode) = self.options.mode {
+                    if self.options.mode.is_some() || self.options.edit_config.is_some() {
                         let modified_data =
                             convert_encoded_from_opts(&self.options, &chunk[nal.start..nal.end])?;
 
@@ -189,7 +189,7 @@ impl DoviProcessor {
                     // Mode 1: to MEL
                     // Mode 2: to 8.1
                     // Mode 3: 5 to 8.1
-                    if let Some(_mode) = self.options.mode {
+                    if self.options.mode.is_some() || self.options.edit_config.is_some() {
                         let modified_data = convert_encoded_from_opts(&self.options, rpu_data)?;
 
                         if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
