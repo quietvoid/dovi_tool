@@ -270,6 +270,8 @@ impl IoProcessor for Muxer {
 
         self.el_handler.writer.flush()?;
 
+        self.progress_bar.finish_and_clear();
+
         Ok(())
     }
 }
