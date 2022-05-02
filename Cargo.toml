@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 bitvec_helpers = "1.0.2"
-hevc_parser = { version = "0.4.3", features = ["hevc_io"] }
+hevc_parser = { version = "0.4.4", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
 utilities_dovi = { path = "utilities_dovi" }

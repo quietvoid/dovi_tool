@@ -1,10 +1,13 @@
-use anyhow::Result;
-use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
-use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use std::fs::File;
 use std::{io::Read, path::PathBuf};
 
+use anyhow::Result;
+
+use hevc_parser::NALUStartCode;
+
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
+use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
 
 use crate::commands::GenerateArgs;
@@ -23,7 +26,6 @@ pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
 }
 
 fn _debug(data: &[u8]) -> Result<()> {
-    use crate::dovi::OUT_NAL_HEADER;
     use std::fs::OpenOptions;
     use std::io::Write;
 
@@ -33,7 +35,7 @@ fn _debug(data: &[u8]) -> Result<()> {
         .truncate(true)
         .open("test.bin")?;
 
-    file.write_all(OUT_NAL_HEADER)?;
+    file.write_all(NALUStartCode::Length4.slice())?;
     file.write_all(&data[2..])?;
 
     file.flush()?;

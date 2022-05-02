@@ -1,9 +1,7 @@
 use std::path::PathBuf;
 
-use clap::{Parser, ValueHint};
-
 use anyhow::Result;
-use bitvec_helpers::bitvec_writer;
+use clap::{Parser, ValueHint};
 
 #[cfg(test)]
 mod tests;

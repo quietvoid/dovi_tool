@@ -6,18 +6,16 @@ use anyhow::{bail, ensure, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
-use hevc_parser::hevc::*;
 use hevc_parser::io::{processor, IoProcessor};
 use hevc_parser::HevcParser;
+use hevc_parser::{hevc::*, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
 use utilities_dovi::parse_rpu_file;
 
 use crate::commands::InjectRpuArgs;
 
-use super::{
-    get_aud, input_from_either, is_st2094_40_sei, CliOptions, DoviRpu, IoFormat, OUT_NAL_HEADER,
-};
+use super::{input_from_either, is_st2094_40_sei, CliOptions, DoviRpu, IoFormat};
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -191,7 +189,10 @@ impl RpuInjector {
                     .iter()
                     .find(|f| f.decoded_number == self.last_frame_index)
                     .unwrap();
-                self.writer.write_all(&get_aud(first_decoded_frame))?;
+                self.writer.write_all(&hevc_parser::utils::aud_for_frame(
+                    first_decoded_frame,
+                    Some(NALUStartCode::Length4),
+                ))?;
             }
 
             processor.process_io(&mut reader, self)?;
@@ -232,7 +233,10 @@ impl IoProcessor for RpuInjector {
                                 .iter()
                                 .find(|f| f.decoded_number == nal.decoded_frame_index)
                                 .unwrap();
-                            self.writer.write_all(&get_aud(decoded_frame))?;
+                            self.writer.write_all(&hevc_parser::utils::aud_for_frame(
+                                decoded_frame,
+                                Some(NALUStartCode::Length4),
+                            ))?;
 
                             self.last_frame_index = decoded_frame.decoded_number;
                         }
@@ -247,7 +251,7 @@ impl IoProcessor for RpuInjector {
 
                     if nal.nal_type != NAL_UNSPEC62 {
                         // Skip writing existing RPUs, only one allowed
-                        self.writer.write_all(OUT_NAL_HEADER)?;
+                        self.writer.write_all(NALUStartCode::Length4.slice())?;
                         self.writer.write_all(&chunk[nal.start..nal.end])?;
                     }
 
@@ -268,13 +272,13 @@ impl IoProcessor for RpuInjector {
                             let dovi_rpu = &mut rpus[rpu_index];
                             let data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
-                            self.writer.write_all(OUT_NAL_HEADER)?;
+                            self.writer.write_all(NALUStartCode::Length4.slice())?;
                             self.writer.write_all(&data)?;
 
                             self.last_metadata_written = Some(data);
                         } else if self.mismatched_length {
                             if let Some(data) = &self.last_metadata_written {
-                                self.writer.write_all(OUT_NAL_HEADER)?;
+                                self.writer.write_all(NALUStartCode::Length4.slice())?;
                                 self.writer.write_all(data)?;
                             }
                         }

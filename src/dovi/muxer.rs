@@ -7,16 +7,14 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use itertools::Itertools;
 
-use hevc_parser::hevc::*;
 use hevc_parser::io::{processor, FrameBuffer, IoProcessor, NalBuffer};
 use hevc_parser::HevcParser;
+use hevc_parser::{hevc::*, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
 use crate::commands::MuxArgs;
 
-use super::{
-    convert_encoded_from_opts, get_aud, is_st2094_40_sei, CliOptions, IoFormat, OUT_NAL_HEADER,
-};
+use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat};
 
 const EL_NALU_PREFIX: &[u8] = &[0x7E, 0x01];
 
@@ -190,7 +188,12 @@ impl IoProcessor for Muxer {
                         bail!("No previous frame found");
                     };
 
-                    self.el_handler.writer.write_all(&get_aud(previous_frame))?;
+                    self.el_handler
+                        .writer
+                        .write_all(&hevc_parser::utils::aud_for_frame(
+                            previous_frame,
+                            Some(NALUStartCode::Length4),
+                        ))?;
                 }
 
                 // Write BL frame
@@ -251,7 +254,12 @@ impl IoProcessor for Muxer {
                     .find(|f| f.decoded_number == self.frame_buffer.frame_number)
                     .unwrap();
 
-                self.el_handler.writer.write_all(&get_aud(last_frame))?;
+                self.el_handler
+                    .writer
+                    .write_all(&hevc_parser::utils::aud_for_frame(
+                        last_frame,
+                        Some(NALUStartCode::Length4),
+                    ))?;
             }
 
             // Write last BL frame
@@ -377,7 +385,7 @@ impl Muxer {
         nal_buffers: impl Iterator<Item = &'a NalBuffer>,
     ) -> Result<()> {
         for nal_buf in nal_buffers {
-            writer.write_all(OUT_NAL_HEADER)?;
+            writer.write_all(NALUStartCode::Length4.slice())?;
             writer.write_all(&nal_buf.data)?;
         }
 
@@ -389,7 +397,7 @@ impl ElHandler {
     fn write_next_frame(&mut self) -> Result<()> {
         if let Some(frame_buffer) = self.buffers.pop_front() {
             for nal_buf in &frame_buffer.nals {
-                self.writer.write_all(OUT_NAL_HEADER)?;
+                self.writer.write_all(NALUStartCode::Length4.slice())?;
                 self.writer.write_all(&nal_buf.data)?;
             }
         }

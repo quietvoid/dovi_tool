@@ -5,13 +5,12 @@ use std::{fs::File, path::Path};
 use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 
-use hevc_parser::hevc::NALUnit;
-use hevc_parser::hevc::{NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
+use hevc_parser::hevc::{NALUnit, NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::io::{processor, IoProcessor};
-use hevc_parser::HevcParser;
+use hevc_parser::{HevcParser, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
-use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat, OUT_NAL_HEADER};
+use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat};
 
 pub struct DoviProcessor {
     input: PathBuf,
@@ -150,7 +149,7 @@ impl DoviProcessor {
                     continue;
                 }
 
-                sl_writer.write_all(OUT_NAL_HEADER)?;
+                sl_writer.write_all(hevc_parser::NALUStartCode::Length4.slice())?;
 
                 if nal.nal_type == NAL_UNSPEC62
                     && (self.options.mode.is_some() || self.options.edit_config.is_some())
@@ -171,7 +170,7 @@ impl DoviProcessor {
             match nal.nal_type {
                 NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                        el_writer.write_all(OUT_NAL_HEADER)?;
+                        el_writer.write_all(NALUStartCode::Length4.slice())?;
                         el_writer.write_all(&chunk[nal.start + 2..nal.end])?;
                     }
                 }
@@ -179,7 +178,7 @@ impl DoviProcessor {
                     self.previous_rpu_index = nal.decoded_frame_index;
 
                     if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                        el_writer.write_all(OUT_NAL_HEADER)?;
+                        el_writer.write_all(NALUStartCode::Length4.slice())?;
                     }
 
                     let rpu_data = &chunk[nal.start..nal.end];
@@ -215,7 +214,7 @@ impl DoviProcessor {
                 }
                 _ => {
                     if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
-                        bl_writer.write_all(OUT_NAL_HEADER)?;
+                        bl_writer.write_all(NALUStartCode::Length4.slice())?;
                         bl_writer.write_all(&chunk[nal.start..nal.end])?;
                     }
                 }
@@ -271,7 +270,7 @@ impl DoviProcessor {
 
             // Write data to file
             for rpu in self.rpu_nals.iter_mut() {
-                rpu_writer.write_all(OUT_NAL_HEADER)?;
+                rpu_writer.write_all(NALUStartCode::Length4.slice())?;
                 rpu_writer.write_all(&rpu.data)?;
             }
 
