@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueHint};
 
 use anyhow::Result;
 use bitvec_helpers::bitvec_writer;
+
+#[cfg(test)]
+mod tests;
 
 mod commands;
 use commands::Command;
@@ -23,7 +26,7 @@ use dovi::{
 };
 
 #[derive(Parser, Debug)]
-#[clap(name = env!("CARGO_PKG_NAME"), about = "Stuff about Dolby Vision", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
+#[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
 struct Opt {
     #[clap(
         name = "mode",
@@ -50,7 +53,7 @@ struct Opt {
     #[clap(
         long,
         help = "Sets the edit JSON config file to use",
-        parse(from_os_str)
+        value_hint = ValueHint::FilePath
     )]
     edit_config: Option<PathBuf>,
 
@@ -81,54 +84,14 @@ fn main() -> Result<()> {
     }
 
     match opt.cmd {
-        Command::Demux {
-            input,
-            stdin,
-            bl_out,
-            el_out,
-            el_only,
-        } => Demuxer::demux(input, stdin, bl_out, el_out, el_only, cli_options),
-        Command::Editor {
-            input,
-            json_file,
-            rpu_out,
-        } => Editor::edit(input, json_file, rpu_out),
-        Command::Convert {
-            input,
-            stdin,
-            output,
-            discard,
-        } => {
-            cli_options.discard_el = discard;
-            Converter::convert(input, stdin, output, cli_options)
-        }
-        Command::ExtractRpu {
-            input,
-            stdin,
-            rpu_out,
-        } => RpuExtractor::extract_rpu(input, stdin, rpu_out, cli_options),
-        Command::InjectRpu {
-            input,
-            rpu_in,
-            output,
-            no_add_aud,
-        } => RpuInjector::inject_rpu(input, rpu_in, output, no_add_aud, cli_options),
-        Command::Info { input, frame } => RpuInfo::info(input, frame),
-        Command::Generate { .. } => {
-            let mut generator = Generator::from_command(opt.cmd)?;
-            generator.generate()
-        }
-        Command::Export { input, output } => Exporter::export(input, output),
-        Command::Mux {
-            bl,
-            el,
-            output,
-            no_add_aud,
-            eos_before_el,
-            discard,
-        } => {
-            cli_options.discard_el = discard;
-            Muxer::mux_el(bl, el, output, no_add_aud, eos_before_el, cli_options)
-        }
+        Command::Demux(args) => Demuxer::demux(args, cli_options),
+        Command::Editor(args) => Editor::edit(args),
+        Command::Convert(args) => Converter::convert(args, cli_options),
+        Command::ExtractRpu(args) => RpuExtractor::extract_rpu(args, cli_options),
+        Command::InjectRpu(args) => RpuInjector::inject_rpu(args, cli_options),
+        Command::Info(args) => RpuInfo::info(args),
+        Command::Generate(args) => Generator::generate(args),
+        Command::Export(args) => Exporter::export(args),
+        Command::Mux(args) => Muxer::mux_el(args, cli_options),
     }
 }

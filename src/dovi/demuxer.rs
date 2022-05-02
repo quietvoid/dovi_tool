@@ -2,7 +2,9 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{general_read_write, CliOptions, IoFormat};
+use crate::commands::DemuxArgs;
+
+use super::{general_read_write, input_from_either, CliOptions, IoFormat};
 
 use general_read_write::{DoviProcessor, DoviWriter};
 
@@ -15,38 +17,16 @@ pub struct Demuxer {
 }
 
 impl Demuxer {
-    pub fn new(
-        format: IoFormat,
-        input: PathBuf,
-        bl_out: PathBuf,
-        el_out: PathBuf,
-        el_only: bool,
-    ) -> Self {
-        Self {
-            format,
+    pub fn from_args(args: DemuxArgs) -> Result<Self> {
+        let DemuxArgs {
             input,
+            input_pos,
             bl_out,
             el_out,
             el_only,
-        }
-    }
+        } = args;
 
-    pub fn demux(
-        input: Option<PathBuf>,
-        stdin: Option<PathBuf>,
-        bl_out: Option<PathBuf>,
-        el_out: Option<PathBuf>,
-        el_only: bool,
-        options: CliOptions,
-    ) -> Result<()> {
-        let input = match input {
-            Some(input) => input,
-            None => match stdin {
-                Some(stdin) => stdin,
-                None => PathBuf::new(),
-            },
-        };
-
+        let input = input_from_either("demux", input, input_pos)?;
         let format = hevc_parser::io::format_from_path(&input)?;
 
         let bl_out = match bl_out {
@@ -59,7 +39,17 @@ impl Demuxer {
             None => PathBuf::from("EL.hevc"),
         };
 
-        let demuxer = Demuxer::new(format, input, bl_out, el_out, el_only);
+        Ok(Self {
+            format,
+            input,
+            bl_out,
+            el_out,
+            el_only,
+        })
+    }
+
+    pub fn demux(args: DemuxArgs, options: CliOptions) -> Result<()> {
+        let demuxer = Demuxer::from_args(args)?;
         demuxer.process_input(options)
     }
 

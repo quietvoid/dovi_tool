@@ -1,3 +1,19 @@
+use std::convert::TryInto;
+use std::io::Write;
+use std::path::PathBuf;
+use std::{fs::File, io::BufWriter, path::Path};
+
+use anyhow::{bail, Result};
+use indicatif::{ProgressBar, ProgressStyle};
+
+use dolby_vision::rpu::dovi_rpu::DoviRpu;
+
+use hevc_parser::hevc::{Frame, SeiMessage, NAL_AUD, USER_DATA_REGISTERED_ITU_T_35};
+use hevc_parser::io::IoFormat;
+
+use self::editor::EditConfig;
+use super::bitvec_writer::BitVecWriter;
+
 pub mod converter;
 pub mod demuxer;
 pub mod editor;
@@ -10,31 +26,7 @@ pub mod rpu_injector;
 
 mod general_read_write;
 
-#[cfg(test)]
-mod tests;
-
-use hevc_parser::hevc::{SeiMessage, USER_DATA_REGISTERED_ITU_T_35};
-use indicatif::{ProgressBar, ProgressStyle};
-use std::convert::TryInto;
-use std::io::{stdout, BufReader, Read, Write};
-use std::{fs::File, io::BufWriter, path::Path};
-
-use anyhow::{bail, Result};
-
-use self::editor::EditConfig;
-
-use super::bitvec_writer::BitVecWriter;
-
-use dolby_vision::rpu;
-
-use hevc_parser::{
-    hevc::{Frame, NAL_AUD},
-    io::IoFormat,
-    HevcParser, NALUStartCode,
-};
-use rpu::dovi_rpu::DoviRpu;
-
-const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
+pub const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
 #[derive(Debug, Clone)]
 pub struct CliOptions {
@@ -65,78 +57,6 @@ pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<Progre
     }
 
     Ok(pb)
-}
-
-pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
-    println!("Parsing RPU file...");
-    stdout().flush().ok();
-
-    let rpu_file = File::open(input)?;
-    let metadata = rpu_file.metadata()?;
-
-    // Should never be this large, avoid mistakes
-    if metadata.len() > 250_000_000 {
-        bail!("Input file probably too large");
-    }
-
-    let mut reader = BufReader::new(rpu_file);
-
-    // Should be small enough to fit in the memory
-    let mut data = vec![0; metadata.len() as usize];
-    reader.read_exact(&mut data)?;
-
-    let mut offsets = Vec::with_capacity(200_000);
-    let mut parser = HevcParser::with_nalu_start_code(NALUStartCode::Length4);
-
-    parser.get_offsets(&data, &mut offsets);
-
-    if offsets.is_empty() {
-        bail!("No NALU start codes found in the file. Maybe not a valid RPU?");
-    }
-
-    let count = offsets.len();
-    let last = *offsets.last().unwrap();
-    let mut warned = false;
-
-    let rpus: Vec<DoviRpu> = offsets
-        .iter()
-        .enumerate()
-        .map(|(index, offset)| {
-            let size = if offset == &last {
-                data.len() - offset
-            } else {
-                offsets[index + 1] - offset
-            };
-
-            let start = *offset;
-            let end = start + size;
-
-            DoviRpu::parse_unspec62_nalu(&data[start..end])
-        })
-        .enumerate()
-        .filter_map(|(i, res)| {
-            if let Err(e) = &res {
-                if !warned {
-                    println!("Error parsing frame {}: {}", i, e);
-                    warned = true;
-                }
-            }
-
-            res.ok()
-        })
-        .collect();
-
-    if count > 0 && rpus.len() == count {
-        Ok(Some(rpus))
-    } else if count == 0 {
-        bail!("No RPU found");
-    } else {
-        bail!(
-            "Number of valid RPUs different from total: expected {} got {}",
-            count,
-            rpus.len()
-        );
-    }
 }
 
 pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
@@ -239,4 +159,14 @@ pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u
     }
 
     dovi_rpu.write_hevc_unspec62_nalu()
+}
+
+pub fn input_from_either(cmd: &str, in1: Option<PathBuf>, in2: Option<PathBuf>) -> Result<PathBuf> {
+    match in1 {
+        Some(in1) => Ok(in1),
+        None => match in2 {
+            Some(in2) => Ok(in2),
+            None => bail!("No input file provided. See `dovi_tool {} --help`", cmd),
+        },
+    }
 }

@@ -11,6 +11,7 @@ bitvec_helpers = "1.0.2"
 hevc_parser = { version = "0.4.3", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = { path = "madvr_parse" }
+utilities_dovi = { path = "utilities_dovi" }
 
 anyhow = "1.0.57"
 clap = { version = "3.1.14", features = ["derive", "wrap_help"] }
@@ -21,6 +22,11 @@ serde = { version = "1.0.137", features = ["derive"] }
 serde_json = { version = "1.0.80", features = ["preserve_order"] }
 rayon = "1.5.2"
 itertools = "0.10.3"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"
+assert_fs = "1.0.7"
+predicates = "2.1.1"
 
 [[bin]]
 name = "dovi_tool"

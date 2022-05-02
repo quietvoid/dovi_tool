@@ -2,7 +2,9 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
-use super::{general_read_write, CliOptions, IoFormat};
+use crate::commands::ExtractRpuArgs;
+
+use super::{general_read_write, input_from_either, CliOptions, IoFormat};
 use general_read_write::{DoviProcessor, DoviWriter};
 
 pub struct RpuExtractor {
@@ -12,28 +14,14 @@ pub struct RpuExtractor {
 }
 
 impl RpuExtractor {
-    pub fn new(format: IoFormat, input: PathBuf, rpu_out: PathBuf) -> Self {
-        Self {
-            format,
+    pub fn from_args(args: ExtractRpuArgs) -> Result<Self> {
+        let ExtractRpuArgs {
             input,
+            input_pos,
             rpu_out,
-        }
-    }
+        } = args;
 
-    pub fn extract_rpu(
-        input: Option<PathBuf>,
-        stdin: Option<PathBuf>,
-        rpu_out: Option<PathBuf>,
-        options: CliOptions,
-    ) -> Result<()> {
-        let input = match input {
-            Some(input) => input,
-            None => match stdin {
-                Some(stdin) => stdin,
-                None => PathBuf::new(),
-            },
-        };
-
+        let input = input_from_either("extract-rpu", input, input_pos)?;
         let format = hevc_parser::io::format_from_path(&input)?;
 
         let rpu_out = match rpu_out {
@@ -41,8 +29,16 @@ impl RpuExtractor {
             None => PathBuf::from("RPU.bin"),
         };
 
-        let parser = RpuExtractor::new(format, input, rpu_out);
-        parser.process_input(options)
+        Ok(Self {
+            format,
+            input,
+            rpu_out,
+        })
+    }
+
+    pub fn extract_rpu(args: ExtractRpuArgs, options: CliOptions) -> Result<()> {
+        let rpu_extractor = RpuExtractor::from_args(args)?;
+        rpu_extractor.process_input(options)
     }
 
     fn process_input(&self, options: CliOptions) -> Result<()> {

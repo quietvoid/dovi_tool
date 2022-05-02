@@ -11,8 +11,12 @@ use hevc_parser::io::{processor, IoProcessor};
 use hevc_parser::HevcParser;
 use processor::{HevcProcessor, HevcProcessorOpts};
 
+use utilities_dovi::parse_rpu_file;
+
+use crate::commands::InjectRpuArgs;
+
 use super::{
-    get_aud, is_st2094_40_sei, parse_rpu_file, CliOptions, DoviRpu, IoFormat, OUT_NAL_HEADER,
+    get_aud, input_from_either, is_st2094_40_sei, CliOptions, DoviRpu, IoFormat, OUT_NAL_HEADER,
 };
 
 pub struct RpuInjector {
@@ -38,13 +42,22 @@ pub struct RpuInjector {
 }
 
 impl RpuInjector {
-    pub fn new(
-        input: PathBuf,
-        rpu_in: PathBuf,
-        output: PathBuf,
-        no_add_aud: bool,
-        cli_options: CliOptions,
-    ) -> Result<RpuInjector> {
+    pub fn from_args(args: InjectRpuArgs, cli_options: CliOptions) -> Result<RpuInjector> {
+        let InjectRpuArgs {
+            input,
+            input_pos,
+            rpu_in,
+            output,
+            no_add_aud,
+        } = args;
+
+        let input = input_from_either("inject-rpu", input, input_pos)?;
+
+        let output = match output {
+            Some(path) => path,
+            None => PathBuf::from("injected_output.hevc"),
+        };
+
         let chunk_size = 100_000;
         let progress_bar = super::initialize_progress_bar(&IoFormat::Raw, &input)?;
 
@@ -74,32 +87,25 @@ impl RpuInjector {
             last_metadata_written: None,
         };
 
+        println!("Parsing RPU file...");
+        stdout().flush().ok();
+
         injector.rpus = parse_rpu_file(&injector.rpu_in)?;
 
         Ok(injector)
     }
 
-    pub fn inject_rpu(
-        input: PathBuf,
-        rpu_in: PathBuf,
-        output: Option<PathBuf>,
-        no_add_aud: bool,
-        cli_options: CliOptions,
-    ) -> Result<()> {
+    pub fn inject_rpu(args: InjectRpuArgs, cli_options: CliOptions) -> Result<()> {
+        let input = input_from_either("inject-rpu", args.input.clone(), args.input_pos.clone())?;
         let format = hevc_parser::io::format_from_path(&input)?;
 
         if let IoFormat::Raw = format {
-            let output = match output {
-                Some(path) => path,
-                None => PathBuf::from("injected_output.hevc"),
-            };
-
-            let mut injector = RpuInjector::new(input, rpu_in, output, no_add_aud, cli_options)?;
+            let mut injector = RpuInjector::from_args(args, cli_options)?;
 
             injector.process_input()?;
             injector.interleave_rpu_nals()
         } else {
-            bail!("unsupported format")
+            bail!("RpuInjector: Must be a raw HEVC bitstream file")
         }
     }
 

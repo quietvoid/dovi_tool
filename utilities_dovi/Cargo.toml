@@ -1,0 +1,13 @@
+[package]
+name = "utilities_dovi"
+version = "1.0.0"
+authors = ["quietvoid"]
+edition = "2021"
+rust-version = "1.56.0"
+license = "MIT"
+
+[dependencies]
+hevc_parser = { version = "0.4.3" }
+dolby_vision = { path = "../dolby_vision" }
+
+anyhow = "1.0.57"
