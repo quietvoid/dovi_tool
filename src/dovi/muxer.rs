@@ -308,7 +308,7 @@ impl IoProcessor for ElHandler {
                         vec.extend(data);
 
                         vec
-                    } else if let Some(_mode) = self.options.mode {
+                    } else if self.options.mode.is_some() || self.options.edit_config.is_some() {
                         convert_encoded_from_opts(&self.options, data).unwrap()
                     } else {
                         Vec::from(data)
