@@ -3,7 +3,7 @@ use std::io::{stdout, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 
 use hevc_parser::io::{processor, FrameBuffer, IoProcessor, NalBuffer};
 use hevc_parser::HevcParser;
@@ -118,9 +118,7 @@ impl RpuInjector {
         let file = File::open(&self.input)?;
         let mut reader = Box::new(BufReader::with_capacity(100_000, file));
 
-        processor.process_io(&mut reader, self)?;
-
-        Ok(())
+        processor.process_io(&mut reader, self)
     }
 
     fn interleave_rpu_nals(&mut self) -> Result<()> {
@@ -144,13 +142,6 @@ impl RpuInjector {
             false
         };
 
-        let pb_indices = ProgressBar::new(self.frames.len() as u64);
-        pb_indices.set_style(
-            ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
-        );
-
-        pb_indices.finish_and_clear();
-
         println!("Rewriting file with interleaved RPU NALs..");
         stdout().flush().ok();
 
@@ -164,9 +155,7 @@ impl RpuInjector {
         let file = File::open(&self.input)?;
         let mut reader = Box::new(BufReader::with_capacity(chunk_size, file));
 
-        processor.process_io(&mut reader, self)?;
-
-        Ok(())
+        processor.process_io(&mut reader, self)
     }
 
     fn get_rpu_and_index_to_insert(
