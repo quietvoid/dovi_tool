@@ -2,11 +2,10 @@ use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{bail, Result};
 use indicatif::{ProgressBar, ProgressStyle};
-use rayon::prelude::*;
 
-use hevc_parser::io::{processor, IoProcessor};
+use hevc_parser::io::{processor, FrameBuffer, IoProcessor, NalBuffer};
 use hevc_parser::HevcParser;
 use hevc_parser::{hevc::*, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
@@ -23,7 +22,7 @@ pub struct RpuInjector {
     no_add_aud: bool,
     options: CliOptions,
 
-    rpus: Option<Vec<DoviRpu>>,
+    rpus: Vec<DoviRpu>,
 
     writer: BufWriter<File>,
     progress_bar: ProgressBar,
@@ -33,10 +32,8 @@ pub struct RpuInjector {
     nals: Vec<NALUnit>,
     mismatched_length: bool,
 
-    last_slice_indices: Vec<usize>,
-    last_frame_index: u64,
-    nals_parsed: usize,
-    last_metadata_written: Option<Vec<u8>>,
+    frame_buffer: FrameBuffer,
+    last_metadata_written: Option<NalBuffer>,
 }
 
 impl RpuInjector {
@@ -69,7 +66,7 @@ impl RpuInjector {
             rpu_in,
             no_add_aud,
             options: cli_options,
-            rpus: None,
+            rpus: Vec::new(),
 
             writer,
             progress_bar,
@@ -79,16 +76,18 @@ impl RpuInjector {
             nals: Vec::new(),
             mismatched_length: false,
 
-            last_slice_indices: Vec::new(),
-            last_frame_index: 0,
-            nals_parsed: 0,
+            frame_buffer: FrameBuffer {
+                frame_number: 0,
+                nals: Vec::with_capacity(16),
+            },
             last_metadata_written: None,
         };
 
         println!("Parsing RPU file...");
         stdout().flush().ok();
 
-        injector.rpus = parse_rpu_file(&injector.rpu_in)?;
+        // Assumes parsing returns on error
+        injector.rpus = parse_rpu_file(&injector.rpu_in)?.unwrap();
 
         Ok(injector)
     }
@@ -125,80 +124,109 @@ impl RpuInjector {
     }
 
     fn interleave_rpu_nals(&mut self) -> Result<()> {
-        if let Some(ref mut rpus) = self.rpus {
-            self.mismatched_length = if self.frames.len() != rpus.len() {
-                println!(
-                    "\nWarning: mismatched lengths. video {}, RPU {}",
-                    self.frames.len(),
-                    rpus.len()
-                );
+        let rpus = &self.rpus;
 
-                if rpus.len() < self.frames.len() {
-                    println!("Metadata will be duplicated at the end to match video length\n");
-                } else {
-                    println!("Metadata will be skipped at the end to match video length\n");
-                }
-
-                true
-            } else {
-                false
-            };
-
-            println!("Computing frame indices..");
-            stdout().flush().ok();
-
-            let pb_indices = ProgressBar::new(self.frames.len() as u64);
-            pb_indices.set_style(
-                ProgressStyle::default_bar()
-                    .template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
+        self.mismatched_length = if self.frames.len() != rpus.len() {
+            println!(
+                "\nWarning: mismatched lengths. video {}, RPU {}",
+                self.frames.len(),
+                rpus.len()
             );
 
-            self.last_slice_indices = self
-                .frames
-                .par_iter()
-                .map(|f| {
-                    let index = find_last_slice_nal_index(&self.nals, f);
-
-                    pb_indices.inc(1);
-
-                    index
-                })
-                .collect();
-
-            pb_indices.finish_and_clear();
-
-            ensure!(self.frames.len() == self.last_slice_indices.len());
-
-            println!("Rewriting file with interleaved RPU NALs..");
-            stdout().flush().ok();
-
-            self.progress_bar = super::initialize_progress_bar(&IoFormat::Raw, &self.input)?;
-
-            let chunk_size = 100_000;
-
-            let mut processor =
-                HevcProcessor::new(IoFormat::Raw, HevcProcessorOpts::default(), chunk_size);
-
-            let file = File::open(&self.input)?;
-            let mut reader = Box::new(BufReader::with_capacity(chunk_size, file));
-
-            // First frame AUD
-            if !self.no_add_aud {
-                let first_decoded_frame = self
-                    .frames
-                    .iter()
-                    .find(|f| f.decoded_number == self.last_frame_index)
-                    .unwrap();
-                self.writer.write_all(&hevc_parser::utils::aud_for_frame(
-                    first_decoded_frame,
-                    Some(NALUStartCode::Length4),
-                ))?;
+            if rpus.len() < self.frames.len() {
+                println!("Metadata will be duplicated at the end to match video length\n");
+            } else {
+                println!("Metadata will be skipped at the end to match video length\n");
             }
 
-            processor.process_io(&mut reader, self)?;
-        }
+            true
+        } else {
+            false
+        };
+
+        let pb_indices = ProgressBar::new(self.frames.len() as u64);
+        pb_indices.set_style(
+            ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:60.cyan} {percent}%"),
+        );
+
+        pb_indices.finish_and_clear();
+
+        println!("Rewriting file with interleaved RPU NALs..");
+        stdout().flush().ok();
+
+        self.progress_bar = super::initialize_progress_bar(&IoFormat::Raw, &self.input)?;
+
+        let chunk_size = 100_000;
+
+        let mut processor =
+            HevcProcessor::new(IoFormat::Raw, HevcProcessorOpts::default(), chunk_size);
+
+        let file = File::open(&self.input)?;
+        let mut reader = Box::new(BufReader::with_capacity(chunk_size, file));
+
+        processor.process_io(&mut reader, self)?;
 
         Ok(())
+    }
+
+    fn get_rpu_and_index_to_insert(
+        frames: &[Frame],
+        rpus: &[DoviRpu],
+        frame_buffer: &FrameBuffer,
+        mismatched_length: bool,
+        last_metadata: &Option<NalBuffer>,
+    ) -> Result<(usize, NalBuffer)> {
+        let existing_frame = frames
+            .iter()
+            .find(|f| f.decoded_number == frame_buffer.frame_number);
+
+        // If we have a RPU buffered frame, write it
+        // Otherwise, write the same data as previous
+        let rpu_nb = if let Some(frame) = existing_frame {
+            if let Some(ref mut dovi_rpu) = rpus.get(frame.presentation_number as usize) {
+                let rpu_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+                Some(NalBuffer {
+                    nal_type: NAL_UNSPEC62,
+                    start_code: NALUStartCode::Length4,
+                    data: rpu_data,
+                })
+            } else {
+                bail!(
+                    "No RPU found for presentation frame {}",
+                    frame.presentation_number
+                );
+            }
+        } else if mismatched_length {
+            last_metadata.clone()
+        } else {
+            None
+        };
+
+        if let Some(rpu_nb) = rpu_nb {
+            let insert_index = frame_buffer.nals.iter().rposition(|nb| {
+                let not_eos_eob = !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT);
+                let is_el_nalu = matches!(nb.nal_type, NAL_UNSPEC63);
+                let is_slice = NALUnit::is_type_slice(nb.nal_type);
+
+                not_eos_eob && (is_slice || is_el_nalu)
+            });
+
+            if let Some(idx) = insert_index {
+                // + 1 since we want the RPU after
+                Ok((idx + 1, rpu_nb))
+            } else {
+                bail!(
+                    "No slice or UNSPEC63 NALUs in decoded frame {}. Cannot insert RPU.",
+                    frame_buffer.frame_number
+                );
+            }
+        } else {
+            bail!(
+                "No RPU data to write for decoded frame {}",
+                frame_buffer.frame_number
+            );
+        }
     }
 }
 
@@ -218,8 +246,18 @@ impl IoProcessor for RpuInjector {
     fn process_nals(&mut self, _parser: &HevcParser, nals: &[NALUnit], chunk: &[u8]) -> Result<()> {
         // Second pass
         if !self.frames.is_empty() && !self.nals.is_empty() {
-            if let Some(ref mut rpus) = self.rpus {
-                for (cur_index, nal) in nals.iter().enumerate() {
+            let rpus = &self.rpus;
+
+            for nal in nals {
+                // Ignore HDR10+
+                if self.options.drop_hdr10plus
+                    && nal.nal_type == NAL_SEI_PREFIX
+                    && is_st2094_40_sei(&chunk[nal.start..nal.end])?
+                {
+                    continue;
+                }
+
+                if self.frame_buffer.frame_number != nal.decoded_frame_index {
                     // On new frame, write AUD
                     if !self.no_add_aud {
                         // Skip existing AUDs
@@ -227,65 +265,55 @@ impl IoProcessor for RpuInjector {
                             continue;
                         }
 
-                        if self.last_frame_index != nal.decoded_frame_index {
-                            let decoded_frame = self
+                        if self.frame_buffer.frame_number != nal.decoded_frame_index {
+                            // Find existing frame for the current buffered frame
+                            let buffered_frame = self
                                 .frames
                                 .iter()
-                                .find(|f| f.decoded_number == nal.decoded_frame_index)
+                                .find(|f| f.decoded_number == self.frame_buffer.frame_number)
                                 .unwrap();
+
                             self.writer.write_all(&hevc_parser::utils::aud_for_frame(
-                                decoded_frame,
+                                buffered_frame,
                                 Some(NALUStartCode::Length4),
                             ))?;
-
-                            self.last_frame_index = decoded_frame.decoded_number;
                         }
                     }
 
-                    if self.options.drop_hdr10plus
-                        && nal.nal_type == NAL_SEI_PREFIX
-                        && is_st2094_40_sei(&chunk[nal.start..nal.end])?
-                    {
+                    let (idx, rpu_nb) = Self::get_rpu_and_index_to_insert(
+                        &self.frames,
+                        rpus,
+                        &self.frame_buffer,
+                        self.mismatched_length,
+                        &self.last_metadata_written,
+                    )?;
+
+                    self.last_metadata_written = Some(rpu_nb.clone());
+                    self.frame_buffer.nals.insert(idx, rpu_nb);
+
+                    // Write NALUs for the frame
+                    for nal_buf in &self.frame_buffer.nals {
+                        self.writer.write_all(NALUStartCode::Length4.slice())?;
+                        self.writer.write_all(&nal_buf.data)?;
+                    }
+
+                    self.frame_buffer.frame_number = nal.decoded_frame_index;
+                    self.frame_buffer.nals.clear();
+                }
+
+                // Ignore existing RPU
+                if nal.nal_type != NAL_UNSPEC62 {
+                    // Skip AUD NALUs if we're adding them
+                    if !self.no_add_aud && nal.nal_type == NAL_AUD {
                         continue;
                     }
 
-                    if nal.nal_type != NAL_UNSPEC62 {
-                        // Skip writing existing RPUs, only one allowed
-                        self.writer.write_all(NALUStartCode::Length4.slice())?;
-                        self.writer.write_all(&chunk[nal.start..nal.end])?;
-                    }
-
-                    let global_index = self.nals_parsed + cur_index;
-
-                    // Slice before interleaved RPU
-                    if self.last_slice_indices.contains(&global_index) {
-                        // We can unwrap because parsed indices are the same
-                        let rpu_index = self
-                            .last_slice_indices
-                            .iter()
-                            .position(|i| i == &global_index)
-                            .unwrap();
-
-                        // If we have a RPU for index, write it
-                        // Otherwise, write the same data as previous
-                        if rpu_index < rpus.len() {
-                            let dovi_rpu = &mut rpus[rpu_index];
-                            let data = dovi_rpu.write_hevc_unspec62_nalu()?;
-
-                            self.writer.write_all(NALUStartCode::Length4.slice())?;
-                            self.writer.write_all(&data)?;
-
-                            self.last_metadata_written = Some(data);
-                        } else if self.mismatched_length {
-                            if let Some(data) = &self.last_metadata_written {
-                                self.writer.write_all(NALUStartCode::Length4.slice())?;
-                                self.writer.write_all(data)?;
-                            }
-                        }
-                    }
+                    self.frame_buffer.nals.push(NalBuffer {
+                        nal_type: nal.nal_type,
+                        start_code: nal.start_code,
+                        data: chunk[nal.start..nal.end].to_vec(),
+                    });
                 }
-
-                self.nals_parsed += nals.len();
             }
         } else if !self.already_checked_for_rpu && nals.iter().any(|e| e.nal_type == NAL_UNSPEC62) {
             self.already_checked_for_rpu = true;
@@ -301,6 +329,47 @@ impl IoProcessor for RpuInjector {
             self.frames = parser.ordered_frames().clone();
             self.nals = parser.get_nals().clone();
         } else {
+            let ordered_frames = parser.ordered_frames();
+            let total_frames = ordered_frames.len();
+
+            // Last slice wasn't considered (no AUD/EOS NALU at the end)
+            if (self.frame_buffer.frame_number as usize) != total_frames
+                && !self.frame_buffer.nals.is_empty()
+            {
+                let rpus = &self.rpus;
+
+                if !self.no_add_aud {
+                    let last_frame = ordered_frames
+                        .iter()
+                        .find(|f| f.decoded_number == self.frame_buffer.frame_number)
+                        .unwrap();
+
+                    self.writer.write_all(&hevc_parser::utils::aud_for_frame(
+                        last_frame,
+                        Some(NALUStartCode::Length4),
+                    ))?;
+                }
+
+                let (idx, rpu_nb) = Self::get_rpu_and_index_to_insert(
+                    &self.frames,
+                    rpus,
+                    &self.frame_buffer,
+                    self.mismatched_length,
+                    &self.last_metadata_written,
+                )?;
+
+                self.last_metadata_written = Some(rpu_nb.clone());
+                self.frame_buffer.nals.insert(idx, rpu_nb);
+
+                // Write NALUs for the last frame
+                for nal_buf in &self.frame_buffer.nals {
+                    self.writer.write_all(NALUStartCode::Length4.slice())?;
+                    self.writer.write_all(&nal_buf.data)?;
+                }
+
+                self.frame_buffer.nals.clear();
+            }
+
             // Second pass
             self.writer.flush()?;
         }
@@ -308,56 +377,5 @@ impl IoProcessor for RpuInjector {
         self.progress_bar.finish_and_clear();
 
         Ok(())
-    }
-}
-
-fn find_last_slice_nal_index(nals: &[NALUnit], frame: &Frame) -> usize {
-    let slice_nals = frame.nals.iter().enumerate().filter(|(_idx, nal)| {
-        matches!(
-            nal.nal_type,
-            NAL_TRAIL_R
-                | NAL_TRAIL_N
-                | NAL_TSA_N
-                | NAL_TSA_R
-                | NAL_STSA_N
-                | NAL_STSA_R
-                | NAL_BLA_W_LP
-                | NAL_BLA_W_RADL
-                | NAL_BLA_N_LP
-                | NAL_IDR_W_RADL
-                | NAL_IDR_N_LP
-                | NAL_CRA_NUT
-                | NAL_RADL_N
-                | NAL_RADL_R
-                | NAL_RASL_N
-                | NAL_RASL_R
-        )
-    });
-
-    // Assuming the slices are decoded in order, the highest index is the last slice NAL
-    let last_slice = slice_nals
-        .enumerate()
-        .max_by_key(|(_idx1, (idx2, _))| *idx2)
-        .unwrap();
-
-    let last_slice_index = last_slice.0;
-    let last_slice_global_index = last_slice.1 .0;
-    let last_slice_nal = last_slice.1 .1;
-
-    // Use last non EOS/EOB NALU
-    let non_eos_eob_nal_count = frame
-        .nals
-        .iter()
-        .filter(|nal| !matches!(nal.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
-        .count();
-
-    let last_nal_offset = last_slice_index + non_eos_eob_nal_count - last_slice_global_index - 1;
-
-    if let Some(first_slice_index) = nals.iter().position(|n| {
-        n.decoded_frame_index == frame.decoded_number && last_slice_nal.nal_type == n.nal_type
-    }) {
-        first_slice_index + last_nal_offset
-    } else {
-        panic!("Could not find a NAL for frame {}", frame.decoded_number);
     }
 }

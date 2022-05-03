@@ -6,11 +6,11 @@ use anyhow::{bail, Result};
 use indicatif::ProgressBar;
 
 use hevc_parser::hevc::{NALUnit, NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
-use hevc_parser::io::{processor, IoProcessor};
+use hevc_parser::io::{processor, IoFormat, IoProcessor};
 use hevc_parser::{HevcParser, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
-use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat};
+use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions};
 
 pub struct DoviProcessor {
     input: PathBuf,
