@@ -1,4 +1,4 @@
-# **dovi_tool** [![Tests](https://github.com/quietvoid/dovi_tool/workflows/Tests/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3ATests) [![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)](https://github.com/quietvoid/dovi_tool/actions?query=workflow%3AArtifacts)
+# **dovi_tool** [![CI](https://github.com/quietvoid/dovi_tool/workflows/CI/badge.svg)](https://github.com/quietvoid/dovi_tool/actions/workflows/ci.yml) [![Artifacts](https://github.com/quietvoid/dovi_tool/workflows/Artifacts/badge.svg)](https://github.com/quietvoid/dovi_tool/actions/workflows/release.yml)
 
 **`dovi_tool`** is a CLI tool combining multiple utilities for working with Dolby Vision.  
 
