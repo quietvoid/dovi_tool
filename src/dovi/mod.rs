@@ -4,13 +4,13 @@ use std::path::PathBuf;
 use std::{fs::File, io::BufWriter, path::Path};
 
 use anyhow::{bail, Result};
-use hevc_parser::NALUStartCode;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
 use hevc_parser::hevc::{SeiMessage, USER_DATA_REGISTERED_ITU_T_35};
 use hevc_parser::io::IoFormat;
+use hevc_parser::NALUStartCode;
 
 use self::editor::EditConfig;
 
