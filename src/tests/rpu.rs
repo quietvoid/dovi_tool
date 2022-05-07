@@ -3,15 +3,15 @@ use std::{io::Read, path::PathBuf};
 
 use anyhow::Result;
 
-use hevc_parser::NALUStartCode;
-
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
+use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
 
 use crate::commands::GenerateArgs;
 use crate::dovi::generator::Generator;
+use crate::dovi::WriteStartCodePreset;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     let mut f = File::open(input)?;
@@ -35,8 +35,13 @@ fn _debug(data: &[u8]) -> Result<()> {
         .truncate(true)
         .open("test.bin")?;
 
-    file.write_all(NALUStartCode::Length4.slice())?;
-    file.write_all(&data[2..])?;
+    NALUnit::write_with_preset(
+        &mut file,
+        &data[2..],
+        WriteStartCodePreset::Four.into(),
+        NAL_UNSPEC62,
+        true,
+    )?;
 
     file.flush()?;
 

@@ -151,3 +151,31 @@ fn edit_config() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn annexb() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/regular.hevc");
+    let output_file = temp.child("BL_EL_RPU.hevc");
+
+    let expected_output = Path::new("assets/hevc_tests/regular_convert_annexb.hevc");
+
+    let assert = cmd
+        .arg("--start-code")
+        .arg("annex-b")
+        .arg(SUBCOMMAND)
+        .arg(input_file)
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_file
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_output));
+
+    Ok(())
+}

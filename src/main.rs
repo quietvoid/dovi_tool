@@ -20,7 +20,7 @@ use dovi::{
     rpu_extractor::RpuExtractor,
     rpu_info::RpuInfo,
     rpu_injector::RpuInjector,
-    CliOptions,
+    CliOptions, WriteStartCodePreset,
 };
 
 #[derive(Parser, Debug)]
@@ -32,6 +32,7 @@ struct Opt {
         long,
         help = "Sets the mode for RPU processing. See --help for more info",
         long_help = "Sets the mode for RPU processing.\n  \
+                     Mode 0: Parses the RPU, rewrites it untouched\n  \
                      Mode 1: Converts the RPU to be MEL compatible\n  \
                      Mode 2: Converts the RPU to be profile 8.1 compatible\n  \
                      Mode 3: Converts profile 5 to 8.1"
@@ -55,6 +56,14 @@ struct Opt {
     )]
     edit_config: Option<PathBuf>,
 
+    #[clap(
+        arg_enum,
+        long,
+        help = "Start code to use when writing HEVC",
+        default_value = "four"
+    )]
+    start_code: WriteStartCodePreset,
+
     #[clap(subcommand)]
     cmd: Command,
 }
@@ -74,6 +83,7 @@ fn main() -> Result<()> {
         discard_el: false,
         drop_hdr10plus: opt.drop_hdr10plus,
         edit_config,
+        start_code: opt.start_code,
     };
 
     // Set mode 0 by default if cropping, otherwise it has no effect

@@ -108,3 +108,34 @@ fn inject_no_add_aud() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn annexb() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
+    let input_rpu = Path::new("assets/hevc_tests/regular_rpu.bin");
+
+    let output_file = temp.child("injected_output.hevc");
+    let expected_bl_rpu = Path::new("assets/hevc_tests/regular_inject_annexb.hevc");
+
+    let assert = cmd
+        .arg("--start-code")
+        .arg("annex-b")
+        .arg(SUBCOMMAND)
+        .arg(input_file)
+        .arg("--rpu-in")
+        .arg(input_rpu)
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_file
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_bl_rpu));
+
+    Ok(())
+}

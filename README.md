@@ -132,6 +132,10 @@ For working with an HEVC source file, there are multiple options that apply to m
 * `--drop-hdr10plus` Ignore HDR10+ metadata when writing the output HEVC.
 * `--edit-config` Path to editor config JSON file.
     - Limited editing capabilities when working with HEVC. See [documentation](docs/editor.md).
+* `--start-code` HEVC NALU start code to use when writing HEVC.
+    - Options: `four` (default), `annex-b`
+    - `four` is the default, writing a 4-byte start code all the time.
+    - `annex-b` varies the start code, according to spec. Almost matches `x265` behaviour.
 
 ## Commands
 * ### **convert**

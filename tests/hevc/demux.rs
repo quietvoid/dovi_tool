@@ -175,3 +175,39 @@ fn edit_config() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn annexb() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");
+    let expected_bl = Path::new("assets/hevc_tests/regular_demux_bl_annexb.hevc");
+    let expected_el = Path::new("assets/hevc_tests/regular_start_code_4.hevc");
+
+    let output_bl = temp.child("BL.hevc");
+    let output_el = temp.child("EL.hevc");
+
+    let assert = cmd
+        .arg("--start-code")
+        .arg("annex-b")
+        .arg(SUBCOMMAND)
+        .arg(input_file)
+        .arg("--bl-out")
+        .arg(output_bl.as_ref())
+        .arg("--el-out")
+        .arg(output_el.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_bl
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_bl));
+
+    output_el
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_el));
+
+    Ok(())
+}

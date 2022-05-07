@@ -8,9 +8,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
-use hevc_parser::hevc::{SeiMessage, USER_DATA_REGISTERED_ITU_T_35};
-use hevc_parser::io::IoFormat;
-use hevc_parser::NALUStartCode;
+use hevc_parser::hevc::{NALUnit, SeiMessage, NAL_UNSPEC62, USER_DATA_REGISTERED_ITU_T_35};
+use hevc_parser::io::{IoFormat, StartCodePreset};
 
 use self::editor::EditConfig;
 
@@ -33,6 +32,13 @@ pub struct CliOptions {
     pub discard_el: bool,
     pub drop_hdr10plus: bool,
     pub edit_config: Option<EditConfig>,
+    pub start_code: WriteStartCodePreset,
+}
+
+#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq)]
+pub enum WriteStartCodePreset {
+    Four,
+    AnnexB,
 }
 
 pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<ProgressBar> {
@@ -65,10 +71,14 @@ pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
     );
 
     for encoded_rpu in data {
-        writer.write_all(NALUStartCode::Length4.slice())?;
-
         // Remove 0x7C01
-        writer.write_all(&encoded_rpu[2..])?;
+        NALUnit::write_with_preset(
+            &mut writer,
+            &encoded_rpu[2..],
+            WriteStartCodePreset::Four.into(),
+            NAL_UNSPEC62,
+            true,
+        )?;
     }
 
     writer.flush()?;
@@ -135,5 +145,14 @@ pub fn input_from_either(cmd: &str, in1: Option<PathBuf>, in2: Option<PathBuf>) 
             Some(in2) => Ok(in2),
             None => bail!("No input file provided. See `dovi_tool {} --help`", cmd),
         },
+    }
+}
+
+impl From<WriteStartCodePreset> for StartCodePreset {
+    fn from(p: WriteStartCodePreset) -> Self {
+        match p {
+            WriteStartCodePreset::Four => StartCodePreset::Four,
+            WriteStartCodePreset::AnnexB => StartCodePreset::AnnexB,
+        }
     }
 }

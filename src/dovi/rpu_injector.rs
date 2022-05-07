@@ -262,10 +262,14 @@ impl IoProcessor for RpuInjector {
                                 .find(|f| f.decoded_number == self.frame_buffer.frame_number)
                                 .unwrap();
 
-                            self.writer.write_all(&hevc_parser::utils::aud_for_frame(
-                                buffered_frame,
-                                Some(NALUStartCode::Length4),
-                            ))?;
+                            self.frame_buffer.nals.insert(
+                                0,
+                                NalBuffer {
+                                    nal_type: NAL_AUD,
+                                    start_code: NALUStartCode::Length4,
+                                    data: hevc_parser::utils::aud_for_frame(buffered_frame, None),
+                                },
+                            );
                         }
                     }
 
@@ -281,9 +285,16 @@ impl IoProcessor for RpuInjector {
                     self.frame_buffer.nals.insert(idx, rpu_nb);
 
                     // Write NALUs for the frame
-                    for nal_buf in &self.frame_buffer.nals {
-                        self.writer.write_all(NALUStartCode::Length4.slice())?;
-                        self.writer.write_all(&nal_buf.data)?;
+                    for (i, nal_buf) in self.frame_buffer.nals.iter().enumerate() {
+                        let first_nal = i == 0;
+
+                        NALUnit::write_with_preset(
+                            &mut self.writer,
+                            &nal_buf.data,
+                            self.options.start_code.into(),
+                            nal_buf.nal_type,
+                            first_nal,
+                        )?;
                     }
 
                     self.frame_buffer.frame_number = nal.decoded_frame_index;
@@ -333,10 +344,14 @@ impl IoProcessor for RpuInjector {
                         .find(|f| f.decoded_number == self.frame_buffer.frame_number)
                         .unwrap();
 
-                    self.writer.write_all(&hevc_parser::utils::aud_for_frame(
-                        last_frame,
-                        Some(NALUStartCode::Length4),
-                    ))?;
+                    self.frame_buffer.nals.insert(
+                        0,
+                        NalBuffer {
+                            nal_type: NAL_AUD,
+                            start_code: NALUStartCode::Length4,
+                            data: hevc_parser::utils::aud_for_frame(last_frame, None),
+                        },
+                    );
                 }
 
                 let (idx, rpu_nb) = Self::get_rpu_and_index_to_insert(
@@ -351,9 +366,16 @@ impl IoProcessor for RpuInjector {
                 self.frame_buffer.nals.insert(idx, rpu_nb);
 
                 // Write NALUs for the last frame
-                for nal_buf in &self.frame_buffer.nals {
-                    self.writer.write_all(NALUStartCode::Length4.slice())?;
-                    self.writer.write_all(&nal_buf.data)?;
+                for (i, nal_buf) in self.frame_buffer.nals.iter().enumerate() {
+                    let first_nal = i == 0;
+
+                    NALUnit::write_with_preset(
+                        &mut self.writer,
+                        &nal_buf.data,
+                        self.options.start_code.into(),
+                        nal_buf.nal_type,
+                        first_nal,
+                    )?;
                 }
 
                 self.frame_buffer.nals.clear();

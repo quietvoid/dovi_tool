@@ -7,16 +7,18 @@ use indicatif::ProgressBar;
 
 use hevc_parser::hevc::{NALUnit, NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
 use hevc_parser::io::{processor, IoFormat, IoProcessor};
-use hevc_parser::{HevcParser, NALUStartCode};
+use hevc_parser::HevcParser;
 use processor::{HevcProcessor, HevcProcessorOpts};
 
-use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions};
+use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, WriteStartCodePreset};
 
 pub struct DoviProcessor {
     input: PathBuf,
     options: CliOptions,
     rpu_nals: Vec<RpuNal>,
 
+    payload_count: usize,
+    previous_frame_index: u64,
     previous_rpu_index: u64,
 
     progress_bar: ProgressBar,
@@ -93,6 +95,8 @@ impl DoviProcessor {
             input,
             options,
             rpu_nals: Vec::new(),
+            payload_count: 0,
+            previous_frame_index: 0,
             previous_rpu_index: 0,
             progress_bar,
             dovi_writer,
@@ -102,10 +106,8 @@ impl DoviProcessor {
     pub fn read_write_from_io(&mut self, format: &IoFormat) -> Result<()> {
         let chunk_size = 100_000;
 
-        let parse_nals = self.dovi_writer.rpu_writer.is_some();
-
         let processor_opts = HevcProcessorOpts {
-            parse_nals,
+            parse_nals: true,
             ..Default::default()
         };
         let mut processor = HevcProcessor::new(format.clone(), processor_opts, chunk_size);
@@ -122,7 +124,7 @@ impl DoviProcessor {
     }
 
     pub fn write_nals(&mut self, chunk: &[u8], nals: &[NALUnit]) -> Result<()> {
-        for nal in nals {
+        for (i, nal) in nals.iter().enumerate() {
             if self.options.drop_hdr10plus
                 && nal.nal_type == NAL_SEI_PREFIX
                 && is_st2094_40_sei(&chunk[nal.start..nal.end])?
@@ -131,7 +133,6 @@ impl DoviProcessor {
             }
 
             // Skip duplicate NALUs if they are after a first RPU for the frame
-            // Note: Only useful when parsing the NALUs (RPU extraction)
             if self.previous_rpu_index > 0
                 && nal.nal_type == NAL_UNSPEC62
                 && nal.decoded_frame_index == self.previous_rpu_index
@@ -144,12 +145,22 @@ impl DoviProcessor {
                 continue;
             }
 
+            // First NAL of stream, or frame
+            let first_nal_of_frame =
+                if i == 0 && self.payload_count == 0 && self.previous_frame_index == 0 {
+                    true
+                } else if self.previous_frame_index != nal.decoded_frame_index {
+                    self.previous_frame_index = nal.decoded_frame_index;
+
+                    true
+                } else {
+                    false
+                };
+
             if let Some(ref mut sl_writer) = self.dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;
                 }
-
-                sl_writer.write_all(hevc_parser::NALUStartCode::Length4.slice())?;
 
                 if nal.nal_type == NAL_UNSPEC62
                     && (self.options.mode.is_some() || self.options.edit_config.is_some())
@@ -157,12 +168,24 @@ impl DoviProcessor {
                     let modified_data =
                         convert_encoded_from_opts(&self.options, &chunk[nal.start..nal.end])?;
 
-                    sl_writer.write_all(&modified_data)?;
+                    NALUnit::write_with_preset(
+                        sl_writer,
+                        &modified_data,
+                        self.options.start_code.into(),
+                        nal.nal_type,
+                        first_nal_of_frame,
+                    )?;
 
                     continue;
                 }
 
-                sl_writer.write_all(&chunk[nal.start..nal.end])?;
+                NALUnit::write_with_preset(
+                    sl_writer,
+                    &chunk[nal.start..nal.end],
+                    self.options.start_code.into(),
+                    nal.nal_type,
+                    first_nal_of_frame,
+                )?;
 
                 continue;
             }
@@ -170,17 +193,18 @@ impl DoviProcessor {
             match nal.nal_type {
                 NAL_UNSPEC63 => {
                     if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                        el_writer.write_all(NALUStartCode::Length4.slice())?;
-                        el_writer.write_all(&chunk[nal.start + 2..nal.end])?;
+                        // Can't know for EL, always size 4
+                        NALUnit::write_with_preset(
+                            el_writer,
+                            &chunk[nal.start + 2..nal.end],
+                            WriteStartCodePreset::Four.into(),
+                            nal.nal_type,
+                            false,
+                        )?;
                     }
                 }
                 NAL_UNSPEC62 => {
                     self.previous_rpu_index = nal.decoded_frame_index;
-
-                    if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                        el_writer.write_all(NALUStartCode::Length4.slice())?;
-                    }
-
                     let rpu_data = &chunk[nal.start..nal.end];
 
                     // No mode: Copy
@@ -199,7 +223,14 @@ impl DoviProcessor {
                                 data: modified_data[2..].to_owned(),
                             });
                         } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                            el_writer.write_all(&modified_data)?;
+                            // RPU should never be first NAL
+                            NALUnit::write_with_preset(
+                                el_writer,
+                                &modified_data,
+                                self.options.start_code.into(),
+                                nal.nal_type,
+                                false,
+                            )?;
                         }
                     } else if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
                         // RPU for x265, remove 0x7C01
@@ -209,13 +240,25 @@ impl DoviProcessor {
                             data: rpu_data[2..].to_vec(),
                         });
                     } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
-                        el_writer.write_all(rpu_data)?;
+                        // RPU should never be first NAL
+                        NALUnit::write_with_preset(
+                            el_writer,
+                            rpu_data,
+                            self.options.start_code.into(),
+                            nal.nal_type,
+                            false,
+                        )?;
                     }
                 }
                 _ => {
                     if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
-                        bl_writer.write_all(NALUStartCode::Length4.slice())?;
-                        bl_writer.write_all(&chunk[nal.start..nal.end])?;
+                        NALUnit::write_with_preset(
+                            bl_writer,
+                            &chunk[nal.start..nal.end],
+                            self.options.start_code.into(),
+                            nal.nal_type,
+                            first_nal_of_frame,
+                        )?;
                     }
                 }
             }
@@ -270,8 +313,14 @@ impl DoviProcessor {
 
             // Write data to file
             for rpu in self.rpu_nals.iter_mut() {
-                rpu_writer.write_all(NALUStartCode::Length4.slice())?;
-                rpu_writer.write_all(&rpu.data)?;
+                // RPU file is always 4 bytes start code
+                NALUnit::write_with_preset(
+                    rpu_writer,
+                    &rpu.data,
+                    WriteStartCodePreset::Four.into(),
+                    NAL_UNSPEC62,
+                    true,
+                )?;
             }
 
             rpu_writer.flush()?;
@@ -291,7 +340,10 @@ impl IoProcessor for DoviProcessor {
     }
 
     fn process_nals(&mut self, _parser: &HevcParser, nals: &[NALUnit], chunk: &[u8]) -> Result<()> {
-        self.write_nals(chunk, nals)
+        self.write_nals(chunk, nals)?;
+        self.payload_count += 1;
+
+        Ok(())
     }
 
     fn finalize(&mut self, parser: &HevcParser) -> Result<()> {

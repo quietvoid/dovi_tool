@@ -14,7 +14,9 @@ use processor::{HevcProcessor, HevcProcessorOpts};
 
 use crate::commands::MuxArgs;
 
-use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat};
+use super::{
+    convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat, WriteStartCodePreset,
+};
 
 const EL_NALU_PREFIX: &[u8] = &[0x7E, 0x01];
 
@@ -188,12 +190,14 @@ impl IoProcessor for Muxer {
                         bail!("No previous frame found");
                     };
 
-                    self.el_handler
-                        .writer
-                        .write_all(&hevc_parser::utils::aud_for_frame(
-                            previous_frame,
-                            Some(NALUStartCode::Length4),
-                        ))?;
+                    self.frame_buffer.nals.insert(
+                        0,
+                        NalBuffer {
+                            nal_type: NAL_AUD,
+                            start_code: NALUStartCode::Length4,
+                            data: hevc_parser::utils::aud_for_frame(previous_frame, None),
+                        },
+                    );
                 }
 
                 // Write BL frame
@@ -214,7 +218,9 @@ impl IoProcessor for Muxer {
                 if !self.eos_before_el {
                     Muxer::write_buffers(
                         &mut self.el_handler.writer,
-                        self.frame_buffer.nals.iter(),
+                        self.frame_buffer.nals.iter().enumerate(),
+                        self.options.start_code,
+                        false,
                     )?;
                 }
 
@@ -254,12 +260,14 @@ impl IoProcessor for Muxer {
                     .find(|f| f.decoded_number == self.frame_buffer.frame_number)
                     .unwrap();
 
-                self.el_handler
-                    .writer
-                    .write_all(&hevc_parser::utils::aud_for_frame(
-                        last_frame,
-                        Some(NALUStartCode::Length4),
-                    ))?;
+                self.frame_buffer.nals.insert(
+                    0,
+                    NalBuffer {
+                        nal_type: NAL_AUD,
+                        start_code: NALUStartCode::Length4,
+                        data: hevc_parser::utils::aud_for_frame(last_frame, None),
+                    },
+                );
             }
 
             // Write last BL frame
@@ -283,7 +291,12 @@ impl IoProcessor for Muxer {
 
             // Write remaining EOS/EOB
             if !self.eos_before_el {
-                Muxer::write_buffers(&mut self.el_handler.writer, self.frame_buffer.nals.iter())?;
+                Muxer::write_buffers(
+                    &mut self.el_handler.writer,
+                    self.frame_buffer.nals.iter().enumerate(),
+                    self.options.start_code,
+                    false,
+                )?;
             }
 
             self.frame_buffer.nals.clear();
@@ -364,15 +377,26 @@ impl Muxer {
                 .frame_buffer
                 .nals
                 .iter()
-                .filter(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT));
+                .filter(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
+                .enumerate();
 
-            Muxer::write_buffers(&mut self.el_handler.writer, nals_to_write)?;
+            Muxer::write_buffers(
+                &mut self.el_handler.writer,
+                nals_to_write,
+                self.options.start_code,
+                true,
+            )?;
 
             self.frame_buffer
                 .nals
                 .retain(|nb| matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
         } else {
-            Muxer::write_buffers(&mut self.el_handler.writer, self.frame_buffer.nals.iter())?;
+            Muxer::write_buffers(
+                &mut self.el_handler.writer,
+                self.frame_buffer.nals.iter().enumerate(),
+                self.options.start_code,
+                true,
+            )?;
 
             self.frame_buffer.nals.clear();
         }
@@ -382,11 +406,21 @@ impl Muxer {
 
     fn write_buffers<'a>(
         writer: &mut dyn Write,
-        nal_buffers: impl Iterator<Item = &'a NalBuffer>,
+        nal_buffers: impl Iterator<Item = (usize, &'a NalBuffer)>,
+        preset: WriteStartCodePreset,
+        frame_start: bool,
     ) -> Result<()> {
-        for nal_buf in nal_buffers {
-            writer.write_all(NALUStartCode::Length4.slice())?;
-            writer.write_all(&nal_buf.data)?;
+        for (i, nal_buf) in nal_buffers {
+            // First if we didn't write an AUD
+            let first_nal = i == 0 && frame_start && nal_buf.nal_type != NAL_AUD;
+
+            NALUnit::write_with_preset(
+                writer,
+                &nal_buf.data,
+                preset.into(),
+                nal_buf.nal_type,
+                first_nal,
+            )?;
         }
 
         Ok(())
@@ -396,9 +430,22 @@ impl Muxer {
 impl ElHandler {
     fn write_next_frame(&mut self) -> Result<()> {
         if let Some(frame_buffer) = self.buffers.pop_front() {
-            for nal_buf in &frame_buffer.nals {
-                self.writer.write_all(NALUStartCode::Length4.slice())?;
-                self.writer.write_all(&nal_buf.data)?;
+            for nal_buf in frame_buffer.nals {
+                let nal_type = if nal_buf.nal_type != NAL_UNSPEC62 {
+                    NAL_UNSPEC63
+                } else {
+                    NAL_UNSPEC62
+                };
+
+                // Ignore nal type since it's wrapped in UNSPEC63
+                // Annex B: Always size 3 start code unless RPU
+                NALUnit::write_with_preset(
+                    &mut self.writer,
+                    &nal_buf.data,
+                    self.options.start_code.into(),
+                    nal_type,
+                    false,
+                )?;
             }
         }
 
