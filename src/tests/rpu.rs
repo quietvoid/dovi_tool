@@ -7,6 +7,7 @@ use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
+use dolby_vision::rpu::{FEL_STR, MEL_STR};
 use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
 
 use crate::commands::GenerateArgs;
@@ -92,6 +93,8 @@ fn profile8() -> Result<()> {
 fn fel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
+    assert_eq!(dovi_rpu.subprofile.as_ref().unwrap(), FEL_STR);
+
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
     assert_eq!(&original_data[4..], &parsed_data[2..]);
@@ -103,6 +106,8 @@ fn fel() -> Result<()> {
 fn mel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
+    assert_eq!(dovi_rpu.subprofile.as_ref().unwrap(), MEL_STR);
+
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
     assert_eq!(&original_data[4..], &parsed_data[2..]);

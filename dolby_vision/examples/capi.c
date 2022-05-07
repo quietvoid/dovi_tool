@@ -52,6 +52,10 @@ int do_something(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header) {
 
     printf("Guessed profile: %i\n", header->guessed_profile);
 
+    if (header->subprofile) {
+        printf("Profile 7 subprofile: %s\n", header->subprofile);
+    }
+
     // We have new rpu_data_mapping metadata
     if (!header->use_prev_vdr_rpu_flag) {
         ret = process_rpu_data_mapping(rpu, header);

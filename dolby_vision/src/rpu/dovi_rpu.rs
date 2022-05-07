@@ -15,6 +15,7 @@ use super::rpu_data_header::{rpu_data_header, RpuDataHeader};
 use super::rpu_data_mapping::RpuDataMapping;
 use super::rpu_data_nlq::RpuDataNlq;
 use super::vdr_dm_data::VdrDmData;
+use super::{FEL_STR, MEL_STR};
 
 use crate::rpu::rpu_data_mapping::vdr_rpu_data_payload;
 use crate::rpu::vdr_dm_data::vdr_dm_data_payload;
@@ -29,6 +30,13 @@ const FINAL_BYTE: u8 = 0x80;
 #[cfg_attr(feature = "serde_feature", derive(Serialize))]
 pub struct DoviRpu {
     pub dovi_profile: u8,
+
+    #[cfg_attr(
+        feature = "serde_feature",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub subprofile: Option<String>,
+
     pub header: RpuDataHeader,
 
     #[cfg_attr(
@@ -133,6 +141,7 @@ impl DoviRpu {
         }
 
         dovi_rpu.dovi_profile = dovi_rpu.header.get_dovi_profile();
+        dovi_rpu.subprofile = dovi_rpu.get_dovi_subprofile();
 
         Ok(dovi_rpu)
     }
@@ -285,6 +294,22 @@ impl DoviRpu {
         Ok(())
     }
 
+    fn get_dovi_subprofile(&self) -> Option<String> {
+        if self.dovi_profile == 7 {
+            if let Some(nlq) = &self.rpu_data_nlq {
+                let subprofile = if nlq.is_mel() {
+                    String::from(MEL_STR)
+                } else {
+                    String::from(FEL_STR)
+                };
+
+                return Some(subprofile);
+            }
+        }
+
+        None
+    }
+
     /// Modes:
     ///     0: Don't modify the RPU
     ///     1: Converts the RPU to be MEL compatible
@@ -317,6 +342,7 @@ impl DoviRpu {
 
         // Update profile value
         self.dovi_profile = self.header.get_dovi_profile();
+        self.subprofile = self.get_dovi_subprofile();
 
         Ok(())
     }

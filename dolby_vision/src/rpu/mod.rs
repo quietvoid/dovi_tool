@@ -11,6 +11,9 @@ use crc::{Crc, CRC_32_MPEG_2};
 
 pub const NUM_COMPONENTS: usize = 3;
 
+pub const FEL_STR: &str = "FEL";
+pub const MEL_STR: &str = "MEL";
+
 #[inline(always)]
 fn compute_crc32(data: &[u8]) -> u32 {
     let crc = Crc::<u32>::new(&CRC_32_MPEG_2);

@@ -195,7 +195,13 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
     let opaque = &*ptr;
 
     if let Some(rpu) = &opaque.rpu {
-        Box::into_raw(Box::new(RpuDataHeader::from(&rpu.header)))
+        let mut header = RpuDataHeader::from(&rpu.header);
+
+        if let Some(subprofile) = &rpu.subprofile {
+            header.subprofile = subprofile.as_ptr() as *const c_char
+        }
+
+        Box::into_raw(Box::new(header))
     } else {
         null_mut()
     }

@@ -1,6 +1,9 @@
 ## ??
 
+## 1.6.4
+
 - Add `DoviRpu::convert_to_cmv40` helper method.
+- Add `DoviRpu::subprofile` field, for profile 7 FEL or MEL.
 
 ## 1.6.3
 

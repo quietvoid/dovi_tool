@@ -1,3 +1,6 @@
+use libc::c_char;
+use std::ptr::null;
+
 use super::rpu::rpu_data_header::RpuDataHeader as RuRpuDataHeader;
 use super::rpu::NUM_COMPONENTS;
 use crate::rpu::rpu_data_mapping::RpuDataMapping as RuRpuDataMapping;
@@ -15,6 +18,10 @@ pub use dm_data::DmData;
 pub struct RpuDataHeader {
     /// Profile guessed from the values in the header
     pub guessed_profile: u8,
+
+    /// Subprofile (FEL or MEL) if the RPU is profile 7
+    /// null pointer if not profile 7
+    pub subprofile: *const c_char,
 
     pub rpu_nal_prefix: u8,
     pub rpu_type: u8,
@@ -137,6 +144,7 @@ impl From<&RuRpuDataHeader> for RpuDataHeader {
     fn from(header: &RuRpuDataHeader) -> Self {
         Self {
             guessed_profile: header.get_dovi_profile(),
+            subprofile: null(),
             rpu_nal_prefix: header.rpu_nal_prefix,
             rpu_type: header.rpu_type,
             rpu_format: header.rpu_format,

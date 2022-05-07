@@ -249,4 +249,37 @@ impl RpuDataNlq {
             linear_deadzone_threshold: vec![[0; NUM_COMPONENTS]],
         }
     }
+
+    pub fn is_mel(&self) -> bool {
+        let zero_nlq_offset = self.nlq_offset.iter().all(|v| v.iter().all(|e| *e == 0));
+        let one_vdr_in_max_int = self
+            .vdr_in_max_int
+            .iter()
+            .all(|v| v.iter().all(|e| *e == 1));
+        let one_vdr_in_max = self.vdr_in_max.iter().all(|v| v.iter().all(|e| *e == 0));
+        let zero_dz_slope_int = self
+            .linear_deadzone_slope_int
+            .iter()
+            .all(|v| v.iter().all(|e| *e == 0));
+        let zero_dz_slope = self
+            .linear_deadzone_slope
+            .iter()
+            .all(|v| v.iter().all(|e| *e == 0));
+        let zero_dz_threshold_int = self
+            .linear_deadzone_threshold_int
+            .iter()
+            .all(|v| v.iter().all(|e| *e == 0));
+        let zero_dz_threshold = self
+            .linear_deadzone_threshold
+            .iter()
+            .all(|v| v.iter().all(|e| *e == 0));
+
+        zero_nlq_offset
+            && one_vdr_in_max_int
+            && one_vdr_in_max
+            && zero_dz_slope_int
+            && zero_dz_slope
+            && zero_dz_threshold_int
+            && zero_dz_threshold
+    }
 }
