@@ -39,25 +39,18 @@ pub const PREDEFINED_REALDEVICE_PRIMARIES: &[[f64; 8]] = &[
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel9 {
     pub length: u64,
     pub source_primary_index: u8,
 
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_red_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_red_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_green_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_green_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_blue_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_blue_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_white_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_primary_white_y: u16,
 }
 

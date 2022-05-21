@@ -25,6 +25,12 @@ pub struct GenerateConfig {
     #[cfg_attr(feature = "serde_feature", serde(default = "CmVersion::v40"))]
     pub cm_version: CmVersion,
 
+    /// Profile to generate
+    ///  - 8.1: HDR10 base layer
+    ///  - 8.4: HLG base layer with static reshaping (iPhone 13 MMR)
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub profile: GenerateProfile,
+
     /// Number of RPU frames to generate.
     /// Required only when no shots are specified.
     #[cfg_attr(feature = "serde_feature", serde(default))]
@@ -46,7 +52,7 @@ pub struct GenerateConfig {
     /// ST2086/HDR10 fallback metadata.
     /// Required for deserialization.
     /// Defaults to 1000,0.0001
-    pub level6: ExtMetadataBlockLevel6,
+    pub level6: Option<ExtMetadataBlockLevel6>,
 
     /// In the case of XML generation, the L254 metadata can vary.
     /// Not allowed to be deserialized because it's handled by the lib.
@@ -63,6 +69,16 @@ pub struct GenerateConfig {
     /// List of shots to generate.
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub shots: Vec<VideoShot>,
+}
+
+/// Supported profiles for generating RPU metadata
+#[derive(Debug)]
+#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+pub enum GenerateProfile {
+    #[serde(alias = "8.1")]
+    Profile81,
+    #[serde(alias = "8.4")]
+    Profile84,
 }
 
 /// Struct defining a video shot.
@@ -104,7 +120,11 @@ pub struct ShotFrameEdit {
 
 impl GenerateConfig {
     pub fn generate_rpu_list(&self) -> Result<Vec<DoviRpu>> {
-        let rpu = DoviRpu::profile81_config(self)?;
+        let rpu = match self.profile {
+            GenerateProfile::Profile81 => DoviRpu::profile81_config(self)?,
+            GenerateProfile::Profile84 => DoviRpu::profile84_config(self)?,
+        };
+
         let mut list = Vec::with_capacity(self.length);
 
         let shots_length: usize = self.shots.iter().map(|s| s.duration).sum();
@@ -196,17 +216,18 @@ impl Default for GenerateConfig {
     fn default() -> Self {
         Self {
             cm_version: CmVersion::V40,
+            profile: Default::default(),
             length: Default::default(),
             source_min_pq: Default::default(),
             source_max_pq: Default::default(),
             default_metadata_blocks: Default::default(),
             level5: Default::default(),
-            level6: ExtMetadataBlockLevel6 {
+            level6: Some(ExtMetadataBlockLevel6 {
                 max_display_mastering_luminance: 1000,
                 min_display_mastering_luminance: 1,
                 max_content_light_level: 0,
                 max_frame_average_light_level: 0,
-            },
+            }),
             level254: Default::default(),
             shots: Default::default(),
         }
@@ -564,5 +585,20 @@ mod tests {
         }
 
         Ok(())
+    }
+}
+
+impl Default for GenerateProfile {
+    fn default() -> Self {
+        GenerateProfile::Profile81
+    }
+}
+
+impl std::fmt::Display for GenerateProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GenerateProfile::Profile81 => write!(f, "Profile 8.1 (HDR10)"),
+            GenerateProfile::Profile84 => write!(f, "Profile 8.4 (HLG)"),
+        }
     }
 }

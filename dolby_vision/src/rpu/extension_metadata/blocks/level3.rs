@@ -8,8 +8,9 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
 /// Level 1 offsets.
 #[repr(C)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel3 {
     pub min_pq_offset: u16,
     pub max_pq_offset: u16,
@@ -55,5 +56,15 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel3 {
 
     fn required_bits(&self) -> u64 {
         36
+    }
+}
+
+impl Default for ExtMetadataBlockLevel3 {
+    fn default() -> Self {
+        Self {
+            min_pq_offset: 2048,
+            max_pq_offset: 2048,
+            avg_pq_offset: 2048,
+        }
     }
 }

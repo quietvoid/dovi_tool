@@ -18,6 +18,7 @@ pub const PRESET_TARGET_DISPLAYS: &[u8] = &[1, 16, 18, 21, 27, 28, 37, 38, 42, 4
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel10 {
     pub length: u64,
     pub target_display_index: u8,
@@ -25,21 +26,13 @@ pub struct ExtMetadataBlockLevel10 {
     pub target_min_pq: u16,
     pub target_primary_index: u8,
 
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_red_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_red_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_green_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_green_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_blue_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_blue_y: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_white_x: u16,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
     pub target_primary_white_y: u16,
 }
 

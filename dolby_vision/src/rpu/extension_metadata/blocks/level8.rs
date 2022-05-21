@@ -20,15 +20,18 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel8 {
     pub length: u64,
     pub target_display_index: u8,
+
     pub trim_slope: u16,
     pub trim_offset: u16,
     pub trim_power: u16,
     pub trim_chroma_weight: u16,
     pub trim_saturation_gain: u16,
     pub ms_weight: u16,
+
     pub target_mid_contrast: u16,
     pub clip_trim: u16,
 

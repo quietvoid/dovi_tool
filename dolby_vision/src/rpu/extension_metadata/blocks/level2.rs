@@ -12,8 +12,10 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 #[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel2 {
     pub target_max_pq: u16,
+
     pub trim_slope: u16,
     pub trim_offset: u16,
     pub trim_power: u16,

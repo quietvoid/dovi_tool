@@ -1,7 +1,9 @@
 use clap::{Args, ValueHint};
 use std::path::PathBuf;
 
-#[derive(Args, Debug)]
+use crate::dovi::generator::GeneratorProfile;
+
+#[derive(Args, Debug, Default)]
 pub struct GenerateArgs {
     #[clap(
         name = "json",
@@ -60,4 +62,7 @@ pub struct GenerateArgs {
         help = "madVR source: use custom per-frame target nits if available"
     )]
     pub use_custom_targets: bool,
+
+    #[clap(arg_enum, short = 'p', long, help = "Dolby Vision profile to generate")]
+    pub profile: Option<GeneratorProfile>,
 }

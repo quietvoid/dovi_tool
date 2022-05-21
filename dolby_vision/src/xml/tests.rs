@@ -32,10 +32,11 @@ fn parse_cmv2_9() -> Result<()> {
     assert_eq!(config.level5.get_offsets(), (0, 0, 276, 276));
 
     // L6
-    assert_eq!(config.level6.max_display_mastering_luminance, 1000);
-    assert_eq!(config.level6.min_display_mastering_luminance, 1);
-    assert_eq!(config.level6.max_content_light_level, 756);
-    assert_eq!(config.level6.max_frame_average_light_level, 97);
+    let level6 = config.level6.as_ref().unwrap();
+    assert_eq!(level6.max_display_mastering_luminance, 1000);
+    assert_eq!(level6.min_display_mastering_luminance, 1);
+    assert_eq!(level6.max_content_light_level, 756);
+    assert_eq!(level6.max_frame_average_light_level, 97);
 
     // No L254
     assert!(config.level254.is_none());
@@ -77,10 +78,11 @@ fn parse_cmv4_0_2() -> Result<()> {
     assert_eq!(config.level5.get_offsets(), (0, 0, 0, 0));
 
     // L6
-    assert_eq!(config.level6.max_display_mastering_luminance, 1000);
-    assert_eq!(config.level6.min_display_mastering_luminance, 1);
-    assert_eq!(config.level6.max_content_light_level, 3948);
-    assert_eq!(config.level6.max_frame_average_light_level, 120);
+    let level6 = config.level6.as_ref().unwrap();
+    assert_eq!(level6.max_display_mastering_luminance, 1000);
+    assert_eq!(level6.min_display_mastering_luminance, 1);
+    assert_eq!(level6.max_content_light_level, 3948);
+    assert_eq!(level6.max_frame_average_light_level, 120);
 
     // XML L254
     assert!(config.level254.is_some());

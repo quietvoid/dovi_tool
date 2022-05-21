@@ -1,5 +1,10 @@
 ## ??
 
+## 1.6.5
+
+- Breaking: Made `GenerateConfig::level6` optional.
+- Added `profile` to `GenerateConfig` to support profile 8.1 and 8.4.
+
 ## 1.6.4
 
 - Add `DoviRpu::convert_to_cmv40` helper method.
