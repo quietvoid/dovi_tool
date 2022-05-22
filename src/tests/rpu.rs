@@ -290,12 +290,12 @@ fn generated_rpu() -> Result<()> {
         source_min_pq: None,
         source_max_pq: None,
         level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
-        level6: ExtMetadataBlockLevel6 {
+        level6: Some(ExtMetadataBlockLevel6 {
             max_display_mastering_luminance: 1000,
             min_display_mastering_luminance: 1,
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
-        },
+        }),
         default_metadata_blocks: vec![ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(
             600,
         ))],
@@ -413,12 +413,12 @@ fn cmv40_full_rpu() -> Result<()> {
         source_min_pq: None,
         source_max_pq: None,
         level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
-        level6: ExtMetadataBlockLevel6 {
+        level6: Some(ExtMetadataBlockLevel6 {
             max_display_mastering_luminance: 1000,
             min_display_mastering_luminance: 1,
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
-        },
+        }),
         default_metadata_blocks: vec![ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::from_nits(
             600,
         ))],
@@ -542,12 +542,7 @@ fn generate_default_cmv29() -> Result<()> {
             "./assets/generator_examples/default_cmv29.json",
         )),
         rpu_out: Some(PathBuf::from("/dev/null")),
-        hdr10plus_json: None,
-        xml: None,
-        canvas_width: None,
-        canvas_height: None,
-        madvr_file: None,
-        use_custom_targets: false,
+        ..Default::default()
     };
 
     let mut generator = Generator::from_args(args)?;
@@ -592,12 +587,7 @@ fn generate_default_cmv40() -> Result<()> {
             "./assets/generator_examples/default_cmv40.json",
         )),
         rpu_out: Some(PathBuf::from("/dev/null")),
-        hdr10plus_json: None,
-        xml: None,
-        canvas_width: None,
-        canvas_height: None,
-        madvr_file: None,
-        use_custom_targets: false,
+        ..Default::default()
     };
 
     let mut generator = Generator::from_args(args)?;
@@ -653,12 +643,7 @@ fn generate_full() -> Result<()> {
             "./assets/generator_examples/full_example.json",
         )),
         rpu_out: Some(PathBuf::from("/dev/null")),
-        hdr10plus_json: None,
-        xml: None,
-        canvas_width: None,
-        canvas_height: None,
-        madvr_file: None,
-        use_custom_targets: false,
+        ..Default::default()
     };
 
     let mut generator = Generator::from_args(args)?;
@@ -739,11 +724,7 @@ fn generate_full_hdr10plus() -> Result<()> {
         )),
         rpu_out: Some(PathBuf::from("/dev/null")),
         hdr10plus_json: Some(PathBuf::from("./assets/tests/hdr10plus_metadata.json")),
-        xml: None,
-        canvas_width: None,
-        canvas_height: None,
-        madvr_file: None,
-        use_custom_targets: false,
+        ..Default::default()
     };
 
     let mut generator = Generator::from_args(args)?;
@@ -917,12 +898,12 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
         source_min_pq: None,
         source_max_pq: None,
         level5: ExtMetadataBlockLevel5::from_offsets(0, 0, 280, 280),
-        level6: ExtMetadataBlockLevel6 {
+        level6: Some(ExtMetadataBlockLevel6 {
             max_display_mastering_luminance: 1000,
             min_display_mastering_luminance: 1,
             max_content_light_level: 1000,
             max_frame_average_light_level: 400,
-        },
+        }),
         default_metadata_blocks: vec![
             ExtMetadataBlock::Level1(ExtMetadataBlockLevel1 {
                 min_pq: 0,

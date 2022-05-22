@@ -9,8 +9,9 @@ use super::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel9,
 };
 use super::extension_metadata::*;
-use super::generate::GenerateConfig;
+use super::generate::{GenerateConfig, GenerateProfile};
 use super::profiles::profile81::Profile81;
+use super::profiles::profile84::Profile84;
 use super::profiles::DoviProfile;
 
 use super::extension_metadata::WithExtMetadataBlocks;
@@ -462,7 +463,10 @@ impl VdrDmData {
 
     /// Sets static metadata (L5/L6/L11) and source levels
     pub fn from_generate_config(config: &GenerateConfig) -> Result<VdrDmData> {
-        let mut vdr_dm_data = Profile81::dm_data();
+        let mut vdr_dm_data = match config.profile {
+            GenerateProfile::Profile81 => Profile81::dm_data(),
+            GenerateProfile::Profile84 => Profile84::dm_data(),
+        };
 
         match config.cm_version {
             CmVersion::V29 => {
@@ -487,7 +491,10 @@ impl VdrDmData {
 
     pub fn set_static_metadata(&mut self, config: &GenerateConfig) -> Result<()> {
         self.replace_metadata_block(ExtMetadataBlock::Level5(config.level5.clone()))?;
-        self.replace_metadata_block(ExtMetadataBlock::Level6(config.level6.clone()))?;
+
+        if let Some(level6) = &config.level6 {
+            self.replace_metadata_block(ExtMetadataBlock::Level6(level6.clone()))?;
+        }
 
         // Default to inserting both L9 (required) and L11 metadata
         self.replace_metadata_block(ExtMetadataBlock::Level9(

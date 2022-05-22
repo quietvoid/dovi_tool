@@ -4,6 +4,7 @@ pub mod profile4;
 pub mod profile5;
 pub mod profile7;
 pub mod profile81;
+pub mod profile84;
 
 pub trait DoviProfile {
     fn dm_data() -> VdrDmData {

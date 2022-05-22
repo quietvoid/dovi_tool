@@ -3,6 +3,7 @@ The generator can create a profile 8.1 RPU binary.
 Any extension metadata can be added, but adding blocks is for advanced usage.  
 Ideally, most custom blocks usage should be scripted, especially when shots are involved.  
 For the structure expected for deserialization, see [metadata blocks](../dolby_vision/src/rpu/extension_metadata/blocks).
+The expected JSON format is the same as output by the `info` subcommand.
 
 A JSON config example:
 
@@ -11,6 +12,11 @@ A JSON config example:
     // CM version, either "V29" or "V40".
     // Defaults to "V40".
     "cm_version": string,
+
+    // Profile to generate
+    //  - 8.1: HDR10 base layer (default)
+    //  - 8.4: HLG base layer with static reshaping
+    "profile": string,
 
     // Number of metadata frames to generate.
     // Optional if shots are specified, as well as for HDR10+ and madVR sourced generation.

@@ -1,3 +1,5 @@
+use crate::rpu::rpu_data_mapping::RpuDataMapping;
+
 use super::{DoviProfile, VdrDmData};
 
 pub struct Profile81 {}
@@ -27,6 +29,28 @@ impl DoviProfile for Profile81 {
             rgb_to_lms_coef7: 422,
             rgb_to_lms_coef8: 15962,
             ..VdrDmData::default_pq()
+        }
+    }
+}
+
+impl Profile81 {
+    pub fn rpu_data_mapping() -> RpuDataMapping {
+        RpuDataMapping {
+            mapping_idc: [vec![0], vec![0], vec![0]],
+            mapping_param_pred_flag: [vec![false], vec![false], vec![false]],
+            num_mapping_param_predictors: [vec![0], vec![0], vec![0]],
+            diff_pred_part_idx_mapping_minus1: [vec![], vec![], vec![]],
+            poly_order_minus1: [vec![0], vec![0], vec![0]],
+            linear_interp_flag: [vec![false], vec![false], vec![false]],
+            pred_linear_interp_value_int: [vec![], vec![], vec![]],
+            pred_linear_interp_value: [vec![], vec![], vec![]],
+            poly_coef_int: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
+            poly_coef: [vec![vec![0, 0]], vec![vec![0, 0]], vec![vec![0, 0]]],
+            mmr_order_minus1: [vec![], vec![], vec![]],
+            mmr_constant_int: [vec![], vec![], vec![]],
+            mmr_constant: [vec![], vec![], vec![]],
+            mmr_coef_int: [vec![vec![]], vec![vec![]], vec![vec![]]],
+            mmr_coef: [vec![vec![]], vec![vec![]], vec![vec![]]],
         }
     }
 }

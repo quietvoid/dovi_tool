@@ -8,9 +8,17 @@ use crate::commands::GenerateArgs;
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel6,
 };
-use dolby_vision::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
+use dolby_vision::rpu::generate::{GenerateConfig, GenerateProfile, ShotFrameEdit, VideoShot};
 use dolby_vision::utils::nits_to_pq;
 use dolby_vision::xml::{CmXmlParser, XmlParserOpts};
+
+#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq)]
+pub enum GeneratorProfile {
+    #[clap(name = "8.1")]
+    Profile81,
+    #[clap(name = "8.4")]
+    Profile84,
+}
 
 #[derive(Default)]
 pub struct Generator {
@@ -22,6 +30,7 @@ pub struct Generator {
     canvas_height: Option<u16>,
     madvr_path: Option<PathBuf>,
     use_custom_targets: bool,
+    profile: Option<GeneratorProfile>,
 
     pub config: Option<GenerateConfig>,
 }
@@ -37,6 +46,7 @@ impl Generator {
             canvas_height,
             madvr_file,
             use_custom_targets,
+            profile,
         } = args;
 
         let out_path = if let Some(out_path) = rpu_out {
@@ -54,6 +64,7 @@ impl Generator {
             canvas_height,
             madvr_path: madvr_file,
             use_custom_targets,
+            profile,
             config: None,
         };
 
@@ -66,7 +77,7 @@ impl Generator {
     }
 
     pub fn execute(&mut self) -> Result<()> {
-        let config = if let Some(json_path) = &self.json_path {
+        let mut config = if let Some(json_path) = &self.json_path {
             let json_file = File::open(json_path)?;
             let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
 
@@ -100,10 +111,15 @@ impl Generator {
             bail!("Missing configuration or XML file!");
         };
 
+        // Override config with manual arg
+        if let Some(profile) = self.profile {
+            config.profile = GenerateProfile::from(profile);
+        }
+
         self.config = Some(config);
 
         if let Some(config) = &self.config {
-            println!("Generating metadata...");
+            println!("Generating metadata: {}...", &config.profile);
 
             config.write_rpus(&self.rpu_out)?;
 
@@ -297,15 +313,26 @@ pub fn generate_metadata_from_madvr(
     config.shots.extend(madvr_shots);
 
     // Set MaxCLL and MaxFALL if not set in config
-    if config.level6.max_content_light_level == 0 {
-        config.level6.max_content_light_level = level6_meta.max_content_light_level;
-    }
+    if let Some(config_l6) = config.level6.as_mut() {
+        if config_l6.max_content_light_level == 0 {
+            config_l6.max_content_light_level = level6_meta.max_content_light_level;
+        }
 
-    if config.level6.max_frame_average_light_level == 0 {
-        config.level6.max_frame_average_light_level = level6_meta.max_frame_average_light_level;
+        if config_l6.max_frame_average_light_level == 0 {
+            config_l6.max_frame_average_light_level = level6_meta.max_frame_average_light_level;
+        }
     }
 
     config.length = frame_count;
 
     Ok(())
+}
+
+impl From<GeneratorProfile> for GenerateProfile {
+    fn from(p: GeneratorProfile) -> Self {
+        match p {
+            GeneratorProfile::Profile81 => GenerateProfile::Profile81,
+            GeneratorProfile::Profile84 => GenerateProfile::Profile84,
+        }
+    }
 }

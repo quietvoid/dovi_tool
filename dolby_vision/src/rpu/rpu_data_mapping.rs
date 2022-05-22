@@ -5,6 +5,7 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 use serde::Serialize;
 
 use super::dovi_rpu::DoviRpu;
+use super::profiles::profile81::Profile81;
 use super::rpu_data_header::RpuDataHeader;
 use super::rpu_data_nlq::RpuDataNlq;
 
@@ -380,23 +381,8 @@ impl RpuDataMapping {
         self.mmr_coef.iter_mut().for_each(|v| v.clear());
     }
 
+    #[deprecated(since = "1.6.5", note = "Replaced by Profile81::rpu_data_mapping")]
     pub fn p8_default() -> RpuDataMapping {
-        RpuDataMapping {
-            mapping_idc: [vec![0], vec![0], vec![0]],
-            mapping_param_pred_flag: [vec![false], vec![false], vec![false]],
-            num_mapping_param_predictors: [vec![0], vec![0], vec![0]],
-            diff_pred_part_idx_mapping_minus1: [vec![0], vec![0], vec![0]],
-            poly_order_minus1: [vec![0], vec![0], vec![0]],
-            linear_interp_flag: [vec![false], vec![false], vec![false]],
-            pred_linear_interp_value_int: [vec![0], vec![0], vec![0]],
-            pred_linear_interp_value: [vec![0], vec![0], vec![0]],
-            poly_coef_int: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
-            poly_coef: [vec![vec![0, 0]], vec![vec![0, 0]], vec![vec![0, 0]]],
-            mmr_order_minus1: [vec![0], vec![0], vec![0]],
-            mmr_constant_int: [vec![0], vec![0], vec![0]],
-            mmr_constant: [vec![0], vec![0], vec![0]],
-            mmr_coef_int: [vec![vec![]], vec![vec![]], vec![vec![]]],
-            mmr_coef: [vec![vec![]], vec![vec![]], vec![vec![]]],
-        }
+        Profile81::rpu_data_mapping()
     }
 }

@@ -11,6 +11,8 @@ use super::extension_metadata::blocks::{
 };
 use super::extension_metadata::{CmV40DmData, DmData};
 use super::generate::GenerateConfig;
+use super::profiles::profile81::Profile81;
+use super::profiles::profile84::Profile84;
 use super::rpu_data_header::{rpu_data_header, RpuDataHeader};
 use super::rpu_data_mapping::RpuDataMapping;
 use super::rpu_data_nlq::RpuDataNlq;
@@ -419,7 +421,7 @@ impl DoviRpu {
             dovi_profile: 8,
             modified: true,
             header: RpuDataHeader::p8_default(),
-            rpu_data_mapping: Some(RpuDataMapping::p8_default()),
+            rpu_data_mapping: Some(Profile81::rpu_data_mapping()),
             rpu_data_nlq: None,
             vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
             ..Default::default()
@@ -479,5 +481,17 @@ impl DoviRpu {
         }
 
         Ok(())
+    }
+
+    pub fn profile84_config(config: &GenerateConfig) -> Result<Self> {
+        Ok(DoviRpu {
+            dovi_profile: 8,
+            modified: true,
+            header: Profile84::rpu_data_header(),
+            rpu_data_mapping: Some(Profile84::rpu_data_mapping()),
+            rpu_data_nlq: None,
+            vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
+            ..Default::default()
+        })
     }
 }

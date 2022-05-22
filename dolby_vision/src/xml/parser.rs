@@ -74,12 +74,12 @@ impl CmXmlParser {
                 let (min_display_mastering_luminance, max_display_mastering_luminance) =
                     parser.parse_mastering_display_metadata(&video);
 
-                parser.config.level6 = ExtMetadataBlockLevel6 {
+                parser.config.level6 = Some(ExtMetadataBlockLevel6 {
                     max_display_mastering_luminance,
                     min_display_mastering_luminance,
                     max_content_light_level,
                     max_frame_average_light_level,
-                };
+                });
                 parser.config.level254 = parser.parse_level254(&video);
 
                 parser.add_level11(&video)?;

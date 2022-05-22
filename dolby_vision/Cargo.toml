@@ -1,6 +1,6 @@
 [package]
 name = "dolby_vision"
-version = "1.6.4"
+version = "1.6.5"
 authors = ["quietvoid"]
 edition = "2021"
 rust-version = "1.56.0"
@@ -14,10 +14,10 @@ anyhow = "1.0.57"
 bitvec = "1.0.0"
 crc = "3.0.0"
 serde = { version = "1.0.137", features = ["derive"], "optional" = true }
-serde_json = { version = "1.0.80", features = ["preserve_order"], "optional" = true }
+serde_json = { version = "1.0.81", features = ["preserve_order"], "optional" = true }
 roxmltree = { version = "0.14.1", optional = true }
 
-libc = { version = "0.2.125", optional = true }
+libc = { version = "0.2.126", optional = true }
 
 [features]
 xml = ["roxmltree"]
