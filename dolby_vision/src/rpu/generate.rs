@@ -75,9 +75,9 @@ pub struct GenerateConfig {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum GenerateProfile {
-    #[serde(alias = "8.1")]
+    #[cfg_attr(feature = "serde_feature", serde(alias = "8.1"))]
     Profile81,
-    #[serde(alias = "8.4")]
+    #[cfg_attr(feature = "serde_feature", serde(alias = "8.4"))]
     Profile84,
 }
 
