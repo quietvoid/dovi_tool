@@ -1,4 +1,4 @@
-The generator can create a profile 8.1 RPU binary.  
+The generator can create a profile 8.1 or 8.4 RPU binary.  
 
 Any extension metadata can be added, but adding blocks is for advanced usage.  
 Ideally, most custom blocks usage should be scripted, especially when shots are involved.  

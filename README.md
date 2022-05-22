@@ -71,7 +71,7 @@ dovi_tool <SUBCOMMAND> --help
         ```
 
     &nbsp;
-    #### **From a generic profile 8.1 configuration JSON file**
+    #### **From a generic profile 8.1/8.4 configuration JSON file**
     - See documentation: [generator.md](docs/generator.md) or [examples](assets/generator_examples)
  
         **Example**:
