@@ -1,5 +1,7 @@
 ## ??
 
+- Add `ConversionMode` enum to use with `DoviRpu::convert_with_mode`.
+
 ## 1.6.5
 
 - Breaking: Made `GenerateConfig::level6` optional.
