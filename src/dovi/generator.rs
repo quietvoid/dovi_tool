@@ -14,6 +14,8 @@ use dolby_vision::xml::{CmXmlParser, XmlParserOpts};
 
 #[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq)]
 pub enum GeneratorProfile {
+    #[clap(name = "5")]
+    Profile5,
     #[clap(name = "8.1")]
     Profile81,
     #[clap(name = "8.4")]
@@ -331,6 +333,7 @@ pub fn generate_metadata_from_madvr(
 impl From<GeneratorProfile> for GenerateProfile {
     fn from(p: GeneratorProfile) -> Self {
         match p {
+            GeneratorProfile::Profile5 => GenerateProfile::Profile5,
             GeneratorProfile::Profile81 => GenerateProfile::Profile81,
             GeneratorProfile::Profile84 => GenerateProfile::Profile84,
         }

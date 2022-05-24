@@ -433,6 +433,18 @@ impl DoviRpu {
         Ok(())
     }
 
+    pub fn profile5_config(config: &GenerateConfig) -> Result<Self> {
+        Ok(DoviRpu {
+            dovi_profile: 5,
+            modified: true,
+            header: RpuDataHeader::p5_default(),
+            rpu_data_mapping: Some(Profile81::rpu_data_mapping()),
+            rpu_data_nlq: None,
+            vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
+            ..Default::default()
+        })
+    }
+
     pub fn profile81_config(config: &GenerateConfig) -> Result<Self> {
         Ok(DoviRpu {
             dovi_profile: 8,

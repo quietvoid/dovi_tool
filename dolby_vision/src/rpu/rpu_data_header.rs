@@ -333,6 +333,14 @@ impl RpuDataHeader {
         }
     }
 
+    pub fn p5_default() -> RpuDataHeader {
+        RpuDataHeader {
+            vdr_rpu_profile: 0,
+            bl_video_full_range_flag: true,
+            ..RpuDataHeader::p8_default()
+        }
+    }
+
     pub fn p8_default() -> RpuDataHeader {
         RpuDataHeader {
             rpu_nal_prefix: 25,

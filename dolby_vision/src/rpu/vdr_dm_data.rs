@@ -10,6 +10,7 @@ use super::extension_metadata::blocks::{
 };
 use super::extension_metadata::*;
 use super::generate::{GenerateConfig, GenerateProfile};
+use super::profiles::profile5::Profile5;
 use super::profiles::profile81::Profile81;
 use super::profiles::profile84::Profile84;
 use super::profiles::DoviProfile;
@@ -464,6 +465,7 @@ impl VdrDmData {
     /// Sets static metadata (L5/L6/L11) and source levels
     pub fn from_generate_config(config: &GenerateConfig) -> Result<VdrDmData> {
         let mut vdr_dm_data = match config.profile {
+            GenerateProfile::Profile5 => Profile5::dm_data(),
             GenerateProfile::Profile81 => Profile81::dm_data(),
             GenerateProfile::Profile84 => Profile84::dm_data(),
         };
