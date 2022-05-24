@@ -23,6 +23,8 @@ use dovi::{
     CliOptions, WriteStartCodePreset,
 };
 
+const POSSIBLE_MODES: &[&str] = &["0", "1", "2", "3", "4"];
+
 #[derive(Parser, Debug)]
 #[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
 struct Opt {
@@ -35,7 +37,9 @@ struct Opt {
                      Mode 0: Parses the RPU, rewrites it untouched\n  \
                      Mode 1: Converts the RPU to be MEL compatible\n  \
                      Mode 2: Converts the RPU to be profile 8.1 compatible\n  \
-                     Mode 3: Converts profile 5 to 8.1"
+                     Mode 3: Converts profile 5 to 8.1\n  \
+                     Mode 4: Converts to profile 8.4",
+        possible_values = POSSIBLE_MODES,
     )]
     mode: Option<u8>,
 

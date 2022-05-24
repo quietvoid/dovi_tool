@@ -3,13 +3,14 @@ use std::io::{stdout, Write};
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
+use serde::{Deserialize, Serialize};
+
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
     ExtMetadataBlockLevel9,
 };
 use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::generate::GenerateConfig;
-use serde::{Deserialize, Serialize};
 
 use utilities_dovi::parse_rpu_file;
 

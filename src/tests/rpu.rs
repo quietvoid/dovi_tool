@@ -7,7 +7,7 @@ use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
-use dolby_vision::rpu::{FEL_STR, MEL_STR};
+use dolby_vision::rpu::{ConversionMode, FEL_STR, MEL_STR};
 use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
 
 use crate::commands::GenerateArgs;
@@ -127,7 +127,7 @@ fn fel_conversions() -> Result<()> {
     let (mel_data, mel_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_mel.bin"))?;
     assert_eq!(mel_rpu.dovi_profile, 7);
 
-    dovi_rpu.convert_with_mode(1)?;
+    dovi_rpu.convert_with_mode(ConversionMode::ToMel)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&mel_data[4..], &parsed_data[2..]);
 
@@ -135,7 +135,7 @@ fn fel_conversions() -> Result<()> {
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
-    dovi_rpu.convert_with_mode(2)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
@@ -176,7 +176,7 @@ fn mel_conversions() -> Result<()> {
     let (mel_data, mel_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_mel.bin"))?;
     assert_eq!(mel_rpu.dovi_profile, 7);
 
-    dovi_rpu.convert_with_mode(1)?;
+    dovi_rpu.convert_with_mode(ConversionMode::ToMel)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&mel_data[4..], &parsed_data[2..]);
 
@@ -184,7 +184,7 @@ fn mel_conversions() -> Result<()> {
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
-    dovi_rpu.convert_with_mode(2)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
@@ -333,14 +333,14 @@ fn p8_to_mel() -> Result<()> {
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
-    dovi_rpu.convert_with_mode(2)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     assert_eq!(dovi_rpu.dovi_profile, 8);
 
     // 8.1 to MEL
-    dovi_rpu.convert_with_mode(1)?;
+    dovi_rpu.convert_with_mode(ConversionMode::ToMel)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
@@ -361,7 +361,7 @@ fn profile5_to_p81() -> Result<()> {
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
-    dovi_rpu.convert_with_mode(3)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
@@ -385,7 +385,7 @@ fn profile5_to_p81_2() -> Result<()> {
     ))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
-    dovi_rpu.convert_with_mode(3)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
@@ -524,7 +524,7 @@ fn empty_dmv1_blocks() -> Result<()> {
 
     assert_eq!(dovi_rpu.rpu_data_crc32, reparsed_rpu.rpu_data_crc32);
 
-    dovi_rpu.convert_with_mode(3)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
     let reparsed_rpu = DoviRpu::parse_unspec62_nalu(&parsed_data)?;
@@ -1001,7 +1001,7 @@ fn p8_bypass() -> Result<()> {
 
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
-    dovi_rpu.convert_with_mode(2)?;
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
@@ -1017,9 +1017,53 @@ fn trailing_bytes_rpu() -> Result<()> {
 
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
-    dovi_rpu.convert_with_mode(0)?;
+    dovi_rpu.convert_with_mode(ConversionMode::Lossless)?;
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
+
+#[test]
+fn p81_to_p84() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile8.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    // Profile 8.1 to 8.4
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/profile84.bin"))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    dovi_rpu.convert_with_mode(ConversionMode::To84)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    assert_eq!(dovi_rpu.header.num_pivots_minus_2[0], 7);
+
+    Ok(())
+}
+
+#[test]
+fn profile5_to_p84() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/profile5.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    // Profile 5 to 8.4
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/profile84.bin"))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+
+    dovi_rpu.convert_with_mode(ConversionMode::To84)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    assert_eq!(dovi_rpu.header.num_pivots_minus_2[0], 7);
 
     Ok(())
 }

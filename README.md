@@ -127,7 +127,8 @@ For working with an HEVC source file, there are multiple options that apply to m
   * `0` - Parses the RPU, rewrites it untouched.
   * `1` - Converts the RPU to be MEL compatible.
   * `2` - Converts the RPU to be profile 8.1 compatible.
-  * `3` - Converts profile 5 to 8.
+  * `3` - Converts profile 5 to 8.1.
+  * `4` - Converts to profile 8.4.
 * `-c`, `--crop` Set active area offsets to 0 (meaning no letterbox bars).
 * `--drop-hdr10plus` Ignore HDR10+ metadata when writing the output HEVC.
 * `--edit-config` Path to editor config JSON file.

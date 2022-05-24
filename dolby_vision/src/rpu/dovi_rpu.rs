@@ -5,7 +5,6 @@ use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
 
-use super::compute_crc32;
 use super::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel9,
 };
@@ -17,7 +16,7 @@ use super::rpu_data_header::{rpu_data_header, RpuDataHeader};
 use super::rpu_data_mapping::RpuDataMapping;
 use super::rpu_data_nlq::RpuDataNlq;
 use super::vdr_dm_data::VdrDmData;
-use super::{FEL_STR, MEL_STR};
+use super::{compute_crc32, ConversionMode, FEL_STR, MEL_STR};
 
 use crate::rpu::rpu_data_mapping::vdr_rpu_data_payload;
 use crate::rpu::vdr_dm_data::vdr_dm_data_payload;
@@ -316,29 +315,45 @@ impl DoviRpu {
     ///     0: Don't modify the RPU
     ///     1: Converts the RPU to be MEL compatible
     ///     2: Converts the RPU to be profile 8.1 compatible
-    ///     3: Converts profile 5 to 8
+    ///     3: Converts profile 5 to 8.1
+    ///     4: Converts to static profile 8.4
     ///
     /// noop when profile 8 and mode 2 is used
-    pub fn convert_with_mode(&mut self, mode: u8) -> Result<()> {
-        if mode != 0 {
+    pub fn convert_with_mode<T: Into<ConversionMode>>(&mut self, mode: T) -> Result<()> {
+        let mode: ConversionMode = mode.into();
+
+        if mode != ConversionMode::Lossless {
             self.modified = true;
         }
 
-        if self.dovi_profile == 7 {
-            match mode {
-                1 => self.convert_to_mel()?,
-                2 => self.convert_to_81(),
-                _ => (),
-            };
-        } else if self.dovi_profile == 5 && mode == 3 {
-            self.p5_to_p81()?;
-        } else if self.dovi_profile == 8 && (mode == 1 || mode == 2) {
-            match mode {
-                1 => self.convert_to_mel()?,
-                2 => self.modified = false, // Ignore conversion
-                _ => (),
-            };
-        } else if mode != 0 {
+        let valid_conversion = match mode {
+            ConversionMode::Lossless => true,
+            ConversionMode::ToMel => {
+                if matches!(self.dovi_profile, 7 | 8) {
+                    self.convert_to_mel()?;
+                    true
+                } else {
+                    false
+                }
+            }
+            ConversionMode::To81 => match self.dovi_profile {
+                7 | 8 => {
+                    self.convert_to_p81();
+                    true
+                }
+                5 => {
+                    self.p5_to_p81()?;
+                    true
+                }
+                _ => false,
+            },
+            ConversionMode::To84 => {
+                self.convert_to_p84();
+                true
+            }
+        };
+
+        if !valid_conversion {
             bail!("Invalid profile for mode {} conversion!", mode);
         }
 
@@ -372,7 +387,9 @@ impl DoviRpu {
         Ok(())
     }
 
-    fn convert_to_81(&mut self) {
+    fn convert_to_p81(&mut self) {
+        self.modified = true;
+
         let header = &mut self.header;
 
         // Change to 8.1
@@ -397,7 +414,7 @@ impl DoviRpu {
         self.modified = true;
 
         if self.dovi_profile == 5 {
-            self.convert_to_81();
+            self.convert_to_p81();
 
             self.dovi_profile = 8;
 
@@ -493,5 +510,12 @@ impl DoviRpu {
             vdr_dm_data: Some(VdrDmData::from_generate_config(config)?),
             ..Default::default()
         })
+    }
+
+    fn convert_to_p84(&mut self) {
+        self.convert_to_p81();
+
+        self.header = Profile84::rpu_data_header();
+        self.rpu_data_mapping = Some(Profile84::rpu_data_mapping());
     }
 }
