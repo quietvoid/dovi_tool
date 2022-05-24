@@ -180,6 +180,8 @@ impl RpuInjector {
                     start_code: NALUStartCode::Length4,
                     data: rpu_data,
                 })
+            } else if mismatched_length {
+                last_metadata.clone()
             } else {
                 bail!(
                     "No RPU found for presentation frame {}",

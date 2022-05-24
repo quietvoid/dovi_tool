@@ -139,3 +139,70 @@ fn annexb() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn duplicated_end() -> Result<()> {
+    // Generate shorter RPU
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let generate_config = Path::new("assets/generator_examples/default_cmv29.json");
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg("generate")
+        .arg("--json")
+        .arg(generate_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    // Inject and expect to duplicate
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
+    let output_file = temp.child("injected_output.hevc");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_bl)
+        .arg("--rpu-in")
+        .arg(output_rpu.as_ref())
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert
+        .success()
+        .stderr(predicate::str::is_empty())
+        .stdout(predicate::str::contains(
+            "Metadata will be duplicated at the end to match video length",
+        ));
+
+    output_file.assert(predicate::path::is_file());
+
+    // Extract result and verify count
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    let output_rpu = temp.child("RPU_duplicated.bin");
+
+    let assert = cmd
+        .arg("extract-rpu")
+        .arg(output_file.as_ref())
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    assert_eq!(rpus.len(), 259);
+
+    Ok(())
+}
