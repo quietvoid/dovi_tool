@@ -6,7 +6,7 @@ use std::{
     slice,
 };
 
-use crate::rpu::dovi_rpu::DoviRpu;
+use crate::rpu::{dovi_rpu::DoviRpu, ConversionMode};
 
 use super::c_structs::*;
 
@@ -155,7 +155,8 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
 ///     0: Don't modify the RPU
 ///     1: Converts the RPU to be MEL compatible
 ///     2: Converts the RPU to be profile 8.1 compatible
-///     3: Converts profile 5 to 8
+///     3: Converts profile 5 to 8.1
+///     4: Converts to static profile 8.4
 ///
 /// If an error occurs, it is logged to RpuOpaque.error.
 /// Returns 0 if successful, -1 otherwise.
@@ -168,6 +169,8 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
     let opaque = &mut *ptr;
 
     let ret = if let Some(rpu) = &mut opaque.rpu {
+        let mode = ConversionMode::from(mode);
+
         match rpu.convert_with_mode(mode) {
             Ok(_) => 0,
             Err(e) => {
