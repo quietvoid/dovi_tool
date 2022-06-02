@@ -32,6 +32,10 @@ pub struct GenerateConfig {
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub profile: GenerateProfile,
 
+    /// Set scene cut flag for every frame.
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub long_play_mode: bool,
+
     /// Number of RPU frames to generate.
     /// Required only when no shots are specified.
     #[cfg_attr(feature = "serde_feature", serde(default))]
@@ -148,7 +152,7 @@ impl GenerateConfig {
                 let mut frame_rpu = rpu.clone();
 
                 if let Some(ref mut vdr_dm_data) = frame_rpu.vdr_dm_data {
-                    if i == 0 {
+                    if i == 0 || self.long_play_mode {
                         vdr_dm_data.set_scene_cut(true);
                     }
 
@@ -222,6 +226,7 @@ impl Default for GenerateConfig {
             cm_version: CmVersion::V40,
             profile: Default::default(),
             length: Default::default(),
+            long_play_mode: Default::default(),
             source_min_pq: Default::default(),
             source_max_pq: Default::default(),
             default_metadata_blocks: Default::default(),

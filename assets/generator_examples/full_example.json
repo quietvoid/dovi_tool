@@ -1,6 +1,7 @@
 {
     "cm_version": "V40",
     "profile": "8.1",
+    "long_play_mode": false,
     "level5": {
         "active_area_left_offset": 0,
         "active_area_right_offset": 0,

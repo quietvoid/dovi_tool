@@ -65,4 +65,7 @@ pub struct GenerateArgs {
 
     #[clap(arg_enum, short = 'p', long, help = "Dolby Vision profile to generate")]
     pub profile: Option<GeneratorProfile>,
+
+    #[clap(long, help = "Set scene cut flag for every frame")]
+    pub long_play_mode: Option<bool>,
 }

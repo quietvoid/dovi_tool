@@ -33,6 +33,7 @@ pub struct Generator {
     madvr_path: Option<PathBuf>,
     use_custom_targets: bool,
     profile: Option<GeneratorProfile>,
+    long_play_mode: Option<bool>,
 
     pub config: Option<GenerateConfig>,
 }
@@ -49,6 +50,7 @@ impl Generator {
             madvr_file,
             use_custom_targets,
             profile,
+            long_play_mode,
         } = args;
 
         let out_path = if let Some(out_path) = rpu_out {
@@ -68,6 +70,7 @@ impl Generator {
             use_custom_targets,
             profile,
             config: None,
+            long_play_mode,
         };
 
         Ok(generator)
@@ -116,6 +119,10 @@ impl Generator {
         // Override config with manual arg
         if let Some(profile) = self.profile {
             config.profile = GenerateProfile::from(profile);
+        }
+
+        if let Some(long_play_mode) = self.long_play_mode {
+            config.long_play_mode = long_play_mode
         }
 
         self.config = Some(config);
