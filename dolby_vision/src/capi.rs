@@ -148,7 +148,7 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
 
 /// # Safety
 /// The struct pointer should be valid.
-/// The mode should be between 0 and 3.
+/// The mode should be between 0 and 4.
 ///
 /// Converts the RPU to be compatible with a different Dolby Vision profile.
 /// Possible modes:

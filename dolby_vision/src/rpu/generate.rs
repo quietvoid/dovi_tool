@@ -26,10 +26,15 @@ pub struct GenerateConfig {
     pub cm_version: CmVersion,
 
     /// Profile to generate
+    ///  - 5: IPT base layer with no reshaping
     ///  - 8.1: HDR10 base layer
     ///  - 8.4: HLG base layer with static reshaping (iPhone 13 MMR)
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub profile: GenerateProfile,
+
+    /// Set scene cut flag for every frame.
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub long_play_mode: bool,
 
     /// Number of RPU frames to generate.
     /// Required only when no shots are specified.
@@ -75,6 +80,8 @@ pub struct GenerateConfig {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum GenerateProfile {
+    #[cfg_attr(feature = "serde_feature", serde(alias = "5"))]
+    Profile5,
     #[cfg_attr(feature = "serde_feature", serde(alias = "8.1"))]
     Profile81,
     #[cfg_attr(feature = "serde_feature", serde(alias = "8.4"))]
@@ -121,6 +128,7 @@ pub struct ShotFrameEdit {
 impl GenerateConfig {
     pub fn generate_rpu_list(&self) -> Result<Vec<DoviRpu>> {
         let rpu = match self.profile {
+            GenerateProfile::Profile5 => DoviRpu::profile5_config(self)?,
             GenerateProfile::Profile81 => DoviRpu::profile81_config(self)?,
             GenerateProfile::Profile84 => DoviRpu::profile84_config(self)?,
         };
@@ -144,7 +152,7 @@ impl GenerateConfig {
                 let mut frame_rpu = rpu.clone();
 
                 if let Some(ref mut vdr_dm_data) = frame_rpu.vdr_dm_data {
-                    if i == 0 {
+                    if i == 0 || self.long_play_mode {
                         vdr_dm_data.set_scene_cut(true);
                     }
 
@@ -218,6 +226,7 @@ impl Default for GenerateConfig {
             cm_version: CmVersion::V40,
             profile: Default::default(),
             length: Default::default(),
+            long_play_mode: Default::default(),
             source_min_pq: Default::default(),
             source_max_pq: Default::default(),
             default_metadata_blocks: Default::default(),
@@ -597,6 +606,7 @@ impl Default for GenerateProfile {
 impl std::fmt::Display for GenerateProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            GenerateProfile::Profile5 => write!(f, "Profile 5 (IPT)"),
             GenerateProfile::Profile81 => write!(f, "Profile 8.1 (HDR10)"),
             GenerateProfile::Profile84 => write!(f, "Profile 8.4 (HLG)"),
         }

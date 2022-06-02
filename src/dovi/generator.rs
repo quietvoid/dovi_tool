@@ -14,6 +14,8 @@ use dolby_vision::xml::{CmXmlParser, XmlParserOpts};
 
 #[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq)]
 pub enum GeneratorProfile {
+    #[clap(name = "5")]
+    Profile5,
     #[clap(name = "8.1")]
     Profile81,
     #[clap(name = "8.4")]
@@ -31,6 +33,7 @@ pub struct Generator {
     madvr_path: Option<PathBuf>,
     use_custom_targets: bool,
     profile: Option<GeneratorProfile>,
+    long_play_mode: Option<bool>,
 
     pub config: Option<GenerateConfig>,
 }
@@ -47,6 +50,7 @@ impl Generator {
             madvr_file,
             use_custom_targets,
             profile,
+            long_play_mode,
         } = args;
 
         let out_path = if let Some(out_path) = rpu_out {
@@ -66,6 +70,7 @@ impl Generator {
             use_custom_targets,
             profile,
             config: None,
+            long_play_mode,
         };
 
         Ok(generator)
@@ -114,6 +119,10 @@ impl Generator {
         // Override config with manual arg
         if let Some(profile) = self.profile {
             config.profile = GenerateProfile::from(profile);
+        }
+
+        if let Some(long_play_mode) = self.long_play_mode {
+            config.long_play_mode = long_play_mode
         }
 
         self.config = Some(config);
@@ -331,6 +340,7 @@ pub fn generate_metadata_from_madvr(
 impl From<GeneratorProfile> for GenerateProfile {
     fn from(p: GeneratorProfile) -> Self {
         match p {
+            GeneratorProfile::Profile5 => GenerateProfile::Profile5,
             GeneratorProfile::Profile81 => GenerateProfile::Profile81,
             GeneratorProfile::Profile84 => GenerateProfile::Profile84,
         }
