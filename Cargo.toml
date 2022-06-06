@@ -5,6 +5,7 @@ authors = ["quietvoid"]
 edition = "2021"
 rust-version = "1.56.0"
 license = "MIT"
+build = "build.rs"
 
 [dependencies]
 bitvec_helpers = "1.0.2"
@@ -26,6 +27,9 @@ itertools = "0.10.3"
 assert_cmd = "2.0.4"
 assert_fs = "1.0.7"
 predicates = "2.1.1"
+
+[build-dependencies]
+vergen = { version = "7.2.0", default_features = false, features = ["git"] }
 
 [[bin]]
 name = "dovi_tool"

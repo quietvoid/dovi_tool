@@ -26,7 +26,7 @@ use dovi::{
 const POSSIBLE_MODES: &[&str] = &["0", "1", "2", "3", "4"];
 
 #[derive(Parser, Debug)]
-#[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
+#[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT"))]
 struct Opt {
     #[clap(
         name = "mode",
