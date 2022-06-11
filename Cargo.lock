@@ -535,7 +535,9 @@ dependencies = [
 
 [[package]]
 name = "madvr_parse"
-version = "0.1.3"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb117075dbec7ef83a633d16202da781f1f01aaa7b1b8e391d11de86c2b9ca62"
 dependencies = [
  "anyhow",
  "byteorder",

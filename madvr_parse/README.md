@@ -1,1 +1,0 @@
-Library to read & write madVR HDR measurement files.
