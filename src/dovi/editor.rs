@@ -31,7 +31,7 @@ pub struct EditConfig {
     mode: u8,
 
     #[serde(default)]
-    convert_to_cmv4: bool,
+    remove_cmv4: bool,
 
     #[serde(default)]
     remove_mapping: bool,
@@ -155,12 +155,7 @@ impl Editor {
 impl EditConfig {
     pub fn from_path(path: &PathBuf) -> Result<Self> {
         let json_file = File::open(path)?;
-        let mut config: EditConfig = serde_json::from_reader(&json_file)?;
-
-        // Override to CM v4.0
-        if !config.convert_to_cmv4 {
-            config.convert_to_cmv4 = config.level11.is_some() || config.level9.is_some();
-        }
+        let config: EditConfig = serde_json::from_reader(&json_file)?;
 
         Ok(config)
     }
@@ -171,8 +166,8 @@ impl EditConfig {
             self.remove_frames(ranges, rpus)?;
         }
 
-        if self.convert_to_cmv4 {
-            println!("Converting to CMv4.0...");
+        if self.remove_cmv4 {
+            println!("Removing CMv4.0 metadata...");
         }
 
         if self.mode > 0 {
@@ -209,8 +204,8 @@ impl EditConfig {
     }
 
     pub fn execute_single_rpu(&self, rpu: &mut DoviRpu) -> Result<()> {
-        if self.convert_to_cmv4 {
-            rpu.convert_to_cmv40()?;
+        if self.remove_cmv4 {
+            rpu.remove_cmv40_extension_metadata()?;
         }
 
         if self.mode > 0 {
@@ -349,8 +344,6 @@ impl EditConfig {
     ) -> Result<()> {
         let primary_index = *primaries as u8;
 
-        rpu.modified = true;
-
         let level9 = ExtMetadataBlockLevel9 {
             length: 1,
             source_primary_index: primary_index,
@@ -358,6 +351,8 @@ impl EditConfig {
         };
 
         if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+            rpu.modified = true;
+
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level9(level9))?;
         }
 
@@ -369,9 +364,8 @@ impl EditConfig {
         rpu: &mut DoviRpu,
         level11: &ExtMetadataBlockLevel11,
     ) -> Result<()> {
-        rpu.modified = true;
-
         if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+            rpu.modified = true;
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level11(level11.clone()))?;
         }
 

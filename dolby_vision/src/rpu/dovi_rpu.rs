@@ -492,6 +492,10 @@ impl DoviRpu {
             .collect()
     }
 
+    #[deprecated(
+        since = "1.6.6",
+        note = "Causes issues in playback when L8 metadata is not present. Will be removed"
+    )]
     pub fn convert_to_cmv40(&mut self) -> Result<()> {
         if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
             if vdr_dm_data.cmv40_metadata.is_none() {
@@ -529,5 +533,17 @@ impl DoviRpu {
 
         self.header = Profile84::rpu_data_header();
         self.rpu_data_mapping = Some(Profile84::rpu_data_mapping());
+    }
+
+    pub fn remove_cmv40_extension_metadata(&mut self) -> Result<()> {
+        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+            if vdr_dm_data.cmv40_metadata.is_some() {
+                self.modified = true;
+
+                vdr_dm_data.cmv40_metadata = None;
+            }
+        }
+
+        Ok(())
     }
 }

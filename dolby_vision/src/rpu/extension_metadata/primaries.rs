@@ -31,14 +31,22 @@ pub struct ColorPrimaries {
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum MasteringDisplayPrimaries {
+    #[cfg_attr(feature = "serde_feature", serde(alias = "DCI-P3 D65"))]
     DCIP3D65 = 0,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.709"))]
     BT709,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.2020"))]
     BT2020,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "SMPTE-C"))]
     SMPTEC,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.601"))]
     BT601,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "DCI-P3"))]
     DCIP3,
     ACES,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "S-Gamut"))]
     SGamut,
+    #[cfg_attr(feature = "serde_feature", serde(alias = "S-Gamut-3.Cine"))]
     SGamut3Cine,
 }
 

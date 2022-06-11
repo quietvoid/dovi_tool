@@ -5,7 +5,7 @@ use assert_cmd::Command;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
-use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::{blocks::ExtMetadataBlock, MasteringDisplayPrimaries};
 
 const SUBCOMMAND: &str = "editor";
 
@@ -56,12 +56,12 @@ fn mode() -> Result<()> {
 }
 
 #[test]
-fn convert_to_cmv4() -> Result<()> {
+fn remove_cmv4() -> Result<()> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     let temp = assert_fs::TempDir::new().unwrap();
 
-    let input_rpu = Path::new("assets/tests/fel_orig.bin");
-    let edit_config = Path::new("assets/editor_examples/convert_to_cmv4.json");
+    let input_rpu = Path::new("assets/tests/mel_variable_l8_length13.bin");
+    let edit_config = Path::new("assets/editor_examples/remove_cmv4.json");
 
     let output_rpu = temp.child("RPU.bin");
 
@@ -78,6 +78,17 @@ fn convert_to_cmv4() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
+    // Original
+    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    assert_eq!(rpus.len(), 1);
+
+    let rpu = &rpus[0];
+    assert_eq!(rpu.dovi_profile, 7);
+
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    assert!(vdr_dm_data.cmv40_metadata.is_some());
+
+    // Removed RPU
     let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
     assert_eq!(rpus.len(), 1);
 
@@ -85,25 +96,7 @@ fn convert_to_cmv4() -> Result<()> {
     assert_eq!(rpu.dovi_profile, 7);
 
     let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
-
-    // Only L9, L11 and L254
-    assert_eq!(vdr_dm_data.metadata_blocks(3).unwrap().len(), 3);
-
-    if let ExtMetadataBlock::Level9(level9) = vdr_dm_data.get_block(9).unwrap() {
-        assert_eq!(level9.length, 1);
-        assert_eq!(level9.source_primary_index, 0);
-    }
-
-    if let ExtMetadataBlock::Level11(level11) = vdr_dm_data.get_block(11).unwrap() {
-        assert_eq!(level11.content_type, 1);
-        assert_eq!(level11.whitepoint, 0);
-        assert!(level11.reference_mode_flag);
-    }
-
-    if let ExtMetadataBlock::Level254(level254) = vdr_dm_data.get_block(11).unwrap() {
-        assert_eq!(level254.dm_mode, 0);
-        assert_eq!(level254.dm_version_index, 2);
-    }
+    assert!(vdr_dm_data.cmv40_metadata.is_none());
 
     Ok(())
 }
@@ -156,6 +149,123 @@ fn active_area_specific() -> Result<()> {
     let block = last_rpu.vdr_dm_data.as_ref().unwrap().get_block(5).unwrap();
     if let ExtMetadataBlock::Level5(b) = block {
         assert_eq!(vec![0, 0, 0, 0], b.get_offsets_vec());
+    }
+
+    Ok(())
+}
+
+#[test]
+fn add_l9_l11_no_effect() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_rpu = Path::new("assets/tests/fel_orig.bin");
+    let edit_config = Path::new("assets/editor_examples/l9_and_l11.json");
+
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_rpu)
+        .arg("--json")
+        .arg(edit_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    // Original
+    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    assert_eq!(rpus.len(), 1);
+
+    let rpu = &rpus[0];
+    assert_eq!(rpu.dovi_profile, 7);
+
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    assert!(vdr_dm_data.cmv40_metadata.is_none());
+
+    // No change
+    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    assert_eq!(rpus.len(), 1);
+
+    let rpu = &rpus[0];
+    assert_eq!(rpu.dovi_profile, 7);
+
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    assert!(vdr_dm_data.cmv40_metadata.is_none());
+
+    Ok(())
+}
+
+#[test]
+fn add_l9_l11() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_rpu = Path::new("assets/tests/mel_variable_l8_length13.bin");
+    let edit_config = Path::new("assets/editor_examples/l9_and_l11.json");
+
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_rpu)
+        .arg("--json")
+        .arg(edit_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    // Original
+    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    assert_eq!(rpus.len(), 1);
+
+    let rpu = &rpus[0];
+    assert_eq!(rpu.dovi_profile, 7);
+
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    assert!(vdr_dm_data.cmv40_metadata.is_some());
+
+    let orig_l9 = vdr_dm_data.get_block(9).unwrap();
+    let orig_l11 = vdr_dm_data.get_block(11);
+
+    if let ExtMetadataBlock::Level9(block) = orig_l9 {
+        assert_eq!(
+            block.source_primary_index,
+            MasteringDisplayPrimaries::DCIP3D65 as u8
+        )
+    }
+    assert!(orig_l11.is_none());
+
+    // Modifies the blocks
+    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    assert_eq!(rpus.len(), 1);
+
+    let rpu = &rpus[0];
+    assert_eq!(rpu.dovi_profile, 7);
+
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+    assert!(vdr_dm_data.cmv40_metadata.is_some());
+
+    let orig_l9 = vdr_dm_data.get_block(9).unwrap();
+    let orig_l11 = vdr_dm_data.get_block(11).unwrap();
+
+    if let ExtMetadataBlock::Level9(block) = orig_l9 {
+        assert_eq!(
+            block.source_primary_index,
+            MasteringDisplayPrimaries::BT2020 as u8
+        );
+    }
+    if let ExtMetadataBlock::Level11(block) = orig_l11 {
+        assert_eq!(block.content_type, 1);
+        assert!(block.reference_mode_flag);
     }
 
     Ok(())

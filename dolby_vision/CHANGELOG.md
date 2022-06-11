@@ -1,6 +1,12 @@
 ## ??
 
+## 1.6.6
+
 - Add `ConversionMode` enum to use with `DoviRpu::convert_with_mode`.
+- Added support to generate profile 5 RPUs.
+- Added long play mode RPU generation.
+    - This sets `scene_refresh_flag` to `1` for every frame.
+- Deprecated `DoviRpu::convert_to_cmv4` as it can lead to playback issues.
 
 ## 1.6.5
 
