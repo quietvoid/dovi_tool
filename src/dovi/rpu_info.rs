@@ -95,7 +95,7 @@ impl RpuInfo {
                     .count();
 
                 let mut summary_str =
-                    format!("Summary:\n  Frmaes: {count}\n  DM version: {dm_version}");
+                    format!("Summary:\n  Frames: {count}\n  DM version: {dm_version}");
 
                 if needs_count {
                     write!(
