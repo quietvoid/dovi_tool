@@ -9,7 +9,7 @@ The **`dolby_vision`** crate is also hosted in this repo, see [README](dolby_vis
 ## **Building**
 ### **Toolchain**
 
-The minimum Rust version to build **`dovi_tool`** is 1.56.0.
+The minimum Rust version to build **`dovi_tool`** is 1.58.0.
 
 ### **Release binary**
 To build release binary in `target/release/dovi_tool` run:
@@ -43,8 +43,11 @@ dovi_tool <SUBCOMMAND> --help
 **`dovi_tool`** provides an important set of tools for analyzing, editing and generating Dolby Vision metadata.
 ## **Commands**
 * ### **info**
-    Prints the parsed RPU data as JSON for a specific frame.  
-    Frame indices start at 0.
+    Prints the parsed RPU information.
+    To get the summary, use `--summary` or `-s`.
+
+    Using `--frame`: prints the RPU data as JSON for a specific frame.
+    - Frame indices start at 0.
 
     **Example to get metadata for frame 124**:
     ```console

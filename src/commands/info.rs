@@ -30,4 +30,7 @@ pub struct InfoArgs {
         help = "Frame number to show info for"
     )]
     pub frame: Option<usize>,
+
+    #[clap(name = "summary", long, short = 's', help = "Show the RPU summary")]
+    pub summary: bool,
 }
