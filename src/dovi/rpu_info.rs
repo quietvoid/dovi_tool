@@ -3,6 +3,7 @@ use std::io::{stdout, Write};
 use std::path::PathBuf;
 
 use anyhow::{bail, ensure, Result};
+use itertools::Itertools;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use utilities_dovi::parse_rpu_file;
@@ -57,6 +58,13 @@ impl RpuInfo {
             if summary {
                 let count = rpus.len();
 
+                let profiles = rpus
+                    .iter()
+                    .map(|rpu| rpu.dovi_profile)
+                    .unique()
+                    .sorted()
+                    .join(", ");
+
                 let dmv1_count = rpus
                     .iter()
                     .filter(|rpu| {
@@ -94,8 +102,28 @@ impl RpuInfo {
                     })
                     .count();
 
-                let mut summary_str =
-                    format!("Summary:\n  Frames: {count}\n  DM version: {dm_version}");
+                // Profile
+                let mut profile_str = "Profile".to_string();
+                if profiles.contains(", ") {
+                    write!(profile_str, "s")?;
+                }
+                write!(profile_str, ": {profiles}")?;
+
+                if profiles.contains('7') {
+                    let subprofiles = rpus
+                        .iter()
+                        .filter_map(|rpu| rpu.subprofile.as_ref())
+                        .unique()
+                        .sorted()
+                        .join(", ");
+
+                    write!(profile_str, " ({subprofiles})")?;
+                }
+
+                // Summary output
+                let mut summary_str = format!(
+                    "Summary:\n  Frames: {count}\n  {profile_str}\n  DM version: {dm_version}"
+                );
 
                 if needs_count {
                     write!(
