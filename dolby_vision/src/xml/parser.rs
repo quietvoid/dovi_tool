@@ -41,7 +41,7 @@ pub struct TargetDisplay {
 }
 
 impl CmXmlParser {
-    pub fn parse_file(file_path: &Path, opts: XmlParserOpts) -> Result<CmXmlParser> {
+    pub fn parse_file<P: AsRef<Path>>(file_path: P, opts: XmlParserOpts) -> Result<CmXmlParser> {
         let mut s = String::new();
         File::open(file_path)?.read_to_string(&mut s)?;
 

@@ -246,7 +246,6 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "utilities_dovi",
  "vergen",
 ]
 
@@ -535,9 +534,9 @@ dependencies = [
 
 [[package]]
 name = "madvr_parse"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb117075dbec7ef83a633d16202da781f1f01aaa7b1b8e391d11de86c2b9ca62"
+checksum = "6bf8d154d9e890bf5b4cc5d50fece9f823c859cda9124f7589462357fc48731a"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -963,15 +962,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
-]
-
-[[package]]
-name = "utilities_dovi"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "dolby_vision",
- "hevc_parser",
 ]
 
 [[package]]

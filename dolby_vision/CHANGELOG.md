@@ -1,5 +1,8 @@
 ## ??
 
+- Add `rpu::utils` module, and `parse_rpu_file` helper function.
+- Made `bitvec_ser_bits` private as it shouldn't be exposed.
+
 ## 1.6.6
 
 - Add `ConversionMode` enum to use with `DoviRpu::convert_with_mode`.

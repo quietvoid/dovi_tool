@@ -9,6 +9,8 @@ pub mod rpu_data_mapping;
 pub mod rpu_data_nlq;
 pub mod vdr_dm_data;
 
+pub mod utils;
+
 pub const NUM_COMPONENTS: usize = 3;
 
 pub const FEL_STR: &str = "FEL";

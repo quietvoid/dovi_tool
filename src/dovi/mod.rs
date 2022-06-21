@@ -42,7 +42,7 @@ pub enum WriteStartCodePreset {
     AnnexB,
 }
 
-pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<ProgressBar> {
+pub fn initialize_progress_bar<P: AsRef<Path>>(format: &IoFormat, input: P) -> Result<ProgressBar> {
     let pb: ProgressBar;
     let bytes_count;
 
@@ -64,7 +64,7 @@ pub fn initialize_progress_bar(format: &IoFormat, input: &Path) -> Result<Progre
     Ok(pb)
 }
 
-pub fn write_rpu_file(output_path: &Path, data: Vec<Vec<u8>>) -> Result<()> {
+pub fn write_rpu_file<P: AsRef<Path>>(output_path: P, data: Vec<Vec<u8>>) -> Result<()> {
     println!("Writing RPU file...");
     let mut writer = BufWriter::with_capacity(
         100_000,

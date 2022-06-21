@@ -40,11 +40,11 @@ pub struct RpuNal {
 }
 
 impl DoviWriter {
-    pub fn new(
-        bl_out: Option<&Path>,
-        el_out: Option<&Path>,
-        rpu_out: Option<&Path>,
-        single_layer_out: Option<&Path>,
+    pub fn new<P: AsRef<Path>>(
+        bl_out: Option<P>,
+        el_out: Option<P>,
+        rpu_out: Option<P>,
+        single_layer_out: Option<P>,
     ) -> DoviWriter {
         let chunk_size = 100_000;
         let bl_writer = bl_out.map(|bl_out| {

@@ -10,7 +10,7 @@ repository = "https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision"
 
 [dependencies]
 bitvec_helpers = "1.0.2"
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 bitvec = "1.0.0"
 crc = "3.0.0"
 serde = { version = "1.0.137", features = ["derive"], "optional" = true }

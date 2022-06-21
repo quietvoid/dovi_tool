@@ -6,7 +6,7 @@ use anyhow::{bail, ensure, Result};
 use itertools::Itertools;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
-use utilities_dovi::parse_rpu_file;
+use dolby_vision::rpu::utils::parse_rpu_file;
 
 use super::input_from_either;
 use crate::commands::InfoArgs;

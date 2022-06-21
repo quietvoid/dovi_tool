@@ -76,3 +76,18 @@ fn summary_p8() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn invalid_l3_error() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    let input_rpu = Path::new("assets/tests/st2094_10_level3.bin");
+
+    let assert = cmd.arg(SUBCOMMAND).arg(input_rpu).arg("-s").assert();
+
+    assert.failure().stderr(predicate::str::contains(
+        "Error: Found invalid RPU: Index 0, error: Invalid block level 3 for CM v2.9 RPU",
+    ));
+
+    Ok(())
+}

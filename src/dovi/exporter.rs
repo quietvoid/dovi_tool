@@ -6,7 +6,7 @@ use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::Serializer;
 
-use utilities_dovi::parse_rpu_file;
+use dolby_vision::rpu::utils::parse_rpu_file;
 
 use crate::commands::ExportArgs;
 use crate::dovi::input_from_either;

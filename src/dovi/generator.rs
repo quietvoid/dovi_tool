@@ -142,7 +142,7 @@ impl Generator {
         Ok(())
     }
 
-    fn config_from_xml(&self, xml_path: &Path) -> Result<GenerateConfig> {
+    fn config_from_xml<P: AsRef<Path>>(&self, xml_path: P) -> Result<GenerateConfig> {
         println!("Parsing XML metadata...");
 
         let parser_opts = XmlParserOpts {
@@ -156,7 +156,10 @@ impl Generator {
     }
 }
 
-fn parse_hdr10plus_for_l1(hdr10plus_path: &Path, config: &mut GenerateConfig) -> Result<()> {
+fn parse_hdr10plus_for_l1<P: AsRef<Path>>(
+    hdr10plus_path: P,
+    config: &mut GenerateConfig,
+) -> Result<()> {
     println!("Parsing HDR10+ JSON file...");
     stdout().flush().ok();
 
@@ -255,8 +258,8 @@ fn parse_hdr10plus_for_l1(hdr10plus_path: &Path, config: &mut GenerateConfig) ->
     Ok(())
 }
 
-pub fn generate_metadata_from_madvr(
-    madvr_path: &Path,
+pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
+    madvr_path: P,
     use_custom_targets: bool,
     config: &mut GenerateConfig,
 ) -> Result<()> {
