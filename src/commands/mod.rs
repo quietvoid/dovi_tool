@@ -1,5 +1,7 @@
 use clap::Parser;
 
+use dolby_vision::rpu::ConversionMode;
+
 mod convert;
 mod demux;
 mod editor;
@@ -50,4 +52,29 @@ pub enum Command {
 
     #[clap(about = "Interleaves the enhancement layer into a base layer HEVC bitstream")]
     Mux(MuxArgs),
+}
+
+#[derive(clap::ValueEnum, Debug, Copy, Clone)]
+pub enum ConversionModeCli {
+    #[clap(name = "0")]
+    Lossless = 0,
+    #[clap(name = "1")]
+    ToMel,
+    #[clap(name = "2")]
+    To81,
+    #[clap(name = "3")]
+    Profile5To81,
+    #[clap(name = "4")]
+    To84,
+}
+
+impl From<ConversionModeCli> for ConversionMode {
+    fn from(mode: ConversionModeCli) -> ConversionMode {
+        match mode {
+            ConversionModeCli::Lossless => ConversionMode::Lossless,
+            ConversionModeCli::ToMel => ConversionMode::ToMel,
+            ConversionModeCli::To81 | ConversionModeCli::Profile5To81 => ConversionMode::To81,
+            ConversionModeCli::To84 => ConversionMode::To84,
+        }
+    }
 }

@@ -12,6 +12,7 @@ use hevc_parser::hevc::{NALUnit, SeiMessage, NAL_UNSPEC62, USER_DATA_REGISTERED_
 use hevc_parser::io::{IoFormat, StartCodePreset};
 
 use self::editor::EditConfig;
+use super::commands::ConversionModeCli;
 
 pub mod converter;
 pub mod demuxer;
@@ -27,7 +28,7 @@ mod general_read_write;
 
 #[derive(Debug, Clone)]
 pub struct CliOptions {
-    pub mode: Option<u8>,
+    pub mode: Option<ConversionModeCli>,
     pub crop: bool,
     pub discard_el: bool,
     pub drop_hdr10plus: bool,

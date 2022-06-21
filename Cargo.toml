@@ -14,8 +14,8 @@ dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = "1.0.0"
 utilities_dovi = { path = "utilities_dovi" }
 
-anyhow = "1.0.57"
-clap = { version = "3.1.18", features = ["derive", "wrap_help"] }
+anyhow = "1.0.58"
+clap = { version = "3.2.6", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.16.2"
 regex = "1.5.6"
 bitvec = "1.0.0"

@@ -7,7 +7,7 @@ use clap::{Parser, ValueHint};
 mod tests;
 
 mod commands;
-use commands::Command;
+use commands::{Command, ConversionModeCli};
 
 mod dovi;
 use dovi::{
@@ -23,8 +23,6 @@ use dovi::{
     CliOptions, WriteStartCodePreset,
 };
 
-const POSSIBLE_MODES: &[&str] = &["0", "1", "2", "3", "4"];
-
 #[derive(Parser, Debug)]
 #[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT"))]
 struct Opt {
@@ -39,9 +37,9 @@ struct Opt {
                      Mode 2: Converts the RPU to be profile 8.1 compatible\n  \
                      Mode 3: Converts profile 5 to 8.1\n  \
                      Mode 4: Converts to profile 8.4",
-        possible_values = POSSIBLE_MODES,
+        value_enum
     )]
-    mode: Option<u8>,
+    mode: Option<ConversionModeCli>,
 
     #[clap(
         long,
@@ -92,7 +90,7 @@ fn main() -> Result<()> {
 
     // Set mode 0 by default if cropping, otherwise it has no effect
     if cli_options.mode.is_none() && cli_options.crop {
-        cli_options.mode = Some(0);
+        cli_options.mode = Some(ConversionModeCli::Lossless);
     }
 
     match opt.cmd {
