@@ -23,6 +23,6 @@ cargo cinstall --release
 ### Running the C-API example
 ```sh
 cd examples
-gcc capi.c -ldovi -o capi_example.o
+gcc capi_rpu_file.c -ldovi -o capi_example.o
 ./capi_example.o
 ```

@@ -1,4 +1,6 @@
-use libc::{c_char, c_void, size_t};
+use std::ffi::CString;
+
+use libc::{c_char, size_t};
 
 use crate::rpu::dovi_rpu::DoviRpu;
 
@@ -7,11 +9,12 @@ use super::Freeable;
 /// Opaque Dolby Vision RPU.
 ///
 /// Use dovi_rpu_free to free.
+/// It should be freed regardless of whether or not an error occurred.
 pub struct RpuOpaque {
     /// Optional parsed RPU, present when parsing is successful.
     pub rpu: Option<DoviRpu>,
     /// Error String of the parsing, in cases of failure.
-    pub error: Option<String>,
+    pub error: Option<CString>,
 }
 
 /// Heap allocated list of valid RPU pointers
@@ -32,7 +35,7 @@ impl From<Result<DoviRpu, anyhow::Error>> for RpuOpaque {
             },
             Err(e) => Self {
                 rpu: None,
-                error: Some(format!("Failed parsing RPU: {}", e)),
+                error: Some(CString::new(format!("Failed parsing RPU: {}", e)).unwrap()),
             },
         }
     }
@@ -49,6 +52,8 @@ impl Freeable for RpuOpaqueList {
             Box::from_raw(ptr);
         }
 
-        libc::free(self.error as *mut c_void);
+        if !self.error.is_null() {
+            drop(CString::from_raw(self.error as *mut c_char));
+        }
     }
 }

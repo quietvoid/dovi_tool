@@ -238,7 +238,9 @@ impl Freeable for Data {
 
 impl Freeable for U64Data {
     unsafe fn free(&self) {
-        Vec::from_raw_parts(self.data as *mut u64, self.len as usize, self.len as usize);
+        if !self.data.is_null() {
+            Vec::from_raw_parts(self.data as *mut u64, self.len as usize, self.len as usize);
+        }
     }
 }
 

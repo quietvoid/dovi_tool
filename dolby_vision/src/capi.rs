@@ -2,7 +2,7 @@
 
 use libc::{c_char, size_t};
 use std::{
-    ffi::CStr,
+    ffi::{CStr, CString},
     path::PathBuf,
     ptr::{null, null_mut},
     slice,
@@ -44,6 +44,7 @@ pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -
 
 /// # Safety
 /// The pointer to the opaque struct must be valid.
+/// Avoid using on opaque pointers obtained through `dovi_parse_rpu_bin_file`.
 ///
 /// Free the RpuOpaque
 #[no_mangle]
@@ -69,7 +70,7 @@ pub unsafe extern "C" fn dovi_rpu_get_error(ptr: *const RpuOpaque) -> *const c_c
     let opaque = &*ptr;
 
     match &opaque.error {
-        Some(s) => s.as_ptr() as *const c_char,
+        Some(s) => s.as_ptr(),
         None => null(),
     }
 }
@@ -103,7 +104,8 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
         match rpu.write_rpu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error = Some(format!("Failed writing byte buffer: {}", e));
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
                 null_mut()
             }
         }
@@ -129,7 +131,8 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
         match rpu.write_hevc_unspec62_nalu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error = Some(format!("Failed writing byte buffer: {}", e));
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
                 null_mut()
             }
         }
@@ -166,7 +169,9 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
         match rpu.convert_with_mode(mode) {
             Ok(_) => 0,
             Err(e) => {
-                opaque.error = Some(format!("Failed converting with mode {}: {}", mode, e));
+                opaque.error = Some(
+                    CString::new(format!("Failed converting with mode {}: {}", mode, e)).unwrap(),
+                );
                 -1
             }
         }
@@ -193,7 +198,7 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
         let mut header = RpuDataHeader::from(&rpu.header);
 
         if let Some(subprofile) = &rpu.subprofile {
-            header.subprofile = subprofile.as_ptr() as *const c_char
+            header.subprofile = CString::new(subprofile.as_str()).unwrap().into_raw();
         }
 
         Box::into_raw(Box::new(header))
@@ -370,7 +375,7 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
         }
 
         if let Some(err) = error {
-            rpu_list.error = err.as_ptr() as *const c_char;
+            rpu_list.error = CString::new(err).unwrap().into_raw();
         }
 
         return Box::into_raw(Box::new(rpu_list));

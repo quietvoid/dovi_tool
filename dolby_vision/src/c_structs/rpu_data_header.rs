@@ -1,5 +1,5 @@
 use libc::c_char;
-use std::ptr::null;
+use std::{ffi::CString, ptr::null};
 
 use crate::rpu::rpu_data_header::RpuDataHeader as RuRpuDataHeader;
 
@@ -56,6 +56,11 @@ impl RpuDataHeader {
     /// The buffer pointers should be valid.
     pub unsafe fn free(&self) {
         self.pred_pivot_value.iter().for_each(|data| data.free());
+        self.nlq_pred_pivot_value.free();
+
+        if !self.subprofile.is_null() {
+            drop(CString::from_raw(self.subprofile as *mut c_char));
+        }
     }
 }
 
