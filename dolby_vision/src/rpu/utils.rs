@@ -8,7 +8,7 @@ use anyhow::{bail, Result};
 
 use super::dovi_rpu::DoviRpu;
 
-pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Option<Vec<DoviRpu>>> {
+pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
     let rpu_file = File::open(input)?;
     let metadata = rpu_file.metadata()?;
 
@@ -71,7 +71,7 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Option<Vec<DoviRpu>>> 
         .collect();
 
     if count > 0 && rpus.len() == count {
-        Ok(Some(rpus))
+        Ok(rpus)
     } else if count == 0 {
         bail!("No RPU found");
     } else if let Some(error) = warning_error {

@@ -87,7 +87,7 @@ impl RpuInjector {
         stdout().flush().ok();
 
         // Assumes parsing returns on error
-        injector.rpus = parse_rpu_file(&injector.rpu_in)?.unwrap();
+        injector.rpus = parse_rpu_file(&injector.rpu_in)?;
 
         Ok(injector)
     }

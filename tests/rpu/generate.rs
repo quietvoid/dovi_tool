@@ -41,7 +41,7 @@ fn generate_default_cmv29() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
 
     let first_rpu = &rpus[0];
     let vdr_dm_data = first_rpu.vdr_dm_data.as_ref().unwrap();
@@ -88,7 +88,7 @@ fn generate_default_cmv40() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 10);
 
     let first_rpu = &rpus[0];
@@ -147,7 +147,7 @@ fn generate_full() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 10);
 
     let first_rpu = &rpus[0];
@@ -234,7 +234,7 @@ fn generate_full_hdr10plus() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 9);
 
     let shot1_rpu = &rpus[0];

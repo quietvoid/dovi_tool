@@ -139,7 +139,7 @@ fn edit_config() -> Result<()> {
     assert.success().stderr(predicate::str::is_empty());
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 259);
 
     rpus.iter().for_each(|rpu| {
