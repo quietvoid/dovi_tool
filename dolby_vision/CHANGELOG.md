@@ -1,5 +1,7 @@
 ## ??
 
+## 1.6.7
+
 - Add `rpu::utils` module, and `parse_rpu_file` helper function.
 - Made `bitvec_ser_bits` private as it shouldn't be exposed.
 - Added `dovi_parse_rpu_bin_file` to C API functions.
