@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{stdout, Write};
+use std::path::Path;
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, ensure, Result};
@@ -12,7 +13,7 @@ use dolby_vision::rpu::extension_metadata::blocks::{
 use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::generate::GenerateConfig;
 
-use utilities_dovi::parse_rpu_file;
+use dolby_vision::rpu::utils::parse_rpu_file;
 
 use super::{input_from_either, write_rpu_file, DoviRpu};
 use crate::commands::EditorArgs;
@@ -21,8 +22,6 @@ pub struct Editor {
     input: PathBuf,
     json_file: PathBuf,
     rpu_out: PathBuf,
-
-    rpus: Option<Vec<Option<DoviRpu>>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -112,12 +111,11 @@ impl Editor {
             input,
             json_file,
             rpu_out: out_path,
-            rpus: None,
         })
     }
 
     pub fn edit(args: EditorArgs) -> Result<()> {
-        let mut editor = Editor::from_args(args)?;
+        let editor = Editor::from_args(args)?;
 
         let mut config: EditConfig = EditConfig::from_path(&editor.json_file)?;
 
@@ -126,34 +124,34 @@ impl Editor {
         println!("Parsing RPU file...");
         stdout().flush().ok();
 
-        editor.rpus =
-            parse_rpu_file(&editor.input)?.map(|rpus| rpus.into_iter().map(Some).collect());
+        let mut rpus: Vec<Option<DoviRpu>> = parse_rpu_file(&editor.input)?
+            .into_iter()
+            .map(Some)
+            .collect();
 
-        if let Some(ref mut rpus) = editor.rpus {
-            config.execute(rpus)?;
+        config.execute(&mut rpus)?;
 
-            let mut data = GenerateConfig::encode_option_rpus(rpus);
+        let mut data = GenerateConfig::encode_option_rpus(&mut rpus);
 
-            if let Some(ref mut to_duplicate) = config.duplicate {
-                to_duplicate.sort_by_key(|meta| meta.offset);
-                to_duplicate.reverse();
-            }
-
-            if let Some(to_duplicate) = &config.duplicate {
-                config.duplicate_metadata(to_duplicate, &mut data)?;
-            }
-
-            println!("Final metadata length: {}", data.len());
-
-            write_rpu_file(&editor.rpu_out, data)?;
+        if let Some(ref mut to_duplicate) = config.duplicate {
+            to_duplicate.sort_by_key(|meta| meta.offset);
+            to_duplicate.reverse();
         }
+
+        if let Some(to_duplicate) = &config.duplicate {
+            config.duplicate_metadata(to_duplicate, &mut data)?;
+        }
+
+        println!("Final metadata length: {}", data.len());
+
+        write_rpu_file(&editor.rpu_out, data)?;
 
         Ok(())
     }
 }
 
 impl EditConfig {
-    pub fn from_path(path: &PathBuf) -> Result<Self> {
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let json_file = File::open(path)?;
         let config: EditConfig = serde_json::from_reader(&json_file)?;
 

@@ -1,15 +1,14 @@
-use anyhow::{bail, Result};
-use dolby_vision::rpu::dovi_rpu::DoviRpu;
-
 use std::{
     fs::File,
     io::{BufReader, Read},
     path::Path,
 };
 
-use hevc_parser::{HevcParser, NALUStartCode};
+use anyhow::{bail, Result};
 
-pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
+use super::dovi_rpu::DoviRpu;
+
+pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
     let rpu_file = File::open(input)?;
     let metadata = rpu_file.metadata()?;
 
@@ -24,10 +23,17 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
     let mut data = vec![0; metadata.len() as usize];
     reader.read_exact(&mut data)?;
 
-    let mut offsets = Vec::with_capacity(200_000);
-    let mut parser = HevcParser::with_nalu_start_code(NALUStartCode::Length4);
-
-    parser.get_offsets(&data, &mut offsets);
+    let offsets: Vec<usize> = data
+        .windows(4)
+        .enumerate()
+        .filter_map(|(i, chunk)| {
+            if matches!(chunk, &[0, 0, 0, 1]) {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect();
 
     if offsets.is_empty() {
         bail!("No NALU start codes found in the file. Maybe not a valid RPU?");
@@ -35,7 +41,7 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
 
     let count = offsets.len();
     let last = *offsets.last().unwrap();
-    let mut warned = false;
+    let mut warning_error = None;
 
     let rpus: Vec<DoviRpu> = offsets
         .iter()
@@ -55,9 +61,8 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
         .enumerate()
         .filter_map(|(i, res)| {
             if let Err(e) = &res {
-                if !warned {
-                    println!("Error parsing frame {}: {}", i, e);
-                    warned = true;
+                if warning_error.is_none() {
+                    warning_error = Some(format!("Found invalid RPU: Index {}, error: {}", i, e,))
                 }
             }
 
@@ -66,9 +71,11 @@ pub fn parse_rpu_file(input: &Path) -> Result<Option<Vec<DoviRpu>>> {
         .collect();
 
     if count > 0 && rpus.len() == count {
-        Ok(Some(rpus))
+        Ok(rpus)
     } else if count == 0 {
         bail!("No RPU found");
+    } else if let Some(error) = warning_error {
+        bail!("{}", error);
     } else {
         bail!(
             "Number of valid RPUs different from total: expected {} got {}",

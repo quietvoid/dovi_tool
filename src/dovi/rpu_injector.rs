@@ -10,7 +10,7 @@ use hevc_parser::HevcParser;
 use hevc_parser::{hevc::*, NALUStartCode};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
-use utilities_dovi::parse_rpu_file;
+use dolby_vision::rpu::utils::parse_rpu_file;
 
 use crate::commands::InjectRpuArgs;
 
@@ -87,7 +87,7 @@ impl RpuInjector {
         stdout().flush().ok();
 
         // Assumes parsing returns on error
-        injector.rpus = parse_rpu_file(&injector.rpu_in)?.unwrap();
+        injector.rpus = parse_rpu_file(&injector.rpu_in)?;
 
         Ok(injector)
     }

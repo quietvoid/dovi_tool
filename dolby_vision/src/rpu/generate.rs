@@ -199,7 +199,7 @@ impl GenerateConfig {
         encoded_rpus
     }
 
-    pub fn write_rpus(&self, path: &Path) -> Result<()> {
+    pub fn write_rpus<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let mut writer =
             BufWriter::with_capacity(100_000, File::create(path).expect("Can't create file"));
 

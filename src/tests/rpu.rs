@@ -265,12 +265,9 @@ fn sets_offsets_to_zero() -> Result<()> {
 
 #[test]
 fn profile8_001_end_crc32() -> Result<()> {
-    use utilities_dovi::parse_rpu_file;
+    use dolby_vision::rpu::utils::parse_rpu_file;
 
     let rpus = parse_rpu_file(&PathBuf::from("./assets/tests/p8_001_end_crc32.bin"))?;
-    assert!(rpus.is_some());
-
-    let rpus = rpus.unwrap();
     assert_eq!(rpus.len(), 3);
 
     let dovi_rpu = &rpus[0];

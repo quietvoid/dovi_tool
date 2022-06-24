@@ -6,7 +6,7 @@ use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::Serializer;
 
-use utilities_dovi::parse_rpu_file;
+use dolby_vision::rpu::utils::parse_rpu_file;
 
 use crate::commands::ExportArgs;
 use crate::dovi::input_from_either;
@@ -16,7 +16,6 @@ use super::DoviRpu;
 pub struct Exporter {
     input: PathBuf,
     output: PathBuf,
-    rpus: Option<Vec<DoviRpu>>,
 }
 
 impl Exporter {
@@ -35,40 +34,37 @@ impl Exporter {
             PathBuf::from("RPU_export.json".to_string())
         };
 
-        let mut exporter = Exporter {
+        let exporter = Exporter {
             input,
             output: out_path,
-            rpus: None,
         };
 
         println!("Parsing RPU file...");
         stdout().flush().ok();
 
-        exporter.rpus = parse_rpu_file(&exporter.input)?;
-        exporter.execute()?;
+        let rpus = parse_rpu_file(&exporter.input)?;
+        exporter.execute(&rpus)?;
 
         println!("Done.");
 
         Ok(())
     }
 
-    fn execute(&self) -> Result<()> {
+    fn execute(&self, rpus: &[DoviRpu]) -> Result<()> {
         println!("Exporting metadata...");
 
-        if let Some(rpus) = &self.rpus {
-            let writer = BufWriter::with_capacity(
-                100_000,
-                File::create(&self.output).expect("Can't create file"),
-            );
+        let writer = BufWriter::with_capacity(
+            100_000,
+            File::create(&self.output).expect("Can't create file"),
+        );
 
-            let mut ser = serde_json::Serializer::new(writer);
-            let mut seq = ser.serialize_seq(Some(rpus.len()))?;
+        let mut ser = serde_json::Serializer::new(writer);
+        let mut seq = ser.serialize_seq(Some(rpus.len()))?;
 
-            for rpu in rpus {
-                seq.serialize_element(&rpu)?;
-            }
-            seq.end()?;
+        for rpu in rpus {
+            seq.serialize_element(&rpu)?;
         }
+        seq.end()?;
 
         Ok(())
     }

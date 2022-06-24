@@ -2,23 +2,15 @@
 
 use libc::{c_char, size_t};
 use std::{
+    ffi::{CStr, CString},
+    path::PathBuf,
     ptr::{null, null_mut},
     slice,
 };
 
-use crate::rpu::{dovi_rpu::DoviRpu, ConversionMode};
+use crate::rpu::{dovi_rpu::DoviRpu, utils::parse_rpu_file, ConversionMode};
 
 use super::c_structs::*;
-
-/// Opaque Dolby Vision RPU.
-///
-/// Use dovi_rpu_free to free.
-pub struct RpuOpaque {
-    /// Optional parsed RPU, present when parsing is successful.
-    rpu: Option<DoviRpu>,
-    // Error String of the parsing, in cases of failure.
-    error: Option<String>,
-}
 
 /// # Safety
 /// The pointer to the data must be valid.
@@ -52,6 +44,7 @@ pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -
 
 /// # Safety
 /// The pointer to the opaque struct must be valid.
+/// Avoid using on opaque pointers obtained through `dovi_parse_rpu_bin_file`.
 ///
 /// Free the RpuOpaque
 #[no_mangle]
@@ -77,7 +70,7 @@ pub unsafe extern "C" fn dovi_rpu_get_error(ptr: *const RpuOpaque) -> *const c_c
     let opaque = &*ptr;
 
     match &opaque.error {
-        Some(s) => s.as_ptr() as *const c_char,
+        Some(s) => s.as_ptr(),
         None => null(),
     }
 }
@@ -111,7 +104,8 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
         match rpu.write_rpu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error = Some(format!("Failed writing byte buffer: {}", e));
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
                 null_mut()
             }
         }
@@ -137,7 +131,8 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
         match rpu.write_hevc_unspec62_nalu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error = Some(format!("Failed writing byte buffer: {}", e));
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
                 null_mut()
             }
         }
@@ -174,7 +169,9 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
         match rpu.convert_with_mode(mode) {
             Ok(_) => 0,
             Err(e) => {
-                opaque.error = Some(format!("Failed converting with mode {}: {}", mode, e));
+                opaque.error = Some(
+                    CString::new(format!("Failed converting with mode {}: {}", mode, e)).unwrap(),
+                );
                 -1
             }
         }
@@ -201,7 +198,7 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
         let mut header = RpuDataHeader::from(&rpu.header);
 
         if let Some(subprofile) = &rpu.subprofile {
-            header.subprofile = subprofile.as_ptr() as *const c_char
+            header.subprofile = CString::new(subprofile.as_str()).unwrap().into_raw();
         }
 
         Box::into_raw(Box::new(header))
@@ -327,17 +324,74 @@ pub unsafe extern "C" fn dovi_rpu_free_vdr_dm_data(ptr: *const VdrDmData) {
     }
 }
 
-impl From<Result<DoviRpu, anyhow::Error>> for RpuOpaque {
-    fn from(res: Result<DoviRpu, anyhow::Error>) -> Self {
-        match res {
-            Ok(parsed_rpu) => Self {
-                rpu: Some(parsed_rpu),
-                error: None,
-            },
-            Err(e) => Self {
-                rpu: None,
-                error: Some(format!("Failed parsing RPU: {}", e)),
-            },
+/// # Safety
+/// The pointer to the file path must be valid.
+///
+/// Parses an existing RPU binary file.
+///
+/// Returns the heap allocated `DoviRpuList` as a pointer.
+/// The returned pointer may be null, or the list could be empty if an error occurred.
+#[no_mangle]
+pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const RpuOpaqueList {
+    if !path.is_null() {
+        let mut rpu_list = RpuOpaqueList {
+            list: null(),
+            len: 0,
+            error: null(),
+        };
+        let mut error = None;
+
+        if let Ok(str) = CStr::from_ptr(path).to_str() {
+            let path = PathBuf::from(str);
+
+            if path.is_file() {
+                match parse_rpu_file(path) {
+                    Ok(rpus) => {
+                        rpu_list.len = rpus.len();
+
+                        let opaque_list: Vec<*mut RpuOpaque> = rpus
+                            .into_iter()
+                            .map(|rpu| {
+                                Box::into_raw(Box::new(RpuOpaque {
+                                    rpu: Some(rpu),
+                                    error: None,
+                                }))
+                            })
+                            .collect();
+
+                        rpu_list.list =
+                            Box::into_raw(opaque_list.into_boxed_slice()) as *const *mut RpuOpaque;
+                    }
+                    Err(e) => {
+                        error = Some(format!("parse_rpu_bin_file: Errored while parsing: {}", e))
+                    }
+                }
+            } else {
+                error = Some("parse_rpu_bin_file: Input file does not exist".to_string());
+            }
+        } else {
+            error =
+                Some("parse_rpu_bin_file: Failed parsing the input path as a string".to_string());
         }
+
+        if let Some(err) = error {
+            rpu_list.error = CString::new(err).unwrap().into_raw();
+        }
+
+        return Box::into_raw(Box::new(rpu_list));
+    }
+
+    null()
+}
+
+/// # Safety
+/// The pointer to the struct must be valid.
+///
+/// Frees the memory used by the DoviRpuOpaqueList struct.
+#[no_mangle]
+pub unsafe extern "C" fn dovi_rpu_list_free(ptr: *const RpuOpaqueList) {
+    if !ptr.is_null() {
+        let rpu_opaque_list = Box::from_raw(ptr as *mut RpuOpaqueList);
+        rpu_opaque_list.free();
     }
 }

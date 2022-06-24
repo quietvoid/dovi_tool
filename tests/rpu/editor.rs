@@ -46,7 +46,7 @@ fn mode() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -79,7 +79,7 @@ fn remove_cmv4() -> Result<()> {
     output_rpu.assert(predicate::path::is_file());
 
     // Original
-    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(input_rpu)?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -89,7 +89,7 @@ fn remove_cmv4() -> Result<()> {
     assert!(vdr_dm_data.cmv40_metadata.is_some());
 
     // Removed RPU
-    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -124,7 +124,7 @@ fn active_area_specific() -> Result<()> {
 
     output_rpu.assert(predicate::path::is_file());
 
-    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 259);
 
     let start_rpu = &rpus[0];
@@ -178,7 +178,7 @@ fn add_l9_l11_no_effect() -> Result<()> {
     output_rpu.assert(predicate::path::is_file());
 
     // Original
-    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(input_rpu)?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -188,7 +188,7 @@ fn add_l9_l11_no_effect() -> Result<()> {
     assert!(vdr_dm_data.cmv40_metadata.is_none());
 
     // No change
-    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -224,7 +224,7 @@ fn add_l9_l11() -> Result<()> {
     output_rpu.assert(predicate::path::is_file());
 
     // Original
-    let rpus = utilities_dovi::parse_rpu_file(input_rpu)?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(input_rpu)?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];
@@ -245,7 +245,7 @@ fn add_l9_l11() -> Result<()> {
     assert!(orig_l11.is_none());
 
     // Modifies the blocks
-    let rpus = utilities_dovi::parse_rpu_file(output_rpu.as_ref())?.unwrap();
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
     assert_eq!(rpus.len(), 1);
 
     let rpu = &rpus[0];

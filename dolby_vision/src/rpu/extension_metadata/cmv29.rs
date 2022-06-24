@@ -47,8 +47,8 @@ impl WithExtMetadataBlocks for CmV29DmData {
             255 => level255::ExtMetadataBlockLevel255::parse(reader),
             3 | 8 | 10 | 11 | 254 => bail!(
                 "Invalid block level {} for {} RPU",
+                ext_block_level,
                 Self::VERSION,
-                ext_block_level
             ),
             _ => {
                 ensure!(
