@@ -63,6 +63,12 @@ impl ExtMetadataBlockLevel1 {
             avg_pq,
         }
     }
+
+    pub fn clamp_values(&mut self) {
+        self.min_pq = self.min_pq.clamp(0, L1_MIN_PQ_MAX_VALUE);
+        self.max_pq = self.max_pq.clamp(L1_MAX_PQ_MIN_VALUE, L1_MAX_PQ_MAX_VALUE);
+        self.avg_pq = self.avg_pq.clamp(L1_AVG_PQ_MIN_VALUE, self.max_pq - 1);
+    }
 }
 
 impl ExtMetadataBlockInfo for ExtMetadataBlockLevel1 {

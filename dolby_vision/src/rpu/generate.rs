@@ -218,6 +218,23 @@ impl GenerateConfig {
 
         Ok(())
     }
+
+    pub fn fixup_l1(&mut self) {
+        let clamp_l1 = |block: &mut ExtMetadataBlock| {
+            if let ExtMetadataBlock::Level1(l1) = block {
+                l1.clamp_values();
+            }
+        };
+
+        self.default_metadata_blocks.iter_mut().for_each(clamp_l1);
+
+        self.shots.iter_mut().for_each(|shot| {
+            shot.metadata_blocks.iter_mut().for_each(clamp_l1);
+            shot.frame_edits
+                .iter_mut()
+                .for_each(|e| e.metadata_blocks.iter_mut().for_each(clamp_l1));
+        });
+    }
 }
 
 impl Default for GenerateConfig {
