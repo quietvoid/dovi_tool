@@ -36,6 +36,11 @@ pub struct EditConfig {
     remove_mapping: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    min_pq: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_pq: Option<u16>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     active_area: Option<ActiveArea>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,14 +49,14 @@ pub struct EditConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     duplicate: Option<Vec<DuplicateMetadata>>,
 
-    #[serde(default)]
-    min_pq: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    scene_cuts: Option<HashMap<String, bool>>,
 
-    #[serde(default)]
-    max_pq: Option<u16>,
-
+    #[serde(skip_serializing_if = "Option::is_none")]
     level6: Option<ExtMetadataBlockLevel6>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     level9: Option<MasteringDisplayPrimaries>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     level11: Option<ExtMetadataBlockLevel11>,
 }
 
@@ -119,7 +124,7 @@ impl Editor {
 
         let mut config: EditConfig = EditConfig::from_path(&editor.json_file)?;
 
-        println!("{:#?}", config);
+        println!("EditConfig {}", serde_json::to_string_pretty(&config)?);
 
         println!("Parsing RPU file...");
         stdout().flush().ok();
@@ -189,8 +194,16 @@ impl EditConfig {
             }
         }
 
+        if self.scene_cuts.is_some() {
+            println!("Editing scene cuts...")
+        }
+
         for rpu in rpus.iter_mut().filter_map(|e| e.as_mut()) {
             self.execute_single_rpu(rpu)?;
+        }
+
+        if let Some(edits) = &self.scene_cuts {
+            self.set_scene_cuts(rpus, edits)?;
         }
 
         // Specific ranges only, requires complete list
@@ -228,6 +241,10 @@ impl EditConfig {
 
         if let Some(l11) = &self.level11 {
             self.set_level11_metadata(rpu, l11)?;
+        }
+
+        if let Some(edits) = &self.scene_cuts {
+            self.set_scene_cuts_single_rpu(rpu, edits)?;
         }
 
         if let Some(active_area) = &self.active_area {
@@ -365,6 +382,50 @@ impl EditConfig {
         if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
             rpu.modified = true;
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level11(level11.clone()))?;
+        }
+
+        Ok(())
+    }
+
+    fn set_scene_cuts_single_rpu(
+        &self,
+        rpu: &mut DoviRpu,
+        edits: &HashMap<String, bool>,
+    ) -> Result<()> {
+        // Allow passing "all" instead of a range
+        // Do "all" presets before specific ranges
+        for edit in edits {
+            if edit.0.to_lowercase() == "all" {
+                if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                    rpu.modified = true;
+                    vdr_dm_data.set_scene_cut(*edit.1);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_scene_cuts(
+        &self,
+        rpus: &mut [Option<DoviRpu>],
+        edits: &HashMap<String, bool>,
+    ) -> Result<()> {
+        let edits = edits.iter().filter(|e| e.0.to_lowercase() != "all");
+
+        for edit in edits {
+            let (start, end) = EditConfig::range_string_to_tuple(edit.0)?;
+
+            if end as usize > rpus.len() {
+                bail!("Invalid range: {} > {} available RPUs", end, rpus.len());
+            }
+
+            for rpu in rpus[start..=end].iter_mut().filter_map(|e| e.as_mut()) {
+                if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                    rpu.modified = true;
+                    vdr_dm_data.set_scene_cut(*edit.1)
+                }
+            }
         }
 
         Ok(())

@@ -22,6 +22,10 @@ The editor expects a JSON config like the example below:
     // Whether to remove polynomial/MMR mapping coefficients from the metadata
     "remove_mapping": boolean,
 
+    // Source min/max PQ values to override
+    "min_pq": int,
+    "max_pq": int,
+
     // Configuration for active area edits
     // If no L5 metadata is present in the RPU, L5 metadata is inserted
     "active_area": {
@@ -72,9 +76,12 @@ The editor expects a JSON config like the example below:
         }
     ],
 
-    // Source min/max PQ values to override
-    "min_pq": int,
-    "max_pq": int,
+    // Set the scene cut (scene_refresh_flag) flag for specific frame ranges
+    // Range options: "all" or formatted as "start-end"
+    "scene_cuts": {
+        "all": true,
+        "0-39": false
+    },
 
     // Level 6, ST2086 fallback metadata
     // Optional
