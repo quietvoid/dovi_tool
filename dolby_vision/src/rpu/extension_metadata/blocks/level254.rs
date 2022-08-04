@@ -10,6 +10,7 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_feature", serde(default))]
 pub struct ExtMetadataBlockLevel254 {
     pub dm_mode: u8,
     pub dm_version_index: u8,

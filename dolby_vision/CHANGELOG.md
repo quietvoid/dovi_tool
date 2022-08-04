@@ -1,6 +1,7 @@
 ## ??
 - Add `clamp_values` function to `ExtMetadataBlockLevel1`.
 - Add `fixup_l1` function to `GenerateConfig`.
+- Allow replacing `L254` extension metadata blocks.
 
 ## 1.6.7
 
