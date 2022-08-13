@@ -14,33 +14,22 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust, clippy and rustfmt
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
           components: clippy, rustfmt
-      
+
       - name: Check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --workspace --all-features
+        run: |
+          cargo check --workspace --all-features
 
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --all-features
+        run: |
+          cargo test --workspace --all-features
 
       - name: Rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --check
+        run: |
+          cargo fmt --all --check
 
       - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace --all-features --all-targets -- --deny warnings --verbose
+        run: |
+          cargo clippy --workspace --all-features --all-targets --tests -- --deny warnings --verbose

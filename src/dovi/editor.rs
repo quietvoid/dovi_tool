@@ -7,8 +7,8 @@ use anyhow::{bail, ensure, Result};
 use serde::{Deserialize, Serialize};
 
 use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6,
-    ExtMetadataBlockLevel9,
+    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel255, ExtMetadataBlockLevel5,
+    ExtMetadataBlockLevel6, ExtMetadataBlockLevel9,
 };
 use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::generate::GenerateConfig;
@@ -58,6 +58,8 @@ pub struct EditConfig {
     level9: Option<MasteringDisplayPrimaries>,
     #[serde(skip_serializing_if = "Option::is_none")]
     level11: Option<ExtMetadataBlockLevel11>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    level255: Option<ExtMetadataBlockLevel255>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -243,6 +245,10 @@ impl EditConfig {
             self.set_level11_metadata(rpu, l11)?;
         }
 
+        if let Some(l255) = &self.level255 {
+            self.set_level255_metadata(rpu, l255)?;
+        }
+
         if let Some(edits) = &self.scene_cuts {
             self.set_scene_cuts_single_rpu(rpu, edits)?;
         }
@@ -426,6 +432,20 @@ impl EditConfig {
                     vdr_dm_data.set_scene_cut(*edit.1)
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    fn set_level255_metadata(
+        &self,
+        rpu: &mut DoviRpu,
+        level255: &ExtMetadataBlockLevel255,
+    ) -> Result<()> {
+        rpu.modified = true;
+
+        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+            vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level255(level255.clone()))?;
         }
 
         Ok(())

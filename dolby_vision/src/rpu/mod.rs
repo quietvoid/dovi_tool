@@ -16,7 +16,7 @@ pub const NUM_COMPONENTS: usize = 3;
 pub const FEL_STR: &str = "FEL";
 pub const MEL_STR: &str = "MEL";
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConversionMode {
     Lossless = 0,
     ToMel,

@@ -5,6 +5,7 @@ The RPUs can be edited in two ways:
 When doing HEVC operations, some capabilities are not supported:
 - Editing the active area for specific ranges of frames. Only `"all"` edit is supported.
 - Removing or duplicating RPUs.
+- Editing scene cuts.
 
 &nbsp;
 
@@ -116,6 +117,9 @@ The editor expects a JSON config like the example below:
 
         // Whether to force reference mode or not.
         "reference_mode_flag": boolean
-    }
+    },
+
+    // Level 255 extension block structure
+    "level255": ExtMetadataBlockLevel255
 }
 ```

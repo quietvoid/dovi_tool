@@ -12,7 +12,7 @@ use dolby_vision::rpu::generate::{GenerateConfig, GenerateProfile, ShotFrameEdit
 use dolby_vision::utils::nits_to_pq;
 use dolby_vision::xml::{CmXmlParser, XmlParserOpts};
 
-#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq)]
+#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GeneratorProfile {
     #[clap(name = "5")]
     Profile5,

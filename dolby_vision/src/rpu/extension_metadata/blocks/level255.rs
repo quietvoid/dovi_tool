@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 /// Metadata level optionally present in CM v2.9.
-/// Maybe for debugging?
+/// Different display modes (calibration/verify/bypass), debugging
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]

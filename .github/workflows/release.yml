@@ -29,10 +29,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Get the version
         shell: bash

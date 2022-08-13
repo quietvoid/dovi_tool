@@ -163,7 +163,7 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
 
     let opaque = &mut *ptr;
 
-    let ret = if let Some(rpu) = &mut opaque.rpu {
+    if let Some(rpu) = &mut opaque.rpu {
         let mode = ConversionMode::from(mode);
 
         match rpu.convert_with_mode(mode) {
@@ -177,9 +177,7 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
         }
     } else {
         -1
-    };
-
-    ret
+    }
 }
 
 /// # Safety
