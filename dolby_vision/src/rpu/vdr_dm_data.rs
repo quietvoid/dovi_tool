@@ -505,7 +505,7 @@ impl VdrDmData {
         ))?;
 
         if !config.default_metadata_blocks.is_empty() {
-            const LEVEL_BLOCK_LIST: &[u8] = &[5, 6, 254];
+            const LEVEL_BLOCK_LIST: &[u8] = &[5, 6];
 
             let allowed_default_blocks = config
                 .default_metadata_blocks
