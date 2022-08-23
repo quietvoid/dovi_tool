@@ -31,7 +31,7 @@ pub fn clear_start_code_emulation_prevention_3_byte(data: &[u8]) -> Vec<u8> {
                 && index < data.len() - 2
                 && data[index - 2] == 0
                 && data[index - 1] == 0
-                && data[index] <= 3
+                && data[index] == 3
             {
                 None
             } else {
