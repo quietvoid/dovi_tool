@@ -24,7 +24,12 @@ use dovi::{
 };
 
 #[derive(Parser, Debug)]
-#[clap(name = env!("CARGO_PKG_NAME"), about = "CLI tool combining multiple utilities for working with Dolby Vision", author = "quietvoid", version = env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT"))]
+#[clap(
+    name = env!("CARGO_PKG_NAME"),
+    about = "CLI tool combining multiple utilities for working with Dolby Vision",
+    author = "quietvoid",
+    version = option_env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT").unwrap_or(env!("VERGEN_BUILD_SEMVER"))
+)]
 struct Opt {
     #[clap(
         name = "mode",

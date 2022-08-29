@@ -28,7 +28,7 @@ assert_fs = "1.0.7"
 predicates = "2.1.1"
 
 [build-dependencies]
-vergen = { version = "7.4.0", default-features = false, features = ["git"] }
+vergen = { version = "7.4.0", default-features = false, features = ["build", "git", "cargo"] }
 
 [[bin]]
 name = "dovi_tool"

@@ -7,5 +7,12 @@ fn main() {
     *config.git_mut().semver_kind_mut() = SemverKind::Lightweight;
 
     // Generate the instructions
-    vergen(config).unwrap()
+    if let Err(e) = vergen(config) {
+        eprintln!("error occured while generating instructions: {:?}", e);
+
+        config = Config::default();
+        *config.git_mut().enabled_mut() = false;
+
+        vergen(config).expect("non-git vergen should succeed");
+    }
 }
