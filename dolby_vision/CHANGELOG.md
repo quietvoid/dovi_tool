@@ -1,5 +1,10 @@
 ## ??
 
+## 1.7.1
+- Add `ExtMetadataBlockLevel1` constructor `new` and `from_stats_cm_version`.
+- Add `clamp_values_cm_version` function to `ExtMetadataBlockLevel1`.
+- Deprecated `ExtMetadataBlockLevel1` functions `from_stats` and `clamp_values`.
+
 ## 1.7.0
 - Add `clamp_values` function to `ExtMetadataBlockLevel1`.
 - Add `fixup_l1` function to `GenerateConfig`.

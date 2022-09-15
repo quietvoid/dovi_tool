@@ -71,7 +71,7 @@ pub struct VdrDmData {
     pub cmv40_metadata: Option<DmData>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
 pub enum CmVersion {
     V29,

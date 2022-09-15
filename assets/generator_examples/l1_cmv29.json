@@ -1,0 +1,37 @@
+{
+    "cm_version": "V29",
+    "level6": {
+        "max_display_mastering_luminance": 1000,
+        "min_display_mastering_luminance": 1,
+        "max_content_light_level": 1000,
+        "max_frame_average_light_level": 400
+    },
+    "shots": [
+        {
+            "start": 0,
+            "duration": 1,
+            "metadata_blocks": [
+                {
+                    "Level1": {
+                        "min_pq": 0,
+                        "max_pq": 1500,
+                        "avg_pq": 506
+                    }
+                }
+            ]
+        },
+        {
+            "start": 1,
+            "duration": 1,
+            "metadata_blocks": [
+                {
+                    "Level1": {
+                        "min_pq": 0,
+                        "max_pq": 2604,
+                        "avg_pq": 1340
+                    }
+                }
+            ]
+        }
+    ]
+}

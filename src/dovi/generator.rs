@@ -235,7 +235,12 @@ fn parse_hdr10plus_for_l1<P: AsRef<Path>>(
                         start: frame_no,
                         duration: scene_frame_lengths[current_shot_id],
                         metadata_blocks: vec![ExtMetadataBlock::Level1(
-                            ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq),
+                            ExtMetadataBlockLevel1::from_stats_cm_version(
+                                min_pq,
+                                max_pq,
+                                avg_pq,
+                                config.cm_version,
+                            ),
                         )],
                         ..Default::default()
                     };
@@ -291,7 +296,12 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
             start: scene.start as usize,
             duration: scene.length,
             metadata_blocks: vec![ExtMetadataBlock::Level1(
-                ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq),
+                ExtMetadataBlockLevel1::from_stats_cm_version(
+                    min_pq,
+                    max_pq,
+                    avg_pq,
+                    config.cm_version,
+                ),
             )],
             ..Default::default()
         };
@@ -310,7 +320,12 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
                 let frame_edit = ShotFrameEdit {
                     edit_offset: i,
                     metadata_blocks: vec![ExtMetadataBlock::Level1(
-                        ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq),
+                        ExtMetadataBlockLevel1::from_stats_cm_version(
+                            min_pq,
+                            max_pq,
+                            avg_pq,
+                            config.cm_version,
+                        ),
                     )],
                 };
 

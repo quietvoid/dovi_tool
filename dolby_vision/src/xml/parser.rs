@@ -579,7 +579,12 @@ impl CmXmlParser {
         let avg_pq = (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16;
         let max_pq = (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16;
 
-        Ok(ExtMetadataBlockLevel1::from_stats(min_pq, max_pq, avg_pq))
+        Ok(ExtMetadataBlockLevel1::from_stats_cm_version(
+            min_pq,
+            max_pq,
+            avg_pq,
+            self.config.cm_version,
+        ))
     }
 
     pub fn parse_level2_trim(&self, node: &Node) -> Result<ExtMetadataBlockLevel2> {

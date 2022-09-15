@@ -222,7 +222,7 @@ impl GenerateConfig {
     pub fn fixup_l1(&mut self) {
         let clamp_l1 = |block: &mut ExtMetadataBlock| {
             if let ExtMetadataBlock::Level1(l1) = block {
-                l1.clamp_values();
+                l1.clamp_values_cm_version(self.cm_version);
             }
         };
 
@@ -370,7 +370,7 @@ mod tests {
         if let ExtMetadataBlock::Level1(level1) = shot1_vdr_dm_data.get_block(1).unwrap() {
             assert_eq!(level1.min_pq, 0);
             assert_eq!(level1.max_pq, 2828);
-            assert_eq!(level1.avg_pq, 1120);
+            assert_eq!(level1.avg_pq, 1229);
         }
 
         if let ExtMetadataBlock::Level3(level3) = shot1_vdr_dm_data.get_block(3).unwrap() {
@@ -510,7 +510,7 @@ mod tests {
         if let ExtMetadataBlock::Level1(level1) = shot3_vdr_dm_data.get_block(1).unwrap() {
             assert_eq!(level1.min_pq, 0);
             assert_eq!(level1.max_pq, 2875);
-            assert_eq!(level1.avg_pq, 819);
+            assert_eq!(level1.avg_pq, 1229);
         }
 
         if let ExtMetadataBlock::Level3(level3) = shot3_vdr_dm_data.get_block(3).unwrap() {

@@ -504,3 +504,119 @@ fn xml_cmv4_2_510() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn generate_l1_cmv29() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let generate_config = Path::new("assets/generator_examples/l1_cmv29.json");
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg("--json")
+        .arg(generate_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
+    assert_eq!(rpus.len(), 2);
+
+    let shot1_rpu = &rpus[0];
+    let shot1_vdr_dm_data = shot1_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot1_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L1, L5 and L6
+    assert_eq!(shot1_vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+    // No CM v4.0
+    assert!(shot1_vdr_dm_data.metadata_blocks(3).is_none());
+
+    if let ExtMetadataBlock::Level1(level1) = shot1_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        // Clamped to 2081
+        assert_eq!(level1.max_pq, 2081);
+        // Clamped to 819
+        assert_eq!(level1.avg_pq, 819);
+    }
+
+    let shot2_rpu = &rpus[1];
+    let shot2_vdr_dm_data = shot2_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot2_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L1, L5 and L6
+    assert_eq!(shot2_vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+    // No CM v4.0
+    assert!(shot2_vdr_dm_data.metadata_blocks(3).is_none());
+
+    if let ExtMetadataBlock::Level1(level1) = shot2_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        assert_eq!(level1.max_pq, 2604);
+        assert_eq!(level1.avg_pq, 1340);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn generate_l1_cmv40() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let generate_config = Path::new("assets/generator_examples/l1_cmv40.json");
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg("--json")
+        .arg(generate_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu.assert(predicate::path::is_file());
+
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu.as_ref())?;
+    assert_eq!(rpus.len(), 2);
+
+    let shot1_rpu = &rpus[0];
+    let shot1_vdr_dm_data = shot1_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot1_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L1, L5 and L6
+    assert_eq!(shot1_vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+
+    if let ExtMetadataBlock::Level1(level1) = shot1_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        // Clamped to 2081
+        assert_eq!(level1.max_pq, 2081);
+        // Clamped to 1229
+        assert_eq!(level1.avg_pq, 1229);
+    }
+
+    let shot2_rpu = &rpus[1];
+    let shot2_vdr_dm_data = shot2_rpu.vdr_dm_data.as_ref().unwrap();
+
+    assert_eq!(shot2_vdr_dm_data.scene_refresh_flag, 1);
+
+    // Only L5 and L6
+    assert_eq!(shot2_vdr_dm_data.metadata_blocks(1).unwrap().len(), 3);
+
+    if let ExtMetadataBlock::Level1(level1) = shot2_vdr_dm_data.get_block(1).unwrap() {
+        assert_eq!(level1.min_pq, 0);
+        assert_eq!(level1.max_pq, 3074);
+        assert_eq!(level1.avg_pq, 1450);
+    }
+
+    Ok(())
+}
