@@ -10,7 +10,8 @@ use hevc_parser::io::{processor, IoFormat, IoProcessor};
 use hevc_parser::HevcParser;
 use processor::{HevcProcessor, HevcProcessorOpts};
 
-use super::{convert_encoded_from_opts, is_st2094_40_sei, CliOptions, WriteStartCodePreset};
+use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
+use super::{convert_encoded_from_opts, CliOptions, WriteStartCodePreset};
 
 pub struct DoviProcessor {
     input: PathBuf,
@@ -125,11 +126,17 @@ impl DoviProcessor {
 
     pub fn write_nals(&mut self, chunk: &[u8], nals: &[NALUnit]) -> Result<()> {
         for (i, nal) in nals.iter().enumerate() {
-            if self.options.drop_hdr10plus
-                && nal.nal_type == NAL_SEI_PREFIX
-                && is_st2094_40_sei(&chunk[nal.start..nal.end])?
-            {
-                continue;
+            let mut nalu_data_override = None;
+
+            if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
+                let (has_st2094_40, data) = prefix_sei_removed_hdr10plus_nalu(chunk, nal)?;
+
+                // Drop NALUs containing only one SEI message
+                if has_st2094_40 && data.is_none() {
+                    continue;
+                } else {
+                    nalu_data_override = data;
+                }
             }
 
             // Skip duplicate NALUs if they are after a first RPU for the frame
@@ -157,6 +164,11 @@ impl DoviProcessor {
                     false
                 };
 
+            let final_chunk_data = nalu_data_override
+                .as_ref()
+                .map(|e| e.as_ref())
+                .unwrap_or(&chunk[nal.start..nal.end]);
+
             if let Some(ref mut sl_writer) = self.dovi_writer.sl_writer {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;
@@ -181,7 +193,7 @@ impl DoviProcessor {
 
                 NALUnit::write_with_preset(
                     sl_writer,
-                    &chunk[nal.start..nal.end],
+                    final_chunk_data,
                     self.options.start_code.into(),
                     nal.nal_type,
                     first_nal_of_frame,
@@ -254,7 +266,7 @@ impl DoviProcessor {
                     if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
                         NALUnit::write_with_preset(
                             bl_writer,
-                            &chunk[nal.start..nal.end],
+                            final_chunk_data,
                             self.options.start_code.into(),
                             nal.nal_type,
                             first_nal_of_frame,

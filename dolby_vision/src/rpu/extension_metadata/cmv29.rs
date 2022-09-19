@@ -36,15 +36,15 @@ impl WithExtMetadataBlocks for CmV29DmData {
 
     fn parse_block(&mut self, reader: &mut BitVecReader) -> Result<()> {
         let ext_block_length = reader.get_ue()?;
-        let ext_block_level = reader.get_n(8);
+        let ext_block_level = reader.get_n(8)?;
 
         let ext_metadata_block = match ext_block_level {
-            1 => level1::ExtMetadataBlockLevel1::parse(reader),
-            2 => level2::ExtMetadataBlockLevel2::parse(reader),
-            4 => level4::ExtMetadataBlockLevel4::parse(reader),
-            5 => level5::ExtMetadataBlockLevel5::parse(reader),
-            6 => level6::ExtMetadataBlockLevel6::parse(reader),
-            255 => level255::ExtMetadataBlockLevel255::parse(reader),
+            1 => level1::ExtMetadataBlockLevel1::parse(reader)?,
+            2 => level2::ExtMetadataBlockLevel2::parse(reader)?,
+            4 => level4::ExtMetadataBlockLevel4::parse(reader)?,
+            5 => level5::ExtMetadataBlockLevel5::parse(reader)?,
+            6 => level6::ExtMetadataBlockLevel6::parse(reader)?,
+            255 => level255::ExtMetadataBlockLevel255::parse(reader)?,
             3 | 8 | 9 | 10 | 11 | 254 => bail!(
                 "Invalid block level {} for {} RPU",
                 ext_block_level,

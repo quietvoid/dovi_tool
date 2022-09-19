@@ -55,25 +55,25 @@ pub struct ExtMetadataBlockLevel9 {
 }
 
 impl ExtMetadataBlockLevel9 {
-    pub fn parse(reader: &mut BitVecReader, length: u64) -> ExtMetadataBlock {
+    pub fn parse(reader: &mut BitVecReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
-            source_primary_index: reader.get_n(8),
+            source_primary_index: reader.get_n(8)?,
             ..Default::default()
         };
 
         if length > 1 {
-            block.source_primary_red_x = reader.get_n(16);
-            block.source_primary_red_y = reader.get_n(16);
-            block.source_primary_green_x = reader.get_n(16);
-            block.source_primary_green_y = reader.get_n(16);
-            block.source_primary_blue_x = reader.get_n(16);
-            block.source_primary_blue_y = reader.get_n(16);
-            block.source_primary_white_x = reader.get_n(16);
-            block.source_primary_white_y = reader.get_n(16);
+            block.source_primary_red_x = reader.get_n(16)?;
+            block.source_primary_red_y = reader.get_n(16)?;
+            block.source_primary_green_x = reader.get_n(16)?;
+            block.source_primary_green_y = reader.get_n(16)?;
+            block.source_primary_blue_x = reader.get_n(16)?;
+            block.source_primary_blue_y = reader.get_n(16)?;
+            block.source_primary_white_x = reader.get_n(16)?;
+            block.source_primary_white_y = reader.get_n(16)?;
         }
 
-        ExtMetadataBlock::Level9(block)
+        Ok(ExtMetadataBlock::Level9(block))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

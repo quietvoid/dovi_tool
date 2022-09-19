@@ -186,9 +186,9 @@ impl DoviRpu {
                 }
             }
 
-            dovi_rpu.rpu_data_crc32 = reader.get_n(32);
+            dovi_rpu.rpu_data_crc32 = reader.get_n(32)?;
 
-            let last_byte: u8 = reader.get_n(8);
+            let last_byte: u8 = reader.get_n(8)?;
             ensure!(last_byte == FINAL_BYTE, "last byte should be 0x80");
         }
 

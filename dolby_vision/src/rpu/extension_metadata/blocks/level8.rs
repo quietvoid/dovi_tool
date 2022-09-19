@@ -51,46 +51,46 @@ pub struct ExtMetadataBlockLevel8 {
 }
 
 impl ExtMetadataBlockLevel8 {
-    pub fn parse(reader: &mut BitVecReader, length: u64) -> ExtMetadataBlock {
+    pub fn parse(reader: &mut BitVecReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
-            target_display_index: reader.get_n(8),
-            trim_slope: reader.get_n(12),
-            trim_offset: reader.get_n(12),
-            trim_power: reader.get_n(12),
-            trim_chroma_weight: reader.get_n(12),
-            trim_saturation_gain: reader.get_n(12),
-            ms_weight: reader.get_n(12),
+            target_display_index: reader.get_n(8)?,
+            trim_slope: reader.get_n(12)?,
+            trim_offset: reader.get_n(12)?,
+            trim_power: reader.get_n(12)?,
+            trim_chroma_weight: reader.get_n(12)?,
+            trim_saturation_gain: reader.get_n(12)?,
+            ms_weight: reader.get_n(12)?,
             ..Default::default()
         };
 
         if length > 10 {
-            block.target_mid_contrast = reader.get_n(12);
+            block.target_mid_contrast = reader.get_n(12)?;
         }
 
         if length > 12 {
-            block.clip_trim = reader.get_n(12);
+            block.clip_trim = reader.get_n(12)?;
         }
 
         if length > 13 {
-            block.saturation_vector_field0 = reader.get_n(8);
-            block.saturation_vector_field1 = reader.get_n(8);
-            block.saturation_vector_field2 = reader.get_n(8);
-            block.saturation_vector_field3 = reader.get_n(8);
-            block.saturation_vector_field4 = reader.get_n(8);
-            block.saturation_vector_field5 = reader.get_n(8);
+            block.saturation_vector_field0 = reader.get_n(8)?;
+            block.saturation_vector_field1 = reader.get_n(8)?;
+            block.saturation_vector_field2 = reader.get_n(8)?;
+            block.saturation_vector_field3 = reader.get_n(8)?;
+            block.saturation_vector_field4 = reader.get_n(8)?;
+            block.saturation_vector_field5 = reader.get_n(8)?;
         }
 
         if length > 19 {
-            block.hue_vector_field0 = reader.get_n(8);
-            block.hue_vector_field1 = reader.get_n(8);
-            block.hue_vector_field2 = reader.get_n(8);
-            block.hue_vector_field3 = reader.get_n(8);
-            block.hue_vector_field4 = reader.get_n(8);
-            block.hue_vector_field5 = reader.get_n(8);
+            block.hue_vector_field0 = reader.get_n(8)?;
+            block.hue_vector_field1 = reader.get_n(8)?;
+            block.hue_vector_field2 = reader.get_n(8)?;
+            block.hue_vector_field3 = reader.get_n(8)?;
+            block.hue_vector_field4 = reader.get_n(8)?;
+            block.hue_vector_field5 = reader.get_n(8)?;
         }
 
-        ExtMetadataBlock::Level8(block)
+        Ok(ExtMetadataBlock::Level8(block))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

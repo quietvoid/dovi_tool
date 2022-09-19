@@ -22,15 +22,15 @@ pub struct ExtMetadataBlockLevel255 {
 }
 
 impl ExtMetadataBlockLevel255 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level255(Self {
-            dm_run_mode: reader.get_n(8),
-            dm_run_version: reader.get_n(8),
-            dm_debug0: reader.get_n(8),
-            dm_debug1: reader.get_n(8),
-            dm_debug2: reader.get_n(8),
-            dm_debug3: reader.get_n(8),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level255(Self {
+            dm_run_mode: reader.get_n(8)?,
+            dm_run_version: reader.get_n(8)?,
+            dm_debug0: reader.get_n(8)?,
+            dm_debug1: reader.get_n(8)?,
+            dm_debug2: reader.get_n(8)?,
+            dm_debug3: reader.get_n(8)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

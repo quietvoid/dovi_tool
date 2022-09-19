@@ -17,11 +17,11 @@ pub struct ExtMetadataBlockLevel254 {
 }
 
 impl ExtMetadataBlockLevel254 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level254(Self {
-            dm_mode: reader.get_n(8),
-            dm_version_index: reader.get_n(8),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level254(Self {
+            dm_mode: reader.get_n(8)?,
+            dm_version_index: reader.get_n(8)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

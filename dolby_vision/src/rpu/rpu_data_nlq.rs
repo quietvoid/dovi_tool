@@ -68,7 +68,7 @@ impl RpuDataNlq {
                     }
 
                     data.nlq_offset[pivot_idx][cmp] =
-                        reader.get_n((header.el_bit_depth_minus8 + 8) as usize);
+                        reader.get_n((header.el_bit_depth_minus8 + 8) as usize)?;
 
                     if header.coefficient_data_type == 0 {
                         if data.vdr_in_max_int.is_empty() {
@@ -79,7 +79,8 @@ impl RpuDataNlq {
                         data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue()?;
                     }
 
-                    data.vdr_in_max[pivot_idx][cmp] = reader.get_n(coefficient_log2_denom_length);
+                    data.vdr_in_max[pivot_idx][cmp] =
+                        reader.get_n(coefficient_log2_denom_length)?;
 
                     // NLQ_LINEAR_DZ
                     if let Some(nlq_method_idc) = header.nlq_method_idc {
@@ -101,7 +102,7 @@ impl RpuDataNlq {
                             }
 
                             data.linear_deadzone_slope[pivot_idx][cmp] =
-                                reader.get_n(coefficient_log2_denom_length);
+                                reader.get_n(coefficient_log2_denom_length)?;
 
                             if header.coefficient_data_type == 0 {
                                 if data.linear_deadzone_threshold_int.is_empty() {
@@ -114,7 +115,7 @@ impl RpuDataNlq {
                             }
 
                             data.linear_deadzone_threshold[pivot_idx][cmp] =
-                                reader.get_n(coefficient_log2_denom_length);
+                                reader.get_n(coefficient_log2_denom_length)?;
                         }
                     }
                 } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {

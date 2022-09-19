@@ -21,13 +21,13 @@ pub struct ExtMetadataBlockLevel6 {
 }
 
 impl ExtMetadataBlockLevel6 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level6(Self {
-            max_display_mastering_luminance: reader.get_n(16),
-            min_display_mastering_luminance: reader.get_n(16),
-            max_content_light_level: reader.get_n(16),
-            max_frame_average_light_level: reader.get_n(16),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level6(Self {
+            max_display_mastering_luminance: reader.get_n(16)?,
+            min_display_mastering_luminance: reader.get_n(16)?,
+            max_content_light_level: reader.get_n(16)?,
+            max_frame_average_light_level: reader.get_n(16)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

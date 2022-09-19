@@ -16,11 +16,11 @@ pub struct ExtMetadataBlockLevel4 {
 }
 
 impl ExtMetadataBlockLevel4 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level4(Self {
-            anchor_pq: reader.get_n(12),
-            anchor_power: reader.get_n(12),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level4(Self {
+            anchor_pq: reader.get_n(12)?,
+            anchor_power: reader.get_n(12)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

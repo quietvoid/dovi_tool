@@ -1,5 +1,8 @@
 ## ??
 
+## 2.0.0
+- Modified `extension_metadata::blocks` parsing functions to return a `Result`.
+
 ## 1.7.1
 - Add `ExtMetadataBlockLevel1` constructor `new` and `from_stats_cm_version`.
 - Add `clamp_values_cm_version` function to `ExtMetadataBlockLevel1`.

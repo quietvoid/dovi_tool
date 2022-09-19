@@ -110,7 +110,7 @@ impl RpuDataMapping {
                             }
 
                             data.pred_linear_interp_value[cmp][pivot_idx] =
-                                reader.get_n(coefficient_log2_denom_length);
+                                reader.get_n(coefficient_log2_denom_length)?;
 
                             if pivot_idx as u64 == header.num_pivots_minus_2[cmp] {
                                 if header.coefficient_data_type == 0 {
@@ -119,7 +119,7 @@ impl RpuDataMapping {
                                 }
 
                                 data.pred_linear_interp_value[cmp][pivot_idx + 1] =
-                                    reader.get_n(coefficient_log2_denom_length);
+                                    reader.get_n(coefficient_log2_denom_length)?;
                             }
                         } else {
                             if data.poly_coef_int[cmp].is_empty() {
@@ -140,7 +140,7 @@ impl RpuDataMapping {
                                 }
 
                                 data.poly_coef[cmp][pivot_idx][i] =
-                                    reader.get_n(coefficient_log2_denom_length);
+                                    reader.get_n(coefficient_log2_denom_length)?;
                             }
                         }
                     } else if data.mapping_idc[cmp][pivot_idx] == 1 {
@@ -155,7 +155,7 @@ impl RpuDataMapping {
                             data.mmr_coef[cmp].resize_with(pivot_idx_count, Default::default);
                         }
 
-                        data.mmr_order_minus1[cmp][pivot_idx] = reader.get_n(2);
+                        data.mmr_order_minus1[cmp][pivot_idx] = reader.get_n(2)?;
 
                         ensure!(data.mmr_order_minus1[cmp][pivot_idx] <= 2);
 
@@ -169,7 +169,7 @@ impl RpuDataMapping {
                         }
 
                         data.mmr_constant[cmp][pivot_idx] =
-                            reader.get_n(coefficient_log2_denom_length);
+                            reader.get_n(coefficient_log2_denom_length)?;
 
                         for i in 1..=data.mmr_order_minus1[cmp][pivot_idx] as usize + 1 {
                             for j in 0..7_usize {
@@ -178,7 +178,7 @@ impl RpuDataMapping {
                                 }
 
                                 data.mmr_coef[cmp][pivot_idx][i][j] =
-                                    reader.get_n(coefficient_log2_denom_length);
+                                    reader.get_n(coefficient_log2_denom_length)?;
                             }
                         }
                     }

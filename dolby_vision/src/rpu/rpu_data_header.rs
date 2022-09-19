@@ -53,29 +53,29 @@ pub fn rpu_data_header(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Res
 impl RpuDataHeader {
     pub fn parse(reader: &mut BitVecReader) -> Result<RpuDataHeader> {
         let mut rpu_nal = RpuDataHeader {
-            rpu_nal_prefix: reader.get_n(8),
+            rpu_nal_prefix: reader.get_n(8)?,
             ..Default::default()
         };
 
         if rpu_nal.rpu_nal_prefix == 25 {
-            rpu_nal.rpu_type = reader.get_n(6);
-            rpu_nal.rpu_format = reader.get_n(11);
+            rpu_nal.rpu_type = reader.get_n(6)?;
+            rpu_nal.rpu_format = reader.get_n(11)?;
 
             if rpu_nal.rpu_type == 2 {
-                rpu_nal.vdr_rpu_profile = reader.get_n(4);
+                rpu_nal.vdr_rpu_profile = reader.get_n(4)?;
 
-                rpu_nal.vdr_rpu_level = reader.get_n(4);
+                rpu_nal.vdr_rpu_level = reader.get_n(4)?;
                 rpu_nal.vdr_seq_info_present_flag = reader.get()?;
 
                 if rpu_nal.vdr_seq_info_present_flag {
                     rpu_nal.chroma_resampling_explicit_filter_flag = reader.get()?;
-                    rpu_nal.coefficient_data_type = reader.get_n(2);
+                    rpu_nal.coefficient_data_type = reader.get_n(2)?;
 
                     if rpu_nal.coefficient_data_type == 0 {
                         rpu_nal.coefficient_log2_denom = reader.get_ue()?;
                     }
 
-                    rpu_nal.vdr_rpu_normalized_idc = reader.get_n(2);
+                    rpu_nal.vdr_rpu_normalized_idc = reader.get_n(2)?;
                     rpu_nal.bl_video_full_range_flag = reader.get()?;
 
                     if rpu_nal.rpu_format & 0x700 == 0 {
@@ -83,7 +83,7 @@ impl RpuDataHeader {
                         rpu_nal.el_bit_depth_minus8 = reader.get_ue()?;
                         rpu_nal.vdr_bit_depth_minus_8 = reader.get_ue()?;
                         rpu_nal.spatial_resampling_filter_flag = reader.get()?;
-                        rpu_nal.reserved_zero_3bits = reader.get_n(3);
+                        rpu_nal.reserved_zero_3bits = reader.get_n(3)?;
                         rpu_nal.el_spatial_resampling_filter_flag = reader.get()?;
                         rpu_nal.disable_residual_flag = reader.get()?;
                     }
@@ -109,19 +109,20 @@ impl RpuDataHeader {
                             .resize_with(pivot_idx_count, Default::default);
 
                         for pivot_idx in 0..pivot_idx_count {
-                            rpu_nal.pred_pivot_value[cmp][pivot_idx] = reader.get_n(bl_bit_depth);
+                            rpu_nal.pred_pivot_value[cmp][pivot_idx] =
+                                reader.get_n(bl_bit_depth)?;
                         }
                     }
 
                     // Profile 7 only
                     if rpu_nal.rpu_format & 0x700 == 0 && !rpu_nal.disable_residual_flag {
-                        rpu_nal.nlq_method_idc = Some(reader.get_n(3));
+                        rpu_nal.nlq_method_idc = Some(reader.get_n(3)?);
                         rpu_nal.nlq_num_pivots_minus2 = Some(0);
 
                         let mut nlq_pred_pivot_value = [0; NLQ_NUM_PIVOTS];
-                        nlq_pred_pivot_value
-                            .iter_mut()
-                            .for_each(|pv| *pv = reader.get_n(bl_bit_depth));
+                        for pv in &mut nlq_pred_pivot_value {
+                            *pv = reader.get_n(bl_bit_depth)?;
+                        }
 
                         rpu_nal.nlq_pred_pivot_value = Some(nlq_pred_pivot_value);
                     }

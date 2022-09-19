@@ -25,22 +25,22 @@ pub struct ExtMetadataBlockLevel2 {
 }
 
 impl ExtMetadataBlockLevel2 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
         let mut level2 = Self {
-            target_max_pq: reader.get_n(12),
-            trim_slope: reader.get_n(12),
-            trim_offset: reader.get_n(12),
-            trim_power: reader.get_n(12),
-            trim_chroma_weight: reader.get_n(12),
-            trim_saturation_gain: reader.get_n(12),
-            ms_weight: reader.get_n::<u16>(13) as i16,
+            target_max_pq: reader.get_n(12)?,
+            trim_slope: reader.get_n(12)?,
+            trim_offset: reader.get_n(12)?,
+            trim_power: reader.get_n(12)?,
+            trim_chroma_weight: reader.get_n(12)?,
+            trim_saturation_gain: reader.get_n(12)?,
+            ms_weight: reader.get_n::<u16>(13)? as i16,
         };
 
         if level2.ms_weight > MAX_12_BIT_VALUE as i16 {
             level2.ms_weight = level2.ms_weight.wrapping_sub(8192);
         }
 
-        ExtMetadataBlock::Level2(level2)
+        Ok(ExtMetadataBlock::Level2(level2))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

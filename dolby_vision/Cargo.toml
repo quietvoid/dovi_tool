@@ -1,6 +1,6 @@
 [package]
 name = "dolby_vision"
-version = "1.7.1"
+version = "2.0.0"
 authors = ["quietvoid"]
 edition = "2021"
 rust-version = "1.60.0"
@@ -9,15 +9,15 @@ description = "Dolby Vision metadata parsing and writing"
 repository = "https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision"
 
 [dependencies]
-bitvec_helpers = "1.0.2"
-anyhow = "1.0.58"
-bitvec = "1.0.0"
+bitvec_helpers = "2.0.0"
+anyhow = "1.0.65"
+bitvec = "1.0.1"
 crc = "3.0.0"
-serde = { version = "1.0.137", features = ["derive"], "optional" = true }
-serde_json = { version = "1.0.81", features = ["preserve_order"], "optional" = true }
-roxmltree = { version = "0.14.1", optional = true }
+serde = { version = "1.0.144", features = ["derive"], "optional" = true }
+serde_json = { version = "1.0.85", features = ["preserve_order"], "optional" = true }
+roxmltree = { version = "0.15.0", optional = true }
 
-libc = { version = "0.2.126", optional = true }
+libc = { version = "0.2.132", optional = true }
 
 [features]
 xml = ["roxmltree"]

@@ -20,13 +20,13 @@ pub struct ExtMetadataBlockLevel5 {
 }
 
 impl ExtMetadataBlockLevel5 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level5(Self {
-            active_area_left_offset: reader.get_n(13),
-            active_area_right_offset: reader.get_n(13),
-            active_area_top_offset: reader.get_n(13),
-            active_area_bottom_offset: reader.get_n(13),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level5(Self {
+            active_area_left_offset: reader.get_n(13)?,
+            active_area_right_offset: reader.get_n(13)?,
+            active_area_top_offset: reader.get_n(13)?,
+            active_area_bottom_offset: reader.get_n(13)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

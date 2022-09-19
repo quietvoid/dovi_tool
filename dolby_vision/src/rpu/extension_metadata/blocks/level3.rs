@@ -18,12 +18,12 @@ pub struct ExtMetadataBlockLevel3 {
 }
 
 impl ExtMetadataBlockLevel3 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
-        ExtMetadataBlock::Level3(Self {
-            min_pq_offset: reader.get_n(12),
-            max_pq_offset: reader.get_n(12),
-            avg_pq_offset: reader.get_n(12),
-        })
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
+        Ok(ExtMetadataBlock::Level3(Self {
+            min_pq_offset: reader.get_n(12)?,
+            max_pq_offset: reader.get_n(12)?,
+            avg_pq_offset: reader.get_n(12)?,
+        }))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

@@ -24,12 +24,12 @@ pub struct ExtMetadataBlockLevel11 {
 }
 
 impl ExtMetadataBlockLevel11 {
-    pub fn parse(reader: &mut BitVecReader) -> ExtMetadataBlock {
+    pub fn parse(reader: &mut BitVecReader) -> Result<ExtMetadataBlock> {
         let mut l11 = Self {
-            content_type: reader.get_n(8),
-            whitepoint: reader.get_n(8),
-            reserved_byte2: reader.get_n(8),
-            reserved_byte3: reader.get_n(8),
+            content_type: reader.get_n(8)?,
+            whitepoint: reader.get_n(8)?,
+            reserved_byte2: reader.get_n(8)?,
+            reserved_byte3: reader.get_n(8)?,
             ..Default::default()
         };
 
@@ -38,7 +38,7 @@ impl ExtMetadataBlockLevel11 {
             l11.whitepoint -= MAX_WHITEPOINT_VALUE + 1;
         }
 
-        ExtMetadataBlock::Level11(l11)
+        Ok(ExtMetadataBlock::Level11(l11))
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {

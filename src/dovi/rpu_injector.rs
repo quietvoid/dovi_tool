@@ -14,7 +14,8 @@ use dolby_vision::rpu::utils::parse_rpu_file;
 
 use crate::commands::InjectRpuArgs;
 
-use super::{input_from_either, is_st2094_40_sei, CliOptions, DoviRpu, IoFormat};
+use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
+use super::{input_from_either, CliOptions, DoviRpu, IoFormat};
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -240,12 +241,18 @@ impl IoProcessor for RpuInjector {
             let rpus = &self.rpus;
 
             for nal in nals {
+                let mut nalu_data_override = None;
+
                 // Ignore HDR10+
-                if self.options.drop_hdr10plus
-                    && nal.nal_type == NAL_SEI_PREFIX
-                    && is_st2094_40_sei(&chunk[nal.start..nal.end])?
-                {
-                    continue;
+                if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
+                    let (has_st2094_40, data) = prefix_sei_removed_hdr10plus_nalu(chunk, nal)?;
+
+                    // Drop NALUs containing only one SEI message
+                    if has_st2094_40 && data.is_none() {
+                        continue;
+                    } else {
+                        nalu_data_override = data;
+                    }
                 }
 
                 if self.frame_buffer.frame_number != nal.decoded_frame_index {
@@ -310,10 +317,17 @@ impl IoProcessor for RpuInjector {
                         continue;
                     }
 
+                    // Override in case of modified multi-message SEI
+                    let final_chunk_data = if let Some(data) = nalu_data_override {
+                        data
+                    } else {
+                        chunk[nal.start..nal.end].to_vec()
+                    };
+
                     self.frame_buffer.nals.push(NalBuffer {
                         nal_type: nal.nal_type,
                         start_code: nal.start_code,
-                        data: chunk[nal.start..nal.end].to_vec(),
+                        data: final_chunk_data,
                     });
                 }
             }

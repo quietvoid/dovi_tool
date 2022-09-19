@@ -14,9 +14,8 @@ use processor::{HevcProcessor, HevcProcessorOpts};
 
 use crate::commands::MuxArgs;
 
-use super::{
-    convert_encoded_from_opts, is_st2094_40_sei, CliOptions, IoFormat, WriteStartCodePreset,
-};
+use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
+use super::{convert_encoded_from_opts, CliOptions, IoFormat, WriteStartCodePreset};
 
 const EL_NALU_PREFIX: &[u8] = &[0x7E, 0x01];
 
@@ -160,12 +159,18 @@ impl IoProcessor for Muxer {
 
     fn process_nals(&mut self, parser: &HevcParser, nals: &[NALUnit], chunk: &[u8]) -> Result<()> {
         for nal in nals {
+            let mut nalu_data_override = None;
+
             // Skip ST2094-40 SEI if desired
-            if self.options.drop_hdr10plus
-                && nal.nal_type == NAL_SEI_PREFIX
-                && is_st2094_40_sei(&chunk[nal.start..nal.end])?
-            {
-                continue;
+            if self.options.drop_hdr10plus && nal.nal_type == NAL_SEI_PREFIX {
+                let (has_st2094_40, data) = prefix_sei_removed_hdr10plus_nalu(chunk, nal)?;
+
+                // Drop NALUs containing only one SEI message
+                if has_st2094_40 && data.is_none() {
+                    continue;
+                } else {
+                    nalu_data_override = data;
+                }
             }
 
             // First NALU of new frame
@@ -235,10 +240,17 @@ impl IoProcessor for Muxer {
                     continue;
                 }
 
+                // Override in case of modified multi-message SEI
+                let final_chunk_data = if let Some(data) = nalu_data_override {
+                    data
+                } else {
+                    chunk[nal.start..nal.end].to_vec()
+                };
+
                 self.frame_buffer.nals.push(NalBuffer {
                     nal_type: nal.nal_type,
                     start_code: nal.start_code,
-                    data: chunk[nal.start..nal.end].to_vec(),
+                    data: final_chunk_data,
                 });
             }
         }
