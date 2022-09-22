@@ -50,7 +50,7 @@ pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -
 #[no_mangle]
 pub unsafe extern "C" fn dovi_rpu_free(ptr: *mut RpuOpaque) {
     if !ptr.is_null() {
-        Box::from_raw(ptr);
+        drop(Box::from_raw(ptr));
     }
 }
 

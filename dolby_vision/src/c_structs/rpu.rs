@@ -49,7 +49,7 @@ impl Freeable for RpuOpaqueList {
             self.len as usize,
         );
         for ptr in list {
-            Box::from_raw(ptr);
+            drop(Box::from_raw(ptr));
         }
 
         if !self.error.is_null() {

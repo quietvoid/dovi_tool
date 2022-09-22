@@ -130,18 +130,22 @@ impl DmData {
 
     /// # Safety
     pub unsafe fn free(&self) {
-        Box::from_raw(self.level1 as *mut ExtMetadataBlockLevel1);
+        drop(Box::from_raw(self.level1 as *mut ExtMetadataBlockLevel1));
         self.level2.free();
-        Box::from_raw(self.level3 as *mut ExtMetadataBlockLevel3);
-        Box::from_raw(self.level4 as *mut ExtMetadataBlockLevel4);
-        Box::from_raw(self.level5 as *mut ExtMetadataBlockLevel5);
-        Box::from_raw(self.level6 as *mut ExtMetadataBlockLevel6);
+        drop(Box::from_raw(self.level3 as *mut ExtMetadataBlockLevel3));
+        drop(Box::from_raw(self.level4 as *mut ExtMetadataBlockLevel4));
+        drop(Box::from_raw(self.level5 as *mut ExtMetadataBlockLevel5));
+        drop(Box::from_raw(self.level6 as *mut ExtMetadataBlockLevel6));
         self.level8.free();
-        Box::from_raw(self.level9 as *mut ExtMetadataBlockLevel9);
+        drop(Box::from_raw(self.level9 as *mut ExtMetadataBlockLevel9));
         self.level10.free();
-        Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11);
-        Box::from_raw(self.level254 as *mut ExtMetadataBlockLevel254);
-        Box::from_raw(self.level255 as *mut ExtMetadataBlockLevel255);
+        drop(Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11));
+        drop(Box::from_raw(
+            self.level254 as *mut ExtMetadataBlockLevel254,
+        ));
+        drop(Box::from_raw(
+            self.level255 as *mut ExtMetadataBlockLevel255,
+        ));
     }
 }
 
@@ -175,7 +179,7 @@ impl Level2BlockList {
         );
 
         for data_ptr in list {
-            Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel2);
+            drop(Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel2));
         }
     }
 }
@@ -190,7 +194,7 @@ impl Level8BlockList {
         );
 
         for data_ptr in list {
-            Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel8);
+            drop(Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel8));
         }
     }
 }
@@ -205,7 +209,7 @@ impl Level10BlockList {
         );
 
         for data_ptr in list {
-            Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel10);
+            drop(Box::from_raw(data_ptr as *mut ExtMetadataBlockLevel10));
         }
     }
 }
