@@ -13,7 +13,7 @@ fn help() -> Result<()> {
     assert
         .success()
         .stderr(predicate::str::is_empty())
-        .stdout(predicate::str::contains("dovi_tool [OPTIONS] <SUBCOMMAND>"));
+        .stdout(predicate::str::contains("dovi_tool [OPTIONS] <COMMAND>"));
     Ok(())
 }
 

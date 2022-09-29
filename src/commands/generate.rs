@@ -5,8 +5,8 @@ use crate::dovi::generator::GeneratorProfile;
 
 #[derive(Args, Debug, Default)]
 pub struct GenerateArgs {
-    #[clap(
-        name = "json",
+    #[arg(
+        id = "json",
         long,
         short = 'j',
         help = "Sets the generator config JSON file to use",
@@ -16,7 +16,7 @@ pub struct GenerateArgs {
     )]
     pub json_file: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         long,
         short = 'o',
         help = "Generated RPU output file location",
@@ -24,8 +24,8 @@ pub struct GenerateArgs {
     )]
     pub rpu_out: Option<PathBuf>,
 
-    #[clap(
-        name = "hdr10plus-json",
+    #[arg(
+        id = "hdr10plus-json",
         long,
         help = "HDR10+ JSON file to generate from",
         conflicts_with = "madvr-file",
@@ -33,7 +33,7 @@ pub struct GenerateArgs {
     )]
     pub hdr10plus_json: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         short = 'x',
         long,
         help = "XML metadata file to generate from",
@@ -43,29 +43,34 @@ pub struct GenerateArgs {
     )]
     pub xml: Option<PathBuf>,
 
-    #[clap(long, help = "Canvas width for L5 metadata generation")]
+    #[arg(long, help = "Canvas width for L5 metadata generation")]
     pub canvas_width: Option<u16>,
 
-    #[clap(long, help = "Canvas height for L5 metadata generation")]
+    #[arg(long, help = "Canvas height for L5 metadata generation")]
     pub canvas_height: Option<u16>,
 
-    #[clap(
-        name = "madvr-file",
+    #[arg(
+        id = "madvr-file",
         long,
         help = "madVR measurement file to generate from",
         value_hint = ValueHint::FilePath
     )]
     pub madvr_file: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         long,
         help = "madVR source: use custom per-frame target nits if available"
     )]
     pub use_custom_targets: bool,
 
-    #[clap(arg_enum, short = 'p', long, help = "Dolby Vision profile to generate")]
+    #[arg(
+        value_enum,
+        short = 'p',
+        long,
+        help = "Dolby Vision profile to generate"
+    )]
     pub profile: Option<GeneratorProfile>,
 
-    #[clap(long, help = "Set scene cut flag for every frame")]
+    #[arg(long, help = "Set scene cut flag for every frame")]
     pub long_play_mode: Option<bool>,
 }

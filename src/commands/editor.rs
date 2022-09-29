@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct EditorArgs {
-    #[clap(
-        name = "input",
+    #[arg(
+        id = "input",
         help = "Sets the input RPU file to use",
         long,
         short = 'i',
@@ -14,8 +14,8 @@ pub struct EditorArgs {
     )]
     pub input: Option<PathBuf>,
 
-    #[clap(
-        name = "input_pos",
+    #[arg(
+        id = "input_pos",
         help = "Sets the input RPU file to use (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
@@ -23,8 +23,8 @@ pub struct EditorArgs {
     )]
     pub input_pos: Option<PathBuf>,
 
-    #[clap(
-        name = "json",
+    #[arg(
+        id = "json",
         long,
         short = 'j',
         help = "Sets the edit JSON file to use",
@@ -32,7 +32,7 @@ pub struct EditorArgs {
     )]
     pub json_file: PathBuf,
 
-    #[clap(
+    #[arg(
         long,
         short = 'o',
         help = "Modified RPU output file location",

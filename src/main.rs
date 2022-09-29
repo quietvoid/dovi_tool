@@ -24,15 +24,15 @@ use dovi::{
 };
 
 #[derive(Parser, Debug)]
-#[clap(
+#[command(
     name = env!("CARGO_PKG_NAME"),
     about = "CLI tool combining multiple utilities for working with Dolby Vision",
     author = "quietvoid",
     version = option_env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT").unwrap_or(env!("VERGEN_BUILD_SEMVER"))
 )]
 struct Opt {
-    #[clap(
-        name = "mode",
+    #[arg(
+        id = "mode",
         short = 'm',
         long,
         help = "Sets the mode for RPU processing. See --help for more info",
@@ -46,32 +46,32 @@ struct Opt {
     )]
     mode: Option<ConversionModeCli>,
 
-    #[clap(
+    #[arg(
         long,
         short = 'c',
         help = "Set active area offsets to 0 (meaning no letterbox bars)"
     )]
     crop: bool,
 
-    #[clap(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
+    #[arg(long, help = "Ignore HDR10+ metadata when writing the output HEVC.")]
     drop_hdr10plus: bool,
 
-    #[clap(
+    #[arg(
         long,
         help = "Sets the edit JSON config file to use",
         value_hint = ValueHint::FilePath
     )]
     edit_config: Option<PathBuf>,
 
-    #[clap(
-        arg_enum,
+    #[arg(
+        value_enum,
         long,
         help = "Start code to use when writing HEVC",
         default_value = "four"
     )]
     start_code: WriteStartCodePreset,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     cmd: Command,
 }
 

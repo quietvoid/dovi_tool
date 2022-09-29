@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct ExportArgs {
-    #[clap(
-        name = "input",
+    #[arg(
+        id = "input",
         help = "Sets the input RPU file to use",
         long,
         short = 'i',
@@ -14,8 +14,8 @@ pub struct ExportArgs {
     )]
     pub input: Option<PathBuf>,
 
-    #[clap(
-        name = "input_pos",
+    #[arg(
+        id = "input_pos",
         help = "Sets the input RPU file to use (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
@@ -23,8 +23,8 @@ pub struct ExportArgs {
     )]
     pub input_pos: Option<PathBuf>,
 
-    #[clap(
-        name = "output",
+    #[arg(
+        id = "output",
         long,
         short = 'o',
         help = "Output JSON file name",

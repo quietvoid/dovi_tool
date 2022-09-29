@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct ExtractRpuArgs {
-    #[clap(
-        name = "input",
+    #[arg(
+        id = "input",
         help = "Sets the input HEVC file to use, or piped with -",
         long,
         short = 'i',
@@ -14,8 +14,8 @@ pub struct ExtractRpuArgs {
     )]
     pub input: Option<PathBuf>,
 
-    #[clap(
-        name = "input_pos",
+    #[arg(
+        id = "input_pos",
         help = "Sets the input HEVC file to use, or piped with - (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
@@ -23,7 +23,7 @@ pub struct ExtractRpuArgs {
     )]
     pub input_pos: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         long,
         short = 'o',
         help = "RPU output file location",

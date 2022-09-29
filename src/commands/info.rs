@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct InfoArgs {
-    #[clap(
-        name = "input",
+    #[arg(
+        id = "input",
         help = "Sets the input RPU file to use",
         long,
         short = 'i',
@@ -14,8 +14,8 @@ pub struct InfoArgs {
     )]
     pub input: Option<PathBuf>,
 
-    #[clap(
-        name = "input_pos",
+    #[arg(
+        id = "input_pos",
         help = "Sets the input RPU file to use (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
@@ -23,14 +23,14 @@ pub struct InfoArgs {
     )]
     pub input_pos: Option<PathBuf>,
 
-    #[clap(
-        name = "frame",
+    #[arg(
+        id = "frame",
         long,
         short = 'f',
         help = "Frame number to show info for"
     )]
     pub frame: Option<usize>,
 
-    #[clap(name = "summary", long, short = 's', help = "Show the RPU summary")]
+    #[arg(id = "summary", long, short = 's', help = "Show the RPU summary")]
     pub summary: bool,
 }

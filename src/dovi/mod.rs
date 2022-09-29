@@ -36,7 +36,7 @@ pub struct CliOptions {
     pub start_code: WriteStartCodePreset,
 }
 
-#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WriteStartCodePreset {
     Four,
     AnnexB,

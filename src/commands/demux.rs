@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct DemuxArgs {
-    #[clap(
-        name = "input",
+    #[arg(
+        id = "input",
         help = "Sets the input HEVC file to use, or piped with -",
         long,
         short = 'i',
@@ -14,8 +14,8 @@ pub struct DemuxArgs {
     )]
     pub input: Option<PathBuf>,
 
-    #[clap(
-        name = "input_pos",
+    #[arg(
+        id = "input_pos",
         help = "Sets the input HEVC file to use, or piped with - (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
@@ -23,7 +23,7 @@ pub struct DemuxArgs {
     )]
     pub input_pos: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         long,
         short = 'b',
         help = "BL output file location",
@@ -31,7 +31,7 @@ pub struct DemuxArgs {
     )]
     pub bl_out: Option<PathBuf>,
 
-    #[clap(
+    #[arg(
         long,
         short = 'e',
         help = "EL output file location",
@@ -39,6 +39,6 @@ pub struct DemuxArgs {
     )]
     pub el_out: Option<PathBuf>,
 
-    #[clap(long, help = "Output the EL file only")]
+    #[arg(long, help = "Output the EL file only")]
     pub el_only: bool,
 }

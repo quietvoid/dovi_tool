@@ -24,47 +24,47 @@ pub use mux::MuxArgs;
 
 #[derive(Parser, Debug)]
 pub enum Command {
-    #[clap(about = "Converts RPU within a single layer HEVC file")]
+    #[command(about = "Converts RPU within a single layer HEVC file")]
     Convert(ConvertArgs),
 
-    #[clap(
+    #[command(
         about = "Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files"
     )]
     Demux(DemuxArgs),
 
-    #[clap(about = "Edits a binary RPU according to a JSON config")]
+    #[command(about = "Edits a binary RPU according to a JSON config")]
     Editor(EditorArgs),
 
-    #[clap(about = "Exports a binary RPU file to JSON for simpler analysis")]
+    #[command(about = "Exports a binary RPU file to JSON for simpler analysis")]
     Export(ExportArgs),
 
-    #[clap(about = "Extracts Dolby Vision RPU from an HEVC file")]
+    #[command(about = "Extracts Dolby Vision RPU from an HEVC file")]
     ExtractRpu(ExtractRpuArgs),
 
-    #[clap(about = "Interleaves RPU NAL units between slices in an HEVC encoded bitstream")]
+    #[command(about = "Interleaves RPU NAL units between slices in an HEVC encoded bitstream")]
     InjectRpu(InjectRpuArgs),
 
-    #[clap(about = "Generates a binary RPU from different sources")]
+    #[command(about = "Generates a binary RPU from different sources")]
     Generate(GenerateArgs),
 
-    #[clap(about = "Prints the parsed RPU data as JSON for a specific frame")]
+    #[command(about = "Prints the parsed RPU data as JSON for a specific frame")]
     Info(InfoArgs),
 
-    #[clap(about = "Interleaves the enhancement layer into a base layer HEVC bitstream")]
+    #[command(about = "Interleaves the enhancement layer into a base layer HEVC bitstream")]
     Mux(MuxArgs),
 }
 
 #[derive(clap::ValueEnum, Debug, Copy, Clone)]
 pub enum ConversionModeCli {
-    #[clap(name = "0")]
+    #[value(name = "0")]
     Lossless = 0,
-    #[clap(name = "1")]
+    #[value(name = "1")]
     ToMel,
-    #[clap(name = "2")]
+    #[value(name = "2")]
     To81,
-    #[clap(name = "3")]
+    #[value(name = "3")]
     Profile5To81,
-    #[clap(name = "4")]
+    #[value(name = "4")]
     To84,
 }
 

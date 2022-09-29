@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct MuxArgs {
-    #[clap(
-        name = "bl",
+    #[arg(
+        id = "bl",
         long,
         short = 'b',
         help = "Sets the base layer HEVC file to use",
@@ -12,8 +12,8 @@ pub struct MuxArgs {
     )]
     pub bl: PathBuf,
 
-    #[clap(
-        name = "el",
+    #[arg(
+        id = "el",
         long,
         short = 'e',
         help = "Sets the input enhancement layer HEVC file to use",
@@ -21,7 +21,7 @@ pub struct MuxArgs {
     )]
     pub el: PathBuf,
 
-    #[clap(
+    #[arg(
         long,
         short = 'o',
         help = "Output BL+EL+RPU HEVC file location",
@@ -29,16 +29,11 @@ pub struct MuxArgs {
     )]
     pub output: Option<PathBuf>,
 
-    #[clap(
-        long,
-        takes_value = false,
-        help = "Disable adding AUD NALUs between frames"
-    )]
+    #[arg(long, num_args = 0, help = "Disable adding AUD NALUs between frames")]
     pub no_add_aud: bool,
 
-    #[clap(
+    #[arg(
         long,
-        takes_value = false,
         help = "Write the EOS/EOB NALUs before the EL. Defaults to false. See --help for more info",
         long_help = "Write the EOS/EOB NALUs before the EL. Defaults to false.\n\
                      In the case of the last frame containing EOS/EOB NALUs, they are written after the EL by default.\n\n\
@@ -47,7 +42,7 @@ pub struct MuxArgs {
     )]
     pub eos_before_el: bool,
 
-    #[clap(
+    #[arg(
         short = 'd',
         long,
         help = "Discard the EL video NALUs, keeping only the RPU"
