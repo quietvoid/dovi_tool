@@ -529,7 +529,7 @@ impl CmXmlParser {
     /// Parse every target display to create L10 metadata if they use custom primaries
     fn parse_global_level10_targets(&mut self) -> Result<()> {
         for (id, target) in &self.target_displays {
-            let index = self.find_primary_index(&target.primaries, false)?;
+            let index = Self::find_primary_index(&target.primaries, false)?;
 
             let length = if index == 255 { 21 } else { 5 };
 
@@ -862,10 +862,10 @@ impl CmXmlParser {
         })
     }
 
-    fn find_primary_index(&self, primaries: &[f64; 8], check_realdevice: bool) -> Result<u8> {
+    fn find_primary_index(primaries: &[f64; 8], check_realdevice: bool) -> Result<u8> {
         // Check PREDEFINED_COLORSPACE_PRIMARIES anyway
         if check_realdevice {
-            let primary_index = self.find_primary_index(primaries, false)?;
+            let primary_index = Self::find_primary_index(primaries, false)?;
             if primary_index < 255 {
                 return Ok(primary_index);
             }
@@ -918,7 +918,7 @@ impl CmXmlParser {
 
         let primaries = primaries.try_into().unwrap();
 
-        let index = self.find_primary_index(&primaries, true)?;
+        let index = Self::find_primary_index(&primaries, true)?;
 
         let length = if index == 255 { 17 } else { 1 };
 

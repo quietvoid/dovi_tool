@@ -9,21 +9,21 @@ build = "build.rs"
 
 [dependencies]
 bitvec_helpers = "2.0.0"
-hevc_parser = { version = "0.5.1", features = ["hevc_io"] }
+hevc_parser = { version = "0.5.2", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = "1.0.1"
 
-anyhow = "1.0.65"
-clap = { version = "4.0.4", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.66"
+clap = { version = "4.0.18", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.17.1"
 regex = "1.6.0"
 bitvec = "1.0.1"
-serde = { version = "1.0.145", features = ["derive"] }
-serde_json = { version = "1.0.85", features = ["preserve_order"] }
+serde = { version = "1.0.147", features = ["derive"] }
+serde_json = { version = "1.0.87", features = ["preserve_order"] }
 itertools = "0.10.5"
 
 [dev-dependencies]
-assert_cmd = "2.0.4"
+assert_cmd = "2.0.5"
 assert_fs = "1.0.7"
 predicates = "2.1.1"
 

@@ -477,7 +477,7 @@ impl DoviRpu {
         self.header.num_pivots_minus_2 = [0, 0, 0];
         self.header.pred_pivot_value.iter_mut().for_each(|v| {
             v.clear();
-            v.extend(&[0, 1023]);
+            v.extend([0, 1023]);
         });
 
         if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
