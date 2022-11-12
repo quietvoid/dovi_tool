@@ -394,6 +394,18 @@ impl VdrDmData {
         }
     }
 
+    /// Clones every block to replace
+    pub fn replace_metadata_blocks<'a, I>(&mut self, blocks: I) -> Result<()>
+    where
+        I: Iterator<Item = &'a ExtMetadataBlock>,
+    {
+        for block in blocks {
+            self.replace_metadata_block(block.clone())?;
+        }
+
+        Ok(())
+    }
+
     pub fn set_p81_coeffs(&mut self) {
         self.ycc_to_rgb_coef0 = 9574;
         self.ycc_to_rgb_coef1 = 0;

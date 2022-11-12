@@ -14,18 +14,18 @@ dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = "1.0.1"
 
 anyhow = "1.0.66"
-clap = { version = "4.0.18", features = ["derive", "wrap_help", "deprecated"] }
-indicatif = "0.17.1"
-regex = "1.6.0"
+clap = { version = "4.0.23", features = ["derive", "wrap_help", "deprecated"] }
+indicatif = "0.17.2"
+regex = "1.7.0"
 bitvec = "1.0.1"
 serde = { version = "1.0.147", features = ["derive"] }
 serde_json = { version = "1.0.87", features = ["preserve_order"] }
 itertools = "0.10.5"
 
 [dev-dependencies]
-assert_cmd = "2.0.5"
-assert_fs = "1.0.7"
-predicates = "2.1.1"
+assert_cmd = "2.0.6"
+assert_fs = "1.0.9"
+predicates = "2.1.2"
 
 [build-dependencies]
 vergen = { version = "7.4.2", default-features = false, features = ["build", "git", "cargo"] }

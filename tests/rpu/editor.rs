@@ -270,3 +270,32 @@ fn add_l9_l11() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn source_rpu() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_rpu = Path::new("assets/tests/fel_orig.bin");
+    let edit_config = Path::new("assets/editor_examples/source_rpu.json");
+
+    let output_rpu = temp.child("RPU.bin");
+    let expected_rpu = Path::new("assets/tests/source_rpu_replaced_fel_orig.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_rpu)
+        .arg("--json")
+        .arg(edit_config)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_rpu));
+
+    Ok(())
+}

@@ -1,0 +1,4 @@
+{
+	"source_rpu": "assets/tests/cmv40_full_rpu.bin",
+	"rpu_levels": [1, 4, 6]
+}

@@ -60,6 +60,11 @@ pub struct EditConfig {
     level11: Option<ExtMetadataBlockLevel11>,
     #[serde(skip_serializing_if = "Option::is_none")]
     level255: Option<ExtMetadataBlockLevel255>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_rpu: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rpu_levels: Option<Vec<u8>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -211,6 +216,11 @@ impl EditConfig {
         // Specific ranges only, requires complete list
         if let Some(active_area) = &self.active_area {
             active_area.execute(rpus)?;
+        }
+
+        if let Some(source_rpu_path) = &self.source_rpu {
+            let source_rpus = parse_rpu_file(source_rpu_path)?;
+            self.replace_from_rpus(rpus, &source_rpus)?;
         }
 
         Ok(())
@@ -446,6 +456,28 @@ impl EditConfig {
 
         if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level255(level255.clone()))?;
+        }
+
+        Ok(())
+    }
+
+    fn replace_from_rpus(
+        &self,
+        rpus: &mut [Option<DoviRpu>],
+        source_rpus: &Vec<DoviRpu>,
+    ) -> Result<()> {
+        println!("Replacing metadata levels from second RPU...");
+        ensure!(rpus.len() == source_rpus.len());
+
+        let zip_iter = rpus.iter_mut().filter_map(|e| e.as_mut()).zip(source_rpus);
+
+        let levels = self
+            .rpu_levels
+            .as_ref()
+            .expect("Levels to replace must be present");
+
+        for (dst_rpu, src_rpu) in zip_iter {
+            dst_rpu.replace_levels_from_rpu(src_rpu, levels)?;
         }
 
         Ok(())

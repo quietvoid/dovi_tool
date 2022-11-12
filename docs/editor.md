@@ -6,6 +6,7 @@ When doing HEVC operations, some capabilities are not supported:
 - Editing the active area for specific ranges of frames. Only `"all"` edit is supported.
 - Removing or duplicating RPUs.
 - Editing scene cuts.
+- Replacing metadata from a second RPU file.
 
 &nbsp;
 
@@ -120,6 +121,16 @@ The editor expects a JSON config like the example below:
     },
 
     // Level 255 extension block structure
-    "level255": ExtMetadataBlockLevel255
+    "level255": ExtMetadataBlockLevel255,
+
+    // Source RPU file to use metadata from
+    // The RPUs must have the same length, after the `remove` pass.
+    //
+    // Path must be absolute.
+    "source_rpu": string,
+
+    // Levels to replace using metadata from `source_rpu`
+    // List of integers representing block levels
+    "rpu_levels": int[],
 }
 ```

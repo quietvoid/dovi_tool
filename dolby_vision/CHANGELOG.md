@@ -1,5 +1,8 @@
 ## ??
 
+## 2.0.1
+- Added `replace_levels_from_rpu` function to `DoviRpu`.
+
 ## 2.0.0
 - Modified `extension_metadata::blocks` parsing functions to return a `Result`.
 

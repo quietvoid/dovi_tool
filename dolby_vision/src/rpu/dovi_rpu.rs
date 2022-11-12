@@ -546,4 +546,21 @@ impl DoviRpu {
 
         Ok(())
     }
+
+    pub fn replace_levels_from_rpu(&mut self, src_rpu: &Self, levels: &Vec<u8>) -> Result<()> {
+        ensure!(!levels.is_empty(), "Must have levels to replace");
+
+        if let (Some(dst_vdr_dm_data), Some(src_vdr_dm_data)) =
+            (self.vdr_dm_data.as_mut(), src_rpu.vdr_dm_data.as_ref())
+        {
+            self.modified = true;
+
+            for level in levels {
+                dst_vdr_dm_data
+                    .replace_metadata_blocks(src_vdr_dm_data.level_blocks_iter(*level))?;
+            }
+        }
+
+        Ok(())
+    }
 }

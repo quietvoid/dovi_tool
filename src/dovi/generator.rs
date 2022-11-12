@@ -84,6 +84,8 @@ impl Generator {
     pub fn execute(&mut self) -> Result<()> {
         let mut config = if let Some(json_path) = &self.json_path {
             let json_file = File::open(json_path)?;
+
+            println!("Reading generator config file...");
             let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
 
             if let Some(hdr10plus_path) = &self.hdr10plus_path {
