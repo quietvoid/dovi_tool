@@ -27,6 +27,9 @@ A JSON config example:
     "source_min_pq": int,
     "source_max_pq": int,
 
+    // CM version to override the minimum L1 `avg_pq`
+    "l1_avg_pq_cm_version": string,
+
     // L5 metadata, optional.
     // If not specified, L5 metadata is added with 0 offsets.
     "level5": {

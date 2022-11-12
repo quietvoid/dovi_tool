@@ -2,6 +2,9 @@
 
 ## 2.0.1
 - Added `replace_levels_from_rpu` function to `DoviRpu`.
+- Added `l1_avg_pq_cm_version` to `GenerateConfig`.
+    - Allows overriding the minimum L1 `avg_pq` CM version.
+    - Example use case: Some grades are done in `CM v4.0` but distributed as `CM v2.9` RPU.
 
 ## 2.0.0
 - Modified `extension_metadata::blocks` parsing functions to return a `Result`.

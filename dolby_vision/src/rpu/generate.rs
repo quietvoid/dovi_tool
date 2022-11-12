@@ -49,6 +49,10 @@ pub struct GenerateConfig {
     #[cfg_attr(feature = "serde_feature", serde(default))]
     pub source_max_pq: Option<u16>,
 
+    /// CM version to override the minimum L1 `avg_pq`
+    #[cfg_attr(feature = "serde_feature", serde(default))]
+    pub l1_avg_pq_cm_version: Option<CmVersion>,
+
     /// Active area offsets.
     /// Defaults to zero offsets, should be present in RPU
     #[cfg_attr(feature = "serde_feature", serde(default))]
@@ -222,7 +226,7 @@ impl GenerateConfig {
     pub fn fixup_l1(&mut self) {
         let clamp_l1 = |block: &mut ExtMetadataBlock| {
             if let ExtMetadataBlock::Level1(l1) = block {
-                l1.clamp_values_cm_version(self.cm_version);
+                l1.clamp_values_cm_version(self.l1_avg_pq_cm_version.unwrap_or(self.cm_version));
             }
         };
 
@@ -246,6 +250,7 @@ impl Default for GenerateConfig {
             long_play_mode: Default::default(),
             source_min_pq: Default::default(),
             source_max_pq: Default::default(),
+            l1_avg_pq_cm_version: Default::default(),
             default_metadata_blocks: Default::default(),
             level5: Default::default(),
             level6: Some(ExtMetadataBlockLevel6 {

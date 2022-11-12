@@ -85,8 +85,11 @@ impl Generator {
         let mut config = if let Some(json_path) = &self.json_path {
             let json_file = File::open(json_path)?;
 
-            println!("Reading generator config file...");
+            println!("Reading generate config file...");
             let mut config: GenerateConfig = serde_json::from_reader(&json_file)?;
+
+            // Set default to the config's CM version if it wasn't specified
+            config.l1_avg_pq_cm_version.get_or_insert(config.cm_version);
 
             if let Some(hdr10plus_path) = &self.hdr10plus_path {
                 parse_hdr10plus_for_l1(hdr10plus_path, &mut config)?;
@@ -241,7 +244,7 @@ fn parse_hdr10plus_for_l1<P: AsRef<Path>>(
                                 min_pq,
                                 max_pq,
                                 avg_pq,
-                                config.cm_version,
+                                config.l1_avg_pq_cm_version.unwrap(),
                             ),
                         )],
                         ..Default::default()
@@ -302,7 +305,7 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
                     min_pq,
                     max_pq,
                     avg_pq,
-                    config.cm_version,
+                    config.l1_avg_pq_cm_version.unwrap(),
                 ),
             )],
             ..Default::default()
@@ -326,7 +329,7 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
                             min_pq,
                             max_pq,
                             avg_pq,
-                            config.cm_version,
+                            config.l1_avg_pq_cm_version.unwrap(),
                         ),
                     )],
                 };
