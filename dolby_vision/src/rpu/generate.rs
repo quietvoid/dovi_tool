@@ -352,7 +352,7 @@ mod tests {
             canvas_width: Some(3840),
             canvas_height: Some(2160),
         };
-        let parser = CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
+        let parser = CmXmlParser::parse_file(assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
 
         let config = parser.config;
         assert_eq!(config.cm_version, CmVersion::V40);

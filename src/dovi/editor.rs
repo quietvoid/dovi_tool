@@ -432,7 +432,7 @@ impl EditConfig {
         for edit in edits {
             let (start, end) = EditConfig::range_string_to_tuple(edit.0)?;
 
-            if end as usize > rpus.len() {
+            if end > rpus.len() {
                 bail!("Invalid range: {} > {} available RPUs", end, rpus.len());
             }
 
@@ -533,7 +533,7 @@ impl ActiveArea {
                 let (start, end) = EditConfig::range_string_to_tuple(edit.0)?;
                 let preset_id = *edit.1;
 
-                if end as usize > rpus.len() {
+                if end > rpus.len() {
                     bail!("Invalid range: {} > {} available RPUs", end, rpus.len());
                 }
 

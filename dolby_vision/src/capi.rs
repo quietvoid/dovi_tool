@@ -21,7 +21,7 @@ use super::c_structs::*;
 pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     assert!(!buf.is_null());
 
-    let data = slice::from_raw_parts(buf, len as usize);
+    let data = slice::from_raw_parts(buf, len);
     let res = DoviRpu::parse_rpu(data);
 
     Box::into_raw(Box::new(RpuOpaque::from(res)))
@@ -36,7 +36,7 @@ pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut Rpu
 pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     assert!(!buf.is_null());
 
-    let data = slice::from_raw_parts(buf, len as usize);
+    let data = slice::from_raw_parts(buf, len);
     let res = DoviRpu::parse_unspec62_nalu(data);
 
     Box::into_raw(Box::new(RpuOpaque::from(res)))

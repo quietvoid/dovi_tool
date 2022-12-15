@@ -79,10 +79,8 @@ impl Muxer {
 
         let chunk_size = 100_000;
 
-        let writer = BufWriter::with_capacity(
-            chunk_size,
-            File::create(&output).expect("Can't create file"),
-        );
+        let writer =
+            BufWriter::with_capacity(chunk_size, File::create(output).expect("Can't create file"));
 
         let el_file = File::open(&el)?;
         let el_reader = Box::new(BufReader::with_capacity(chunk_size, el_file));

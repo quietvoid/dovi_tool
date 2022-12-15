@@ -174,8 +174,8 @@ impl Level2BlockList {
     pub unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const ExtMetadataBlockLevel2,
-            self.len as usize,
-            self.len as usize,
+            self.len,
+            self.len,
         );
 
         for data_ptr in list {
@@ -189,8 +189,8 @@ impl Level8BlockList {
     pub unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const ExtMetadataBlockLevel8,
-            self.len as usize,
-            self.len as usize,
+            self.len,
+            self.len,
         );
 
         for data_ptr in list {
@@ -204,8 +204,8 @@ impl Level10BlockList {
     pub unsafe fn free(&self) {
         let list = Vec::from_raw_parts(
             self.list as *mut *const ExtMetadataBlockLevel10,
-            self.len as usize,
-            self.len as usize,
+            self.len,
+            self.len,
         );
 
         for data_ptr in list {

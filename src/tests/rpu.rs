@@ -51,7 +51,7 @@ fn _debug(data: &[u8]) -> Result<()> {
 
 fn _debug_generate(config: &GenerateConfig) -> Result<()> {
     let path = PathBuf::from("test.bin");
-    config.write_rpus(&path)?;
+    config.write_rpus(path)?;
 
     Ok(())
 }
@@ -267,7 +267,7 @@ fn sets_offsets_to_zero() -> Result<()> {
 fn profile8_001_end_crc32() -> Result<()> {
     use dolby_vision::rpu::utils::parse_rpu_file;
 
-    let rpus = parse_rpu_file(&PathBuf::from("./assets/tests/p8_001_end_crc32.bin"))?;
+    let rpus = parse_rpu_file(PathBuf::from("./assets/tests/p8_001_end_crc32.bin"))?;
     assert_eq!(rpus.len(), 3);
 
     let dovi_rpu = &rpus[0];

@@ -20,7 +20,7 @@ fn parse_cmv2_9() -> Result<()> {
         canvas_width: Some(3840),
         canvas_height: Some(2160),
     };
-    let parser = CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv2_9.xml"), opts)?;
+    let parser = CmXmlParser::parse_file(assets_path.join("assets/tests/cmv2_9.xml"), opts)?;
 
     let config = parser.config;
 
@@ -66,7 +66,7 @@ fn parse_cmv4_0_2() -> Result<()> {
     let assets_path = lib_path.parent().unwrap();
 
     let opts = XmlParserOpts::default();
-    let parser = CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
+    let parser = CmXmlParser::parse_file(assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
 
     let config = parser.config;
 
@@ -140,7 +140,7 @@ fn parse_cmv4_0_2_with_l5() -> Result<()> {
         canvas_height: Some(2160),
     };
 
-    let parser = CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
+    let parser = CmXmlParser::parse_file(assets_path.join("assets/tests/cmv4_0_2.xml"), opts)?;
 
     let config = parser.config;
 
@@ -159,7 +159,7 @@ fn parse_cmv4_0_2_custom_displays() -> Result<()> {
 
     let opts = XmlParserOpts::default();
     let parser = CmXmlParser::parse_file(
-        &assets_path.join("assets/tests/cmv4_0_2_custom_displays.xml"),
+        assets_path.join("assets/tests/cmv4_0_2_custom_displays.xml"),
         opts,
     )?;
 
@@ -255,7 +255,7 @@ fn parse_cmv4_2_xml_510() -> Result<()> {
 
     let opts = XmlParserOpts::default();
     let parser =
-        CmXmlParser::parse_file(&assets_path.join("assets/tests/cmv4_2_xml_510.xml"), opts)?;
+        CmXmlParser::parse_file(assets_path.join("assets/tests/cmv4_2_xml_510.xml"), opts)?;
 
     // Only HOME targets
     assert_eq!(parser.target_displays.len(), 3);
