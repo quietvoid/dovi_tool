@@ -194,13 +194,11 @@ impl RpuInjector {
         };
 
         if let Some(rpu_nb) = rpu_nb {
-            let insert_index = frame_buffer.nals.iter().rposition(|nb| {
-                let not_eos_eob = !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT);
-                let is_el_nalu = matches!(nb.nal_type, NAL_UNSPEC63);
-                let is_slice = NALUnit::is_type_slice(nb.nal_type);
-
-                not_eos_eob && (is_slice || is_el_nalu)
-            });
+            // Insert after the last NALU that isn't EOS/EOB
+            let insert_index = frame_buffer
+                .nals
+                .iter()
+                .rposition(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT));
 
             if let Some(idx) = insert_index {
                 // + 1 since we want the RPU after

@@ -206,3 +206,65 @@ fn duplicated_end() -> Result<()> {
 
     Ok(())
 }
+
+// Makes sure the injected RPU NALU is placed after SEI_SUFFIX NALUs
+#[test]
+fn sei_suffix_before_rpu() -> Result<()> {
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/sei-suffix-muxed-rpu.hevc");
+
+    // Demux
+    let output_bl = temp.child("BL.hevc");
+    let output_el = temp.child("EL.hevc");
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let assert = cmd
+        .arg("demux")
+        .arg(input_file)
+        .arg("--bl-out")
+        .arg(output_bl.as_ref())
+        .arg("--el-out")
+        .arg(output_el.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_bl.assert(predicate::path::is_file());
+    output_el.assert(predicate::path::is_file());
+
+    // Extract RPU
+    let output_rpu = temp.child("RPU.bin");
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let assert = cmd
+        .arg("extract-rpu")
+        .arg(input_file)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+    output_rpu.assert(predicate::path::is_file());
+
+    // Reinject
+    let output_file = temp.child("injected_output.hevc");
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(output_bl.as_ref())
+        .arg("--rpu-in")
+        .arg(output_rpu.as_ref())
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_file
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(input_file));
+
+    Ok(())
+}
