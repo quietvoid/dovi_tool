@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub enum DmData {
 }
 
 pub trait ExtMetadata {
-    fn parse(&mut self, reader: &mut BitVecReader) -> Result<()>;
+    fn parse(&mut self, reader: &mut BitSliceReader) -> Result<()>;
     fn write(&self, writer: &mut BitVecWriter);
 }
 
@@ -36,7 +36,7 @@ pub trait WithExtMetadataBlocks {
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64);
     fn num_ext_blocks(&self) -> u64;
 
-    fn parse_block(&mut self, reader: &mut BitVecReader) -> Result<()>;
+    fn parse_block(&mut self, reader: &mut BitSliceReader) -> Result<()>;
     fn blocks_ref(&self) -> &Vec<ExtMetadataBlock>;
     fn blocks_mut(&mut self) -> &mut Vec<ExtMetadataBlock>;
 
@@ -105,8 +105,8 @@ pub trait WithExtMetadataBlocks {
 }
 
 impl DmData {
-    pub fn parse<T: WithExtMetadataBlocks + Default>(
-        reader: &mut BitVecReader,
+    pub(crate) fn parse<T: WithExtMetadataBlocks + Default>(
+        reader: &mut BitSliceReader,
     ) -> Result<Option<T>> {
         let mut meta = T::default();
         let num_ext_blocks = reader.get_ue()?;

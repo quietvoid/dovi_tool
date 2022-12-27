@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
@@ -44,14 +44,14 @@ pub struct RpuDataHeader {
     pub num_y_partitions_minus1: u64,
 }
 
-pub fn rpu_data_header(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+pub(crate) fn rpu_data_header(dovi_rpu: &mut DoviRpu, reader: &mut BitSliceReader) -> Result<()> {
     dovi_rpu.header = RpuDataHeader::parse(reader)?;
 
     Ok(())
 }
 
 impl RpuDataHeader {
-    pub fn parse(reader: &mut BitVecReader) -> Result<RpuDataHeader> {
+    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<RpuDataHeader> {
         let mut rpu_nal = RpuDataHeader {
             rpu_nal_prefix: reader.get_n(8)?,
             ..Default::default()

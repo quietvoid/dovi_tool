@@ -1,6 +1,6 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
@@ -131,7 +131,7 @@ impl DoviRpu {
             bail!("Invalid RPU last byte: {}", last_byte);
         }
 
-        let mut dovi_rpu = DoviRpu::read_rpu_data(data.to_owned(), trailing_bytes)?;
+        let mut dovi_rpu = DoviRpu::read_rpu_data(data, trailing_bytes)?;
 
         if received_crc32 != dovi_rpu.rpu_data_crc32 {
             bail!(
@@ -148,8 +148,8 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    fn read_rpu_data(bytes: Vec<u8>, trailing_bytes: Vec<u8>) -> Result<DoviRpu> {
-        let mut reader = BitVecReader::new(bytes);
+    fn read_rpu_data(bytes: &[u8], trailing_bytes: Vec<u8>) -> Result<DoviRpu> {
+        let mut reader = BitSliceReader::new(bytes);
         let mut dovi_rpu = DoviRpu {
             trailing_bytes,
             ..Default::default()

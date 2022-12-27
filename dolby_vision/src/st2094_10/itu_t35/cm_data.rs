@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bitvec_helpers::bitvec_reader::BitVecReader;
+use bitvec_helpers::bitslice_reader::BitSliceReader;
 
 use super::UserDataTypeStruct;
 
@@ -38,7 +38,7 @@ pub struct ST2094_10CmData {
 }
 
 impl ST2094_10CmData {
-    pub fn parse(reader: &mut BitVecReader) -> Result<UserDataTypeStruct> {
+    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10CmData {
             ccm_profile: reader.get_n(4)?,
             ccm_level: reader.get_n(4)?,

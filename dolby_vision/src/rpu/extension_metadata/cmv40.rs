@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::bitvec_reader::BitVecReader;
+use bitvec_helpers::bitslice_reader::BitSliceReader;
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ impl WithExtMetadataBlocks for CmV40DmData {
         self.ext_metadata_blocks.as_mut()
     }
 
-    fn parse_block(&mut self, reader: &mut BitVecReader) -> Result<()> {
+    fn parse_block(&mut self, reader: &mut BitSliceReader) -> Result<()> {
         let ext_block_length = reader.get_ue()?;
         let ext_block_level: u8 = reader.get_n(8)?;
 

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bitvec_helpers::bitvec_reader::BitVecReader;
+use bitvec_helpers::bitslice_reader::BitSliceReader;
 
 use crate::rpu::extension_metadata::{CmV29DmData, DmData};
 
@@ -14,7 +14,7 @@ pub struct ST2094_10DmData {
 }
 
 impl ST2094_10DmData {
-    pub fn parse(reader: &mut BitVecReader) -> Result<UserDataTypeStruct> {
+    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10DmData {
             app_identifier: reader.get_ue()?,
             app_version: reader.get_ue()?,

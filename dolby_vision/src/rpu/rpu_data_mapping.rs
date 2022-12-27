@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
@@ -31,7 +31,10 @@ pub struct RpuDataMapping {
     pub mmr_coef: [Vec<Vec<Vec<u64>>>; NUM_COMPONENTS],
 }
 
-pub fn vdr_rpu_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -> Result<()> {
+pub(crate) fn vdr_rpu_data_payload(
+    dovi_rpu: &mut DoviRpu,
+    reader: &mut BitSliceReader,
+) -> Result<()> {
     dovi_rpu.rpu_data_mapping = Some(RpuDataMapping::parse(reader, &mut dovi_rpu.header)?);
 
     if dovi_rpu.header.nlq_method_idc.is_some() {
@@ -42,7 +45,10 @@ pub fn vdr_rpu_data_payload(dovi_rpu: &mut DoviRpu, reader: &mut BitVecReader) -
 }
 
 impl RpuDataMapping {
-    pub fn parse(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<RpuDataMapping> {
+    pub(crate) fn parse(
+        reader: &mut BitSliceReader,
+        header: &mut RpuDataHeader,
+    ) -> Result<RpuDataMapping> {
         let mut data = RpuDataMapping::default();
 
         let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {

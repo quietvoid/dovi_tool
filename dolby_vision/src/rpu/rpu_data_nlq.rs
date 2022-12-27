@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
@@ -24,7 +24,10 @@ pub struct RpuDataNlq {
 }
 
 impl RpuDataNlq {
-    pub fn parse(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<RpuDataNlq> {
+    pub(crate) fn parse(
+        reader: &mut BitSliceReader,
+        header: &mut RpuDataHeader,
+    ) -> Result<RpuDataNlq> {
         let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
             nlq_num_pivots_minus2 as usize + 1
         } else {
