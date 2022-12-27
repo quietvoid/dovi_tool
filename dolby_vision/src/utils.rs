@@ -24,21 +24,23 @@ pub fn nits_to_pq(nits: f64) -> f64 {
 /// Unescapes a byte slice from annexb.
 /// Allocates a new Vec.
 pub fn clear_start_code_emulation_prevention_3_byte(data: &[u8]) -> Vec<u8> {
-    data.iter()
-        .enumerate()
-        .filter_map(|(index, value)| {
-            if index > 2
-                && index < data.len() - 2
-                && data[index - 2] == 0
-                && data[index - 1] == 0
-                && data[index] == 3
-            {
-                None
-            } else {
-                Some(*value)
-            }
-        })
-        .collect::<Vec<u8>>()
+    let mut unescaped_bytes: Vec<u8> = Vec::with_capacity(data.len());
+
+    let unescaped_bytes_iter = data.iter().enumerate().filter_map(|(index, value)| {
+        if index > 2
+            && index < data.len() - 2
+            && data[index - 2] == 0
+            && data[index - 1] == 0
+            && data[index] == 3
+        {
+            None
+        } else {
+            Some(*value)
+        }
+    });
+    unescaped_bytes.extend(unescaped_bytes_iter);
+
+    unescaped_bytes
 }
 
 /// Escapes the vec to annexb to avoid emulating a start code by accident
