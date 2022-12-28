@@ -105,6 +105,7 @@ impl RpuDataHeader {
                         rpu_nal.num_pivots_minus_2[cmp] = reader.get_ue()?;
 
                         let pivot_idx_count = (rpu_nal.num_pivots_minus_2[cmp] + 2) as usize;
+                        rpu_nal.pred_pivot_value[cmp] = Vec::with_capacity(pivot_idx_count);
                         rpu_nal.pred_pivot_value[cmp]
                             .resize_with(pivot_idx_count, Default::default);
 

@@ -18,6 +18,13 @@ impl WithExtMetadataBlocks for CmV29DmData {
     const VERSION: &'static str = "CM v2.9";
     const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[1, 2, 4, 5, 6, 255];
 
+    fn with_blocks_allocation(num_ext_blocks: u64) -> Self {
+        Self {
+            ext_metadata_blocks: Vec::with_capacity(num_ext_blocks as usize),
+            ..Default::default()
+        }
+    }
+
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64) {
         self.num_ext_blocks = num_ext_blocks;
     }

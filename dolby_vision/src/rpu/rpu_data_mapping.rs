@@ -64,8 +64,13 @@ impl RpuDataMapping {
         for cmp in 0..NUM_COMPONENTS {
             let pivot_idx_count = (header.num_pivots_minus_2[cmp] + 1) as usize;
 
+            data.mapping_idc[cmp] = Vec::with_capacity(pivot_idx_count);
             data.mapping_idc[cmp].resize_with(pivot_idx_count, Default::default);
+
+            data.num_mapping_param_predictors[cmp] = Vec::with_capacity(pivot_idx_count);
             data.num_mapping_param_predictors[cmp].resize_with(pivot_idx_count, Default::default);
+
+            data.mapping_param_pred_flag[cmp] = Vec::with_capacity(pivot_idx_count);
             data.mapping_param_pred_flag[cmp].resize_with(pivot_idx_count, Default::default);
 
             for pivot_idx in 0..pivot_idx_count {
@@ -84,6 +89,7 @@ impl RpuDataMapping {
                     // MAPPING_POLYNOMIAL
                     if data.mapping_idc[cmp][pivot_idx] == 0 {
                         if data.poly_order_minus1[cmp].is_empty() {
+                            data.poly_order_minus1[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.poly_order_minus1[cmp]
                                 .resize_with(pivot_idx_count, Default::default);
                         }
@@ -92,6 +98,7 @@ impl RpuDataMapping {
 
                         if data.poly_order_minus1[cmp][pivot_idx] == 0 {
                             if data.linear_interp_flag[cmp].is_empty() {
+                                data.linear_interp_flag[cmp] = Vec::with_capacity(pivot_idx_count);
                                 data.linear_interp_flag[cmp]
                                     .resize_with(pivot_idx_count, Default::default);
                             }
@@ -104,8 +111,13 @@ impl RpuDataMapping {
                             && data.linear_interp_flag[cmp][pivot_idx]
                         {
                             if data.pred_linear_interp_value[cmp].is_empty() {
+                                data.pred_linear_interp_value_int[cmp] =
+                                    Vec::with_capacity(pivot_idx_count);
                                 data.pred_linear_interp_value_int[cmp]
                                     .resize_with(pivot_idx_count, Default::default);
+
+                                data.pred_linear_interp_value[cmp] =
+                                    Vec::with_capacity(pivot_idx_count);
                                 data.pred_linear_interp_value[cmp]
                                     .resize_with(pivot_idx_count, Default::default);
                             }
@@ -129,8 +141,11 @@ impl RpuDataMapping {
                             }
                         } else {
                             if data.poly_coef_int[cmp].is_empty() {
+                                data.poly_coef_int[cmp] = Vec::with_capacity(pivot_idx_count);
                                 data.poly_coef_int[cmp]
                                     .resize_with(pivot_idx_count, Default::default);
+
+                                data.poly_coef[cmp] = Vec::with_capacity(pivot_idx_count);
                                 data.poly_coef[cmp].resize_with(pivot_idx_count, Default::default);
                             }
 
@@ -152,12 +167,21 @@ impl RpuDataMapping {
                     } else if data.mapping_idc[cmp][pivot_idx] == 1 {
                         // MAPPING_MMR
                         if data.mmr_order_minus1[cmp].is_empty() {
+                            data.mmr_order_minus1[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.mmr_order_minus1[cmp]
                                 .resize_with(pivot_idx_count, Default::default);
+
+                            data.mmr_constant_int[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.mmr_constant_int[cmp]
                                 .resize_with(pivot_idx_count, Default::default);
+
+                            data.mmr_constant[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.mmr_constant[cmp].resize_with(pivot_idx_count, Default::default);
+
+                            data.mmr_coef_int[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.mmr_coef_int[cmp].resize_with(pivot_idx_count, Default::default);
+
+                            data.mmr_coef[cmp] = Vec::with_capacity(pivot_idx_count);
                             data.mmr_coef[cmp].resize_with(pivot_idx_count, Default::default);
                         }
 
@@ -190,6 +214,8 @@ impl RpuDataMapping {
                     }
                 } else if data.num_mapping_param_predictors[cmp][pivot_idx] > 1 {
                     if data.diff_pred_part_idx_mapping_minus1[cmp].is_empty() {
+                        data.diff_pred_part_idx_mapping_minus1[cmp] =
+                            Vec::with_capacity(pivot_idx_count);
                         data.diff_pred_part_idx_mapping_minus1[cmp]
                             .resize_with(pivot_idx_count, Default::default);
                     }

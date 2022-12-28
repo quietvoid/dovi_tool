@@ -33,6 +33,8 @@ pub trait WithExtMetadataBlocks {
     const VERSION: &'static str;
     const ALLOWED_BLOCK_LEVELS: &'static [u8];
 
+    fn with_blocks_allocation(num_ext_blocks: u64) -> Self;
+
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64);
     fn num_ext_blocks(&self) -> u64;
 
@@ -108,8 +110,8 @@ impl DmData {
     pub(crate) fn parse<T: WithExtMetadataBlocks + Default>(
         reader: &mut BitSliceReader,
     ) -> Result<Option<T>> {
-        let mut meta = T::default();
         let num_ext_blocks = reader.get_ue()?;
+        let mut meta = T::with_blocks_allocation(num_ext_blocks);
 
         meta.set_num_ext_blocks(num_ext_blocks);
 
