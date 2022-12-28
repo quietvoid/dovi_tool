@@ -13,22 +13,22 @@ hevc_parser = { version = "0.5.2", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = "1.0.1"
 
-anyhow = "1.0.66"
-clap = { version = "4.0.23", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.68"
+clap = { version = "4.0.32", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.17.2"
 regex = "1.7.0"
 bitvec = "1.0.1"
-serde = { version = "1.0.147", features = ["derive"] }
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = { version = "1.0.91", features = ["preserve_order"] }
 itertools = "0.10.5"
 
 [dev-dependencies]
-assert_cmd = "2.0.6"
-assert_fs = "1.0.9"
-predicates = "2.1.2"
+assert_cmd = "2.0.7"
+assert_fs = "1.0.10"
+predicates = "2.1.4"
 
 [build-dependencies]
-vergen = { version = "7.4.2", default-features = false, features = ["build", "git", "cargo"] }
+vergen = { version = "7.4.4", default-features = false, features = ["build", "git", "cargo"] }
 
 [[bin]]
 name = "dovi_tool"
@@ -38,3 +38,7 @@ path = "src/main.rs"
 members = [
     "dolby_vision",
 ]
+
+[profile.dev]
+opt-level = 3
+debug = true
