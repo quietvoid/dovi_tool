@@ -13,7 +13,7 @@ const RPU_FILES: &[&str] = &[
     "fel_orig.bin",
     "mel_variable_l8_length13.bin",
     "cmv40_full_rpu.bin",
-    "unordered_l8_blocks.bin"
+    "unordered_l8_blocks.bin",
 ];
 
 fn get_bytes<P: AsRef<Path>>(path: P) -> Vec<u8> {
@@ -36,9 +36,7 @@ fn parse_single_unspec62_nalu_benchmark(c: &mut Criterion) {
     for file in RPU_FILES {
         let bytes = get_bytes(assets_path.join(file));
 
-        group.bench_function(*file, |b| {
-            b.iter(|| parse_single_unspec62_nalu(&bytes))
-        });
+        group.bench_function(*file, |b| b.iter(|| parse_single_unspec62_nalu(&bytes)));
     }
 }
 
