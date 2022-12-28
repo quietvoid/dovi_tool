@@ -38,7 +38,3 @@ path = "src/main.rs"
 members = [
     "dolby_vision",
 ]
-
-[profile.dev]
-opt-level = 3
-debug = true
