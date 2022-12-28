@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::Serialize;
@@ -24,14 +24,32 @@ pub struct RpuDataNlq {
 }
 
 impl RpuDataNlq {
-    pub fn parse(reader: &mut BitVecReader, header: &mut RpuDataHeader) -> Result<RpuDataNlq> {
+    fn with_allocated_vecs(pivot_count: usize) -> Self {
+        Self {
+            num_nlq_param_predictors: Vec::with_capacity(pivot_count),
+            nlq_param_pred_flag: Vec::with_capacity(pivot_count),
+            diff_pred_part_idx_nlq_minus1: Vec::with_capacity(pivot_count),
+            nlq_offset: Vec::with_capacity(pivot_count),
+            vdr_in_max_int: Vec::with_capacity(pivot_count),
+            vdr_in_max: Vec::with_capacity(pivot_count),
+            linear_deadzone_slope_int: Vec::with_capacity(pivot_count),
+            linear_deadzone_slope: Vec::with_capacity(pivot_count),
+            linear_deadzone_threshold_int: Vec::with_capacity(pivot_count),
+            linear_deadzone_threshold: Vec::with_capacity(pivot_count),
+        }
+    }
+
+    pub(crate) fn parse(
+        reader: &mut BitSliceReader,
+        header: &mut RpuDataHeader,
+    ) -> Result<RpuDataNlq> {
         let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
             nlq_num_pivots_minus2 as usize + 1
         } else {
             bail!("Shouldn't be in NLQ if not profile 7!");
         };
 
-        let mut data = RpuDataNlq::default();
+        let mut data = RpuDataNlq::with_allocated_vecs(pivot_idx_count);
 
         let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
             header.coefficient_log2_denom as usize

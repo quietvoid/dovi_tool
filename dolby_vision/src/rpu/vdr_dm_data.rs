@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -78,9 +78,9 @@ pub enum CmVersion {
     V40,
 }
 
-pub fn vdr_dm_data_payload(
+pub(crate) fn vdr_dm_data_payload(
     dovi_rpu: &mut DoviRpu,
-    reader: &mut BitVecReader,
+    reader: &mut BitSliceReader,
     final_length: usize,
 ) -> Result<()> {
     let compressed_dm_data = dovi_rpu.header.reserved_zero_3bits == 1;
@@ -115,7 +115,7 @@ pub fn vdr_dm_data_payload(
 }
 
 impl VdrDmData {
-    pub fn parse(reader: &mut BitVecReader) -> Result<VdrDmData> {
+    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<VdrDmData> {
         let data = VdrDmData {
             affected_dm_metadata_id: reader.get_ue()?,
             current_dm_metadata_id: reader.get_ue()?,

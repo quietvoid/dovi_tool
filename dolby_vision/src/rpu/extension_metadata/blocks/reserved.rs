@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 
 use bitvec::{order::Msb0, prelude::BitVec};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -22,10 +22,10 @@ pub struct ReservedExtMetadataBlock {
 }
 
 impl ReservedExtMetadataBlock {
-    pub fn parse(
+    pub(crate) fn parse(
         ext_block_length: u64,
         ext_block_level: u8,
-        reader: &mut BitVecReader,
+        reader: &mut BitSliceReader,
     ) -> Result<ExtMetadataBlock> {
         let bits = 8 * ext_block_length;
         let mut data = BitVec::new();

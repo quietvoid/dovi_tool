@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{Deserialize, Serialize};
@@ -191,9 +191,9 @@ impl ExtMetadataBlock {
         Ok(())
     }
 
-    pub fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
+    pub(crate) fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
         &self,
-        reader: &mut BitVecReader,
+        reader: &mut BitSliceReader,
         block_length: u64,
     ) -> Result<()> {
         let level = self.level();

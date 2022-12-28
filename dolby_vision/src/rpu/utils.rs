@@ -43,7 +43,8 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
     let last = *offsets.last().unwrap();
     let mut warning_error = None;
 
-    let rpus: Vec<DoviRpu> = offsets
+    let mut rpus: Vec<DoviRpu> = Vec::with_capacity(count);
+    let parsed_rpus_iter = offsets
         .iter()
         .enumerate()
         .map(|(index, offset)| {
@@ -67,8 +68,8 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
             }
 
             res.ok()
-        })
-        .collect();
+        });
+    rpus.extend(parsed_rpus_iter);
 
     if count > 0 && rpus.len() == count {
         Ok(rpus)

@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitvec_reader::BitVecReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde_feature")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -55,7 +55,7 @@ pub struct ExtMetadataBlockLevel9 {
 }
 
 impl ExtMetadataBlockLevel9 {
-    pub fn parse(reader: &mut BitVecReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BitSliceReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
             source_primary_index: reader.get_n(8)?,
