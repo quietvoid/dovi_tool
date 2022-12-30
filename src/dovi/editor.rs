@@ -25,6 +25,7 @@ pub struct Editor {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct EditConfig {
     #[serde(default)]
     mode: u8,
@@ -68,6 +69,7 @@ pub struct EditConfig {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ActiveArea {
     #[serde(default)]
     crop: bool,
@@ -83,6 +85,7 @@ pub struct ActiveArea {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ActiveAreaOffsets {
     id: u16,
     left: u16,
@@ -92,6 +95,7 @@ pub struct ActiveAreaOffsets {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct DuplicateMetadata {
     source: usize,
     offset: usize,
