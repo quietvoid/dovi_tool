@@ -69,7 +69,7 @@ pub struct DoviRpu {
     pub rpu_data_crc32: u32,
 
     #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
-    pub trailing_bytes: Vec<u8>,
+    trailing_zeroes: usize,
 
     #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
     pub modified: bool,
@@ -111,15 +111,10 @@ impl DoviRpu {
 
     #[inline(always)]
     fn parse(data: &[u8]) -> Result<DoviRpu> {
-        let trailing_bytes: Vec<u8> = data
-            .iter()
-            .rev()
-            .take_while(|b| **b == 0)
-            .cloned()
-            .collect();
+        let trailing_zeroes = data.iter().rev().take_while(|b| **b == 0).count();
 
         // Ignore trailing bytes
-        let rpu_end = data.len() - trailing_bytes.len();
+        let rpu_end = data.len() - trailing_zeroes;
         let last_byte = data[rpu_end - 1];
 
         // Minus 4 bytes for the CRC32, 1 for the 0x80 ending byte
@@ -131,7 +126,7 @@ impl DoviRpu {
             bail!("Invalid RPU last byte: {}", last_byte);
         }
 
-        let mut dovi_rpu = DoviRpu::read_rpu_data(data, trailing_bytes)?;
+        let mut dovi_rpu = DoviRpu::read_rpu_data(data, trailing_zeroes)?;
 
         if received_crc32 != dovi_rpu.rpu_data_crc32 {
             bail!(
@@ -148,15 +143,15 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    fn read_rpu_data(bytes: &[u8], trailing_bytes: Vec<u8>) -> Result<DoviRpu> {
+    fn read_rpu_data(bytes: &[u8], trailing_zeroes: usize) -> Result<DoviRpu> {
         let mut reader = BitSliceReader::new(bytes);
         let mut dovi_rpu = DoviRpu {
-            trailing_bytes,
+            trailing_zeroes,
             ..Default::default()
         };
 
         // CRC32 + 0x80 + trailing
-        let final_length = (8 * 4) + 8 + (dovi_rpu.trailing_bytes.len() * 8);
+        let final_length = (8 * 4) + 8 + (trailing_zeroes * 8);
 
         rpu_data_header(&mut dovi_rpu, &mut reader)?;
 
@@ -256,10 +251,8 @@ impl DoviRpu {
         writer.write_n(&[0x80], 8);
 
         // Trailing bytes
-        if !self.trailing_bytes.is_empty() {
-            self.trailing_bytes
-                .iter()
-                .for_each(|b| writer.write_n(&[*b], 8));
+        if self.trailing_zeroes > 0 {
+            (0..self.trailing_zeroes).for_each(|_| writer.write_n(&[0], 8));
         }
 
         Ok(writer.as_slice().to_owned())
