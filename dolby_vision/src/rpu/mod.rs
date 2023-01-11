@@ -16,6 +16,8 @@ pub const NUM_COMPONENTS: usize = 3;
 pub const FEL_STR: &str = "FEL";
 pub const MEL_STR: &str = "MEL";
 
+static CRC32_INSTANCE: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConversionMode {
     Lossless = 0,
@@ -26,8 +28,7 @@ pub enum ConversionMode {
 
 #[inline(always)]
 fn compute_crc32(data: &[u8]) -> u32 {
-    let crc = Crc::<u32>::new(&CRC_32_MPEG_2);
-    let mut digest = crc.digest();
+    let mut digest = CRC32_INSTANCE.digest();
     digest.update(data);
 
     digest.finalize()

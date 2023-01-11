@@ -40,4 +40,4 @@ fn parse_single_unspec62_nalu_benchmark(c: &mut Criterion) {
     }
 }
 
-criterion_group!(rpus, parse_single_unspec62_nalu_benchmark);
+criterion_group!(parse_rpus, parse_single_unspec62_nalu_benchmark);
