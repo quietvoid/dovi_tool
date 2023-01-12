@@ -94,7 +94,7 @@ impl RpuInfo {
                 .filter(|rpu| {
                     rpu.vdr_dm_data
                         .as_ref()
-                        .and_then(|vdr| (vdr.scene_refresh_flag == 1).then(|| 1))
+                        .and_then(|vdr| (vdr.scene_refresh_flag == 1).then_some(1))
                         .is_some()
                 })
                 .count();
