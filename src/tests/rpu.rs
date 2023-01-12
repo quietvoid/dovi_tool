@@ -93,7 +93,7 @@ fn profile8() -> Result<()> {
 fn fel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    assert_eq!(dovi_rpu.subprofile.as_ref().unwrap(), FEL_STR);
+    assert_eq!(dovi_rpu.subprofile.unwrap(), FEL_STR);
 
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
@@ -106,7 +106,7 @@ fn fel() -> Result<()> {
 fn mel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    assert_eq!(dovi_rpu.subprofile.as_ref().unwrap(), MEL_STR);
+    assert_eq!(dovi_rpu.subprofile.unwrap(), MEL_STR);
 
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 

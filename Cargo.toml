@@ -8,7 +8,7 @@ license = "MIT"
 build = "build.rs"
 
 [dependencies]
-bitvec_helpers = "2.0.0"
+bitvec_helpers = "2.0.1"
 hevc_parser = { version = "0.5.2", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde_feature"] }
 madvr_parse = "1.0.1"

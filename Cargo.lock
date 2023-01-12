@@ -88,9 +88,9 @@ dependencies = [
 
 [[package]]
 name = "bitvec_helpers"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f3737c8719330551a609e76c47c15d4521161d252f73085ffac23ae9f6aa72e"
+checksum = "f9d96095002ea2928bc8f8b361db4e41fbed1c86601918efc55a2d0840bc9bf4"
 dependencies = [
  "anyhow",
  "bitvec",

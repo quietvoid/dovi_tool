@@ -36,7 +36,7 @@ pub struct DoviRpu {
         feature = "serde_feature",
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub subprofile: Option<String>,
+    pub subprofile: Option<&'static str>,
 
     pub header: RpuDataHeader,
 
@@ -73,6 +73,9 @@ pub struct DoviRpu {
 
     #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
     pub modified: bool,
+
+    #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
+    original_payload_size: usize,
 }
 
 impl DoviRpu {
@@ -147,6 +150,7 @@ impl DoviRpu {
         let mut reader = BitSliceReader::new(bytes);
         let mut dovi_rpu = DoviRpu {
             trailing_zeroes,
+            original_payload_size: bytes.len(),
             ..Default::default()
         };
 
@@ -211,7 +215,7 @@ impl DoviRpu {
 
     #[inline(always)]
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
-        let mut writer = BitVecWriter::new();
+        let mut writer = BitVecWriter::with_capacity(self.original_payload_size);
 
         self.validate()?;
 
@@ -288,14 +292,10 @@ impl DoviRpu {
         Ok(())
     }
 
-    fn get_dovi_subprofile(&self) -> Option<String> {
+    fn get_dovi_subprofile(&self) -> Option<&'static str> {
         if self.dovi_profile == 7 {
             if let Some(nlq) = &self.rpu_data_nlq {
-                let subprofile = if nlq.is_mel() {
-                    String::from(MEL_STR)
-                } else {
-                    String::from(FEL_STR)
-                };
+                let subprofile = if nlq.is_mel() { MEL_STR } else { FEL_STR };
 
                 return Some(subprofile);
             }
