@@ -16,19 +16,19 @@ madvr_parse = "1.0.1"
 anyhow = "1.0.68"
 clap = { version = "4.0.32", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.17.2"
-regex = "1.7.0"
+regex = "1.7.1"
 bitvec = "1.0.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
 itertools = "0.10.5"
 
 [dev-dependencies]
-assert_cmd = "2.0.7"
+assert_cmd = "2.0.8"
 assert_fs = "1.0.10"
-predicates = "2.1.4"
+predicates = "2.1.5"
 
 [build-dependencies]
-vergen = { version = "7.4.4", default-features = false, features = ["build", "git", "cargo"] }
+vergen = { version = "7.5.0", default-features = false, features = ["build", "git", "cargo"] }
 
 [[bin]]
 name = "dovi_tool"
