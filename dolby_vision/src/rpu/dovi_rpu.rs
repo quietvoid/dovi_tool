@@ -215,7 +215,8 @@ impl DoviRpu {
 
     #[inline(always)]
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
-        let mut writer = BitVecWriter::with_capacity(self.original_payload_size);
+        // Capacity is in bits
+        let mut writer = BitVecWriter::with_capacity(self.original_payload_size * 8);
 
         self.validate()?;
 
