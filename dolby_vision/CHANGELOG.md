@@ -1,4 +1,4 @@
-## ??
+## 2.1.0
 - Made some parsing functions private, as they were always meant to be internal only.
 - Replaced `DoviRpu::trailing_bytes` by `trailing_zeroes`, which is only the count of the zero bytes.
 - Changed `DoviRpu::subprofile` to `&str`.
