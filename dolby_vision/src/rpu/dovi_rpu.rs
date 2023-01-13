@@ -2,7 +2,7 @@ use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use super::extension_metadata::blocks::{
@@ -28,38 +28,26 @@ use crate::utils::{
 const FINAL_BYTE: u8 = 0x80;
 
 #[derive(Default, Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct DoviRpu {
     pub dovi_profile: u8,
 
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub subprofile: Option<&'static str>,
 
     pub header: RpuDataHeader,
 
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub rpu_data_mapping: Option<RpuDataMapping>,
 
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub rpu_data_nlq: Option<RpuDataNlq>,
 
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub vdr_dm_data: Option<VdrDmData>,
 
     #[cfg_attr(
-        feature = "serde_feature",
+        feature = "serde",
         serde(
             serialize_with = "crate::utils::bitvec_ser_bits",
             skip_serializing_if = "BitVec::is_empty"
@@ -68,13 +56,13 @@ pub struct DoviRpu {
     pub remaining: BitVec<u8, Msb0>,
     pub rpu_data_crc32: u32,
 
-    #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     trailing_zeroes: usize,
 
-    #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub modified: bool,
 
-    #[cfg_attr(feature = "serde_feature", serde(skip_serializing))]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     original_payload_size: usize,
 }
 

@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
@@ -9,8 +9,8 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 /// Level 1 offsets.
 #[repr(C)]
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel3 {
     pub min_pq_offset: u16,
     pub max_pq_offset: u16,

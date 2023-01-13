@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
@@ -9,8 +9,8 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 /// Metadata level present in CM v4.0
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel254 {
     pub dm_mode: u8,
     pub dm_version_index: u8,

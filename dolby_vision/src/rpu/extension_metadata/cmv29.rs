@@ -1,14 +1,14 @@
 use anyhow::{bail, ensure, Result};
 use bitvec_helpers::bitslice_reader::BitSliceReader;
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::WithExtMetadataBlocks;
 use crate::rpu::extension_metadata::blocks::*;
 
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CmV29DmData {
     num_ext_blocks: u64,
     ext_metadata_blocks: Vec<ExtMetadataBlock>,

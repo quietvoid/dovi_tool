@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::rpu::vdr_dm_data::CmVersion;
@@ -21,7 +21,7 @@ pub const L1_AVG_PQ_MIN_VALUE_CMV40: u16 = 1229;
 /// Statistical analysis of the frame: min, max, avg brightness.
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel1 {
     pub min_pq: u16,
     pub max_pq: u16,

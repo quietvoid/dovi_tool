@@ -1,4 +1,4 @@
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use {
     bitvec::prelude::*,
     serde::{ser::Serializer, Serialize},
@@ -59,7 +59,7 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
 }
 
 /// Serializing a bitvec as a vec of bits
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 pub(crate) fn bitvec_ser_bits<S: Serializer>(
     bitvec: &BitVec<u8, Msb0>,
     s: S,

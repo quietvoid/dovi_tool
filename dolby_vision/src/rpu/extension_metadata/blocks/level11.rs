@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
@@ -11,15 +11,15 @@ const MAX_WHITEPOINT_VALUE: u8 = 15;
 /// Content type metadata level
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel11 {
     pub content_type: u8,
     pub whitepoint: u8,
     pub reference_mode_flag: bool,
 
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub reserved_byte2: u8,
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub reserved_byte3: u8,
 }
 

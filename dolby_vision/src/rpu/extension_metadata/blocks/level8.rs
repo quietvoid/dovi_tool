@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
@@ -19,8 +19,8 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 ///     - 25: hue_vector_field[0-5]
 #[repr(C)]
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel8 {
     pub length: u64,
     pub target_display_index: u8,
@@ -203,7 +203,7 @@ impl Default for ExtMetadataBlockLevel8 {
     }
 }
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 impl Serialize for ExtMetadataBlockLevel8 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

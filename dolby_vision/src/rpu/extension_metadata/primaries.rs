@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
@@ -16,7 +16,7 @@ pub const PREDEFINED_COLORSPACE_PRIMARIES: &[[f64; 8]] = &[
 ];
 
 #[derive(Debug, Default, Clone, Copy)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ColorPrimaries {
     pub red_x: u16,
     pub red_y: u16,
@@ -29,24 +29,24 @@ pub struct ColorPrimaries {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum MasteringDisplayPrimaries {
-    #[cfg_attr(feature = "serde_feature", serde(alias = "DCI-P3 D65"))]
+    #[cfg_attr(feature = "serde", serde(alias = "DCI-P3 D65"))]
     DCIP3D65 = 0,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.709"))]
+    #[cfg_attr(feature = "serde", serde(alias = "BT.709"))]
     BT709,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.2020"))]
+    #[cfg_attr(feature = "serde", serde(alias = "BT.2020"))]
     BT2020,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "SMPTE-C"))]
+    #[cfg_attr(feature = "serde", serde(alias = "SMPTE-C"))]
     SMPTEC,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "BT.601"))]
+    #[cfg_attr(feature = "serde", serde(alias = "BT.601"))]
     BT601,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "DCI-P3"))]
+    #[cfg_attr(feature = "serde", serde(alias = "DCI-P3"))]
     DCIP3,
     ACES,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "S-Gamut"))]
+    #[cfg_attr(feature = "serde", serde(alias = "S-Gamut"))]
     SGamut,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "S-Gamut-3.Cine"))]
+    #[cfg_attr(feature = "serde", serde(alias = "S-Gamut-3.Cine"))]
     SGamut3Cine,
 }
 

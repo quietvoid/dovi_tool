@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
@@ -10,8 +10,8 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 /// Different display modes (calibration/verify/bypass), debugging
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel255 {
     pub dm_run_mode: u8,
     pub dm_run_version: u8,

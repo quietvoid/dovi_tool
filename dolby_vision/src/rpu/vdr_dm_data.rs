@@ -1,7 +1,7 @@
 use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::dovi_rpu::DoviRpu;
@@ -18,7 +18,7 @@ use super::profiles::DoviProfile;
 use super::extension_metadata::WithExtMetadataBlocks;
 
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct VdrDmData {
     pub compressed: bool,
 
@@ -59,20 +59,14 @@ pub struct VdrDmData {
     pub source_max_pq: u16,
     pub source_diagonal: u16,
 
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub cmv29_metadata: Option<DmData>,
-    #[cfg_attr(
-        feature = "serde_feature",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub cmv40_metadata: Option<DmData>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum CmVersion {
     V29,
     V40,

@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub mod level1;
@@ -38,7 +38,7 @@ use super::{ColorPrimaries, WithExtMetadataBlocks};
 pub const MAX_12_BIT_VALUE: u16 = 4095;
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum ExtMetadataBlock {
     Level1(ExtMetadataBlockLevel1),
     Level2(ExtMetadataBlockLevel2),

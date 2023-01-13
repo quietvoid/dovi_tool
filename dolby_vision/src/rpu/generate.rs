@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{ensure, Result};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::rpu::dovi_rpu::DoviRpu;
@@ -18,44 +18,44 @@ const OUT_NAL_HEADER: &[u8] = &[0, 0, 0, 1];
 
 /// Generic generation config struct.
 #[derive(Debug)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct GenerateConfig {
     /// Content mapping version
     /// Optional, defaults to v4.0
-    #[cfg_attr(feature = "serde_feature", serde(default = "CmVersion::v40"))]
+    #[cfg_attr(feature = "serde", serde(default = "CmVersion::v40"))]
     pub cm_version: CmVersion,
 
     /// Profile to generate
     ///  - 5: IPT base layer with no reshaping
     ///  - 8.1: HDR10 base layer
     ///  - 8.4: HLG base layer with static reshaping (iPhone 13 MMR)
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub profile: GenerateProfile,
 
     /// Set scene cut flag for every frame.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub long_play_mode: bool,
 
     /// Number of RPU frames to generate.
     /// Required only when no shots are specified.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub length: usize,
 
     /// Mastering display min luminance, as 12 bit PQ code.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub source_min_pq: Option<u16>,
 
     /// Mastering display max luminance, as 12 bit PQ code.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub source_max_pq: Option<u16>,
 
     /// CM version to override the minimum L1 `avg_pq`
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub l1_avg_pq_cm_version: Option<CmVersion>,
 
     /// Active area offsets.
     /// Defaults to zero offsets, should be present in RPU
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub level5: ExtMetadataBlockLevel5,
 
     /// ST2086/HDR10 fallback metadata.
@@ -65,41 +65,41 @@ pub struct GenerateConfig {
 
     /// In the case of XML generation, the L254 metadata can vary.
     /// Not allowed to be deserialized because it's handled by the lib.
-    #[cfg_attr(feature = "serde_feature", serde(skip))]
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub level254: Option<ExtMetadataBlockLevel254>,
 
     /// List of metadata blocks to use for every RPU generated.
     ///
     /// Per-shot or per-frame metadata replaces the default
     /// metadata blocks if there are conflicts.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub default_metadata_blocks: Vec<ExtMetadataBlock>,
 
     /// List of shots to generate.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub shots: Vec<VideoShot>,
 }
 
 /// Supported profiles for generating RPU metadata
 #[derive(Debug)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum GenerateProfile {
-    #[cfg_attr(feature = "serde_feature", serde(alias = "5"))]
+    #[cfg_attr(feature = "serde", serde(alias = "5"))]
     Profile5,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "8.1"))]
+    #[cfg_attr(feature = "serde", serde(alias = "8.1"))]
     Profile81,
-    #[cfg_attr(feature = "serde_feature", serde(alias = "8.4"))]
+    #[cfg_attr(feature = "serde", serde(alias = "8.4"))]
     Profile84,
 }
 
 /// Struct defining a video shot.
 /// A shot is a group of frames that share the same metadata.
 #[derive(Default, Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct VideoShot {
     /// Optional (unused) ID of the shot.
     /// Only XML generation provides this.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub id: String,
 
     /// Frame start offset of the shot.
@@ -110,17 +110,17 @@ pub struct VideoShot {
     pub duration: usize,
 
     /// List of metadata blocks.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub metadata_blocks: Vec<ExtMetadataBlock>,
 
     /// List of per-frame metadata edits.
-    #[cfg_attr(feature = "serde_feature", serde(default))]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub frame_edits: Vec<ShotFrameEdit>,
 }
 
 /// Struct to represent a list of metadata edits for a specific frame.
 #[derive(Default, Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ShotFrameEdit {
     /// Frame offset within the parent shot.
     pub edit_offset: usize,

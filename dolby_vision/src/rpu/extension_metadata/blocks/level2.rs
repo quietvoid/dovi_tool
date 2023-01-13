@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::utils::nits_to_pq;
@@ -11,8 +11,8 @@ use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 /// Creative intent trim passes per target display peak brightness
 #[repr(C)]
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel2 {
     pub target_max_pq: u16,
 

@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub mod blocks;
@@ -17,8 +17,8 @@ pub use cmv40::CmV40DmData;
 use blocks::ExtMetadataBlock;
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde_feature", serde(untagged))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum DmData {
     V29(CmV29DmData),
     V40(CmV40DmData),

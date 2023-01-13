@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use super::{dovi_rpu::DoviRpu, NUM_COMPONENTS};
@@ -9,7 +9,7 @@ use super::{dovi_rpu::DoviRpu, NUM_COMPONENTS};
 const NLQ_NUM_PIVOTS: usize = 2;
 
 #[derive(Default, Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RpuDataHeader {
     pub rpu_nal_prefix: u8,
     pub rpu_type: u8,

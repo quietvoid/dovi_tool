@@ -24,7 +24,7 @@ criterion = "0.4.0"
 
 [features]
 xml = ["roxmltree"]
-serde_feature = ["serde", "serde_json"]
+serde = ["dep:serde", "dep:serde_json"]
 capi = ["libc"]
 
 [package.metadata.docs.rs]

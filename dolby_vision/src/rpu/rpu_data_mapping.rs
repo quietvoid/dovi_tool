@@ -1,7 +1,7 @@
 use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use super::dovi_rpu::DoviRpu;
@@ -12,7 +12,7 @@ use super::rpu_data_nlq::RpuDataNlq;
 use super::NUM_COMPONENTS;
 
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RpuDataMapping {
     pub mapping_idc: [Vec<u64>; NUM_COMPONENTS],
     pub mapping_param_pred_flag: [Vec<bool>; NUM_COMPONENTS],

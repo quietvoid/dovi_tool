@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use super::rpu_data_header::RpuDataHeader;
@@ -9,7 +9,7 @@ use super::rpu_data_header::RpuDataHeader;
 use super::NUM_COMPONENTS;
 
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RpuDataNlq {
     pub num_nlq_param_predictors: Vec<[u64; NUM_COMPONENTS]>,
     pub nlq_param_pred_flag: Vec<[bool; NUM_COMPONENTS]>,

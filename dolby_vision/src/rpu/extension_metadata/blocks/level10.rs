@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 use super::{level6::MAX_PQ_LUMINANCE, ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo};
@@ -17,8 +17,8 @@ pub const PRESET_TARGET_DISPLAYS: &[u8] = &[1, 16, 18, 21, 27, 28, 37, 38, 42, 4
 ///     - 21: target_primary_{red,green,blue,white}_{x,y}
 #[repr(C)]
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize))]
-#[cfg_attr(feature = "serde_feature", serde(default))]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct ExtMetadataBlockLevel10 {
     pub length: u64,
     pub target_display_index: u8,
@@ -159,7 +159,7 @@ impl Default for ExtMetadataBlockLevel10 {
     }
 }
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 impl Serialize for ExtMetadataBlockLevel10 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

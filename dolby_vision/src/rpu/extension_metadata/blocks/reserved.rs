@@ -3,19 +3,19 @@ use anyhow::{bail, Result};
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
-#[cfg(feature = "serde_feature")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo};
 
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde_feature", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ReservedExtMetadataBlock {
     pub ext_block_length: u64,
     pub ext_block_level: u8,
 
     #[cfg_attr(
-        feature = "serde_feature",
+        feature = "serde",
         serde(serialize_with = "crate::utils::bitvec_ser_bits", skip_deserializing)
     )]
     pub data: BitVec<u8, Msb0>,
