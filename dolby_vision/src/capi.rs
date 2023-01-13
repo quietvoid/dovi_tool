@@ -88,7 +88,7 @@ pub unsafe extern "C" fn dovi_data_free(data: *const Data) {
 }
 
 /// # Safety
-/// The struct pointer should be valid.
+/// The struct pointer must be valid.
 ///
 /// Writes the encoded RPU as a byte buffer.
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
 }
 
 /// # Safety
-/// The struct pointer should be valid.
+/// The struct pointer must be valid.
 ///
 /// Writes the encoded RPU, escapes the bytes for HEVC and prepends the buffer with 0x7C01.
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
@@ -142,8 +142,8 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
 }
 
 /// # Safety
-/// The struct pointer should be valid.
-/// The mode should be between 0 and 4.
+/// The struct pointer must be valid.
+/// The mode must be between 0 and 4.
 ///
 /// Converts the RPU to be compatible with a different Dolby Vision profile.
 /// Possible modes:
@@ -195,8 +195,8 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
     if let Some(rpu) = &opaque.rpu {
         let mut header = RpuDataHeader::from(&rpu.header);
 
-        if let Some(subprofile) = rpu.subprofile {
-            header.subprofile = CString::new(subprofile).unwrap().into_raw();
+        if let Some(el_type) = rpu.el_type.as_ref() {
+            header.el_type = CString::new(el_type.as_str()).unwrap().into_raw();
         }
 
         Box::into_raw(Box::new(header))
@@ -249,41 +249,6 @@ pub unsafe extern "C" fn dovi_rpu_free_data_mapping(ptr: *const RpuDataMapping) 
     if !ptr.is_null() {
         let rpu_data_mapping = Box::from_raw(ptr as *mut RpuDataMapping);
         rpu_data_mapping.free();
-    }
-}
-
-/// # Safety
-/// The pointer to the opaque struct must be valid.
-///
-/// Get the DoVi RpuDataNlq struct.
-#[no_mangle]
-pub unsafe extern "C" fn dovi_rpu_get_data_nlq(ptr: *const RpuOpaque) -> *const RpuDataNlq {
-    if ptr.is_null() {
-        return null_mut();
-    }
-
-    let opaque = &*ptr;
-
-    if let Some(rpu) = &opaque.rpu {
-        if let Some(rpu_data_nlq) = &rpu.rpu_data_nlq {
-            Box::into_raw(Box::new(RpuDataNlq::from(rpu_data_nlq)))
-        } else {
-            null_mut()
-        }
-    } else {
-        null_mut()
-    }
-}
-
-/// # Safety
-/// The pointer to the struct must be valid.
-///
-/// Frees the memory used by the RpuDataNlq struct.
-#[no_mangle]
-pub unsafe extern "C" fn dovi_rpu_free_data_nlq(ptr: *const RpuDataNlq) {
-    if !ptr.is_null() {
-        let rpu_data_nlq = Box::from_raw(ptr as *mut RpuDataNlq);
-        rpu_data_nlq.free();
     }
 }
 
@@ -391,5 +356,39 @@ pub unsafe extern "C" fn dovi_rpu_list_free(ptr: *const RpuOpaqueList) {
     if !ptr.is_null() {
         let rpu_opaque_list = Box::from_raw(ptr as *mut RpuOpaqueList);
         rpu_opaque_list.free();
+    }
+}
+
+/// # Safety
+/// The struct pointer must be valid.
+///
+/// Sets the L5 metadata active area offsets.
+/// If there is no L5 block present, it is created with the offsets.
+#[no_mangle]
+pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
+    ptr: *mut RpuOpaque,
+    left: u16,
+    right: u16,
+    top: u16,
+    bottom: u16,
+) -> i32 {
+    if ptr.is_null() {
+        return -1;
+    }
+
+    let opaque = &mut *ptr;
+
+    if let Some(rpu) = &mut opaque.rpu {
+        match rpu.set_active_area_offsets(left, right, top, bottom) {
+            Ok(_) => 0,
+            Err(e) => {
+                opaque.error = Some(
+                    CString::new(format!("Failed editing active area offsets: {}", e)).unwrap(),
+                );
+                -1
+            }
+        }
+    } else {
+        -1
     }
 }

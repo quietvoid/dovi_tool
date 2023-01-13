@@ -29,9 +29,9 @@ impl ExtMetadataBlockLevel3 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.min_pq_offset.to_be_bytes(), 12);
-        writer.write_n(&self.max_pq_offset.to_be_bytes(), 12);
-        writer.write_n(&self.avg_pq_offset.to_be_bytes(), 12);
+        writer.write_n(&self.min_pq_offset, 12);
+        writer.write_n(&self.max_pq_offset, 12);
+        writer.write_n(&self.avg_pq_offset, 12);
 
         Ok(())
     }

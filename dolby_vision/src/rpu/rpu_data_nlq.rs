@@ -1,148 +1,84 @@
-use anyhow::{bail, Result};
+use std::fmt::Display;
+
+use anyhow::{ensure, Result};
 use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
 use super::rpu_data_header::RpuDataHeader;
+use super::rpu_data_mapping::{DoviNlqMethod, RpuDataMapping};
 
 use super::NUM_COMPONENTS;
+
+const FEL_STR: &str = "FEL";
+const MEL_STR: &str = "MEL";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum DoviELType {
+    MEL,
+    FEL,
+}
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RpuDataNlq {
-    pub num_nlq_param_predictors: Vec<[u64; NUM_COMPONENTS]>,
-    pub nlq_param_pred_flag: Vec<[bool; NUM_COMPONENTS]>,
-    pub diff_pred_part_idx_nlq_minus1: Vec<[u64; NUM_COMPONENTS]>,
-    pub nlq_offset: Vec<[u64; NUM_COMPONENTS]>,
-    pub vdr_in_max_int: Vec<[u64; NUM_COMPONENTS]>,
-    pub vdr_in_max: Vec<[u64; NUM_COMPONENTS]>,
-    pub linear_deadzone_slope_int: Vec<[u64; NUM_COMPONENTS]>,
-    pub linear_deadzone_slope: Vec<[u64; NUM_COMPONENTS]>,
-    pub linear_deadzone_threshold_int: Vec<[u64; NUM_COMPONENTS]>,
-    pub linear_deadzone_threshold: Vec<[u64; NUM_COMPONENTS]>,
+    // [0, 512]
+    pub nlq_offset: [u16; NUM_COMPONENTS],
+    pub vdr_in_max_int: [u64; NUM_COMPONENTS],
+    pub vdr_in_max: [u64; NUM_COMPONENTS],
+    pub linear_deadzone_slope_int: [u64; NUM_COMPONENTS],
+    pub linear_deadzone_slope: [u64; NUM_COMPONENTS],
+    pub linear_deadzone_threshold_int: [u64; NUM_COMPONENTS],
+    pub linear_deadzone_threshold: [u64; NUM_COMPONENTS],
 }
 
 impl RpuDataNlq {
-    fn with_allocated_vecs(pivot_count: usize) -> Self {
-        Self {
-            num_nlq_param_predictors: Vec::with_capacity(pivot_count),
-            nlq_param_pred_flag: Vec::with_capacity(pivot_count),
-            diff_pred_part_idx_nlq_minus1: Vec::with_capacity(pivot_count),
-            nlq_offset: Vec::with_capacity(pivot_count),
-            vdr_in_max_int: Vec::with_capacity(pivot_count),
-            vdr_in_max: Vec::with_capacity(pivot_count),
-            linear_deadzone_slope_int: Vec::with_capacity(pivot_count),
-            linear_deadzone_slope: Vec::with_capacity(pivot_count),
-            linear_deadzone_threshold_int: Vec::with_capacity(pivot_count),
-            linear_deadzone_threshold: Vec::with_capacity(pivot_count),
-        }
-    }
-
     pub(crate) fn parse(
         reader: &mut BitSliceReader,
-        header: &mut RpuDataHeader,
+        header: &RpuDataHeader,
+        mapping: &RpuDataMapping,
     ) -> Result<RpuDataNlq> {
-        let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
-            nlq_num_pivots_minus2 as usize + 1
-        } else {
-            bail!("Shouldn't be in NLQ if not profile 7!");
-        };
+        ensure!(
+            mapping.nlq_num_pivots_minus2.is_some(),
+            "Shouldn't be in NLQ if not profile 7!"
+        );
 
-        let mut data = RpuDataNlq::with_allocated_vecs(pivot_idx_count);
+        let num_pivots = mapping.nlq_num_pivots_minus2.unwrap() as usize + 1;
+        ensure!(num_pivots == 1, "NLQ should only have 1 significant pivot");
 
-        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
-            header.coefficient_log2_denom as usize
-        } else if header.coefficient_data_type == 1 {
-            32
-        } else {
-            bail!(
-                "Invalid coefficient_data_type value: {}",
-                header.coefficient_data_type
-            );
-        };
+        let mut data = RpuDataNlq::default();
 
-        data.num_nlq_param_predictors
-            .resize_with(pivot_idx_count, Default::default);
-        data.nlq_param_pred_flag
-            .resize_with(pivot_idx_count, Default::default);
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
-        for pivot_idx in 0..pivot_idx_count {
-            for cmp in 0..NUM_COMPONENTS {
-                if data.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
-                    data.nlq_param_pred_flag[pivot_idx][cmp] = reader.get()?;
-                } else {
-                    data.nlq_param_pred_flag[pivot_idx][cmp] = false;
-                }
+        for cmp in 0..NUM_COMPONENTS {
+            // rpu_data_nlq_param
 
-                if !data.nlq_param_pred_flag[pivot_idx][cmp] {
-                    // rpu_data_nlq_param
+            data.nlq_offset[cmp] = reader.get_n((header.el_bit_depth_minus8 + 8) as usize)?;
 
-                    if data.nlq_offset.is_empty() {
-                        data.nlq_offset
-                            .resize_with(pivot_idx_count, Default::default);
-                        data.vdr_in_max
-                            .resize_with(pivot_idx_count, Default::default);
-                    }
+            if header.coefficient_data_type == 0 {
+                data.vdr_in_max_int[cmp] = reader.get_ue()?;
+            }
 
-                    data.nlq_offset[pivot_idx][cmp] =
-                        reader.get_n((header.el_bit_depth_minus8 + 8) as usize)?;
+            data.vdr_in_max[cmp] = reader.get_n(coefficient_log2_denom_length)?;
 
+            // NLQ_LINEAR_DZ
+            if let Some(nlq_method_idc) = mapping.nlq_method_idc {
+                if nlq_method_idc == DoviNlqMethod::LinearDeadzone {
                     if header.coefficient_data_type == 0 {
-                        if data.vdr_in_max_int.is_empty() {
-                            data.vdr_in_max_int
-                                .resize_with(pivot_idx_count, Default::default);
-                        }
-
-                        data.vdr_in_max_int[pivot_idx][cmp] = reader.get_ue()?;
+                        data.linear_deadzone_slope_int[cmp] = reader.get_ue()?;
                     }
 
-                    data.vdr_in_max[pivot_idx][cmp] =
+                    data.linear_deadzone_slope[cmp] =
                         reader.get_n(coefficient_log2_denom_length)?;
 
-                    // NLQ_LINEAR_DZ
-                    if let Some(nlq_method_idc) = header.nlq_method_idc {
-                        if nlq_method_idc == 0 {
-                            if data.linear_deadzone_slope.is_empty() {
-                                data.linear_deadzone_slope
-                                    .resize_with(pivot_idx_count, Default::default);
-                                data.linear_deadzone_threshold
-                                    .resize_with(pivot_idx_count, Default::default);
-                            }
-
-                            if header.coefficient_data_type == 0 {
-                                if data.linear_deadzone_slope_int.is_empty() {
-                                    data.linear_deadzone_slope_int
-                                        .resize_with(pivot_idx_count, Default::default);
-                                }
-
-                                data.linear_deadzone_slope_int[pivot_idx][cmp] = reader.get_ue()?;
-                            }
-
-                            data.linear_deadzone_slope[pivot_idx][cmp] =
-                                reader.get_n(coefficient_log2_denom_length)?;
-
-                            if header.coefficient_data_type == 0 {
-                                if data.linear_deadzone_threshold_int.is_empty() {
-                                    data.linear_deadzone_threshold_int
-                                        .resize_with(pivot_idx_count, Default::default);
-                                }
-
-                                data.linear_deadzone_threshold_int[pivot_idx][cmp] =
-                                    reader.get_ue()?;
-                            }
-
-                            data.linear_deadzone_threshold[pivot_idx][cmp] =
-                                reader.get_n(coefficient_log2_denom_length)?;
-                        }
-                    }
-                } else if data.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
-                    if data.diff_pred_part_idx_nlq_minus1.is_empty() {
-                        data.diff_pred_part_idx_nlq_minus1
-                            .resize_with(pivot_idx_count, Default::default);
+                    if header.coefficient_data_type == 0 {
+                        data.linear_deadzone_threshold_int[cmp] = reader.get_ue()?;
                     }
 
-                    data.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp] = reader.get_ue()?;
+                    data.linear_deadzone_threshold[cmp] =
+                        reader.get_n(coefficient_log2_denom_length)?;
                 }
             }
         }
@@ -152,101 +88,60 @@ impl RpuDataNlq {
 
     pub fn convert_to_mel(&mut self) {
         // Set to 0
-        self.nlq_offset.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
-
+        self.nlq_offset.fill(0);
         // Set to 1
-        self.vdr_in_max_int.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 1);
-        });
-
+        self.vdr_in_max_int.fill(1);
         // Set to 0
-        self.vdr_in_max.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
+        self.vdr_in_max.fill(0);
 
-        self.linear_deadzone_slope_int.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
-
-        self.linear_deadzone_slope.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
-
-        self.linear_deadzone_threshold_int.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
-
-        self.linear_deadzone_threshold.iter_mut().for_each(|v| {
-            v.iter_mut().for_each(|v2| *v2 = 0);
-        });
+        self.linear_deadzone_slope_int.fill(0);
+        self.linear_deadzone_slope.fill(0);
+        self.linear_deadzone_threshold_int.fill(0);
+        self.linear_deadzone_threshold.fill(0);
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, header: &RpuDataHeader) -> Result<()> {
-        let pivot_idx_count = if let Some(nlq_num_pivots_minus2) = header.nlq_num_pivots_minus2 {
-            nlq_num_pivots_minus2 as usize + 1
-        } else {
-            bail!("Shouldn't be in NLQ if not profile 7!");
-        };
-        let coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
-            header.coefficient_log2_denom as usize
-        } else if header.coefficient_data_type == 1 {
-            32
-        } else {
-            bail!(
-                "Invalid coefficient_data_type value: {}",
-                header.coefficient_data_type
+    pub fn write(
+        &self,
+        writer: &mut BitVecWriter,
+        header: &RpuDataHeader,
+        mapping: &RpuDataMapping,
+    ) -> Result<()> {
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
+
+        for cmp in 0..NUM_COMPONENTS {
+            // rpu_data_nlq_param
+
+            writer.write_n(
+                &self.nlq_offset[cmp],
+                (header.el_bit_depth_minus8 + 8) as usize,
             );
-        };
 
-        for pivot_idx in 0..pivot_idx_count {
-            for cmp in 0..NUM_COMPONENTS {
-                if self.num_nlq_param_predictors[pivot_idx][cmp] > 0 {
-                    writer.write(self.nlq_param_pred_flag[pivot_idx][cmp]);
-                }
+            if header.coefficient_data_type == 0 {
+                writer.write_ue(&self.vdr_in_max_int[cmp]);
+            }
 
-                if !self.nlq_param_pred_flag[pivot_idx][cmp] {
-                    // rpu_data_nlq_param
+            writer.write_n(&self.vdr_in_max[cmp], coefficient_log2_denom_length);
 
-                    writer.write_n(
-                        &self.nlq_offset[pivot_idx][cmp].to_be_bytes(),
-                        (header.el_bit_depth_minus8 + 8) as usize,
-                    );
-
+            if let Some(nlq_method_idc) = mapping.nlq_method_idc {
+                if nlq_method_idc == DoviNlqMethod::LinearDeadzone {
+                    // NLQ_LINEAR_DZ
                     if header.coefficient_data_type == 0 {
-                        writer.write_ue(self.vdr_in_max_int[pivot_idx][cmp]);
+                        writer.write_ue(&self.linear_deadzone_slope_int[cmp]);
                     }
 
                     writer.write_n(
-                        &self.vdr_in_max[pivot_idx][cmp].to_be_bytes(),
+                        &self.linear_deadzone_slope[cmp],
                         coefficient_log2_denom_length,
                     );
 
-                    if let Some(nlq_method_idc) = header.nlq_method_idc {
-                        if nlq_method_idc == 0 {
-                            // NLQ_LINEAR_DZ
-                            if header.coefficient_data_type == 0 {
-                                writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
-                            }
-
-                            writer.write_n(
-                                &self.linear_deadzone_slope[pivot_idx][cmp].to_be_bytes(),
-                                coefficient_log2_denom_length,
-                            );
-
-                            if header.coefficient_data_type == 0 {
-                                writer.write_ue(self.linear_deadzone_slope_int[pivot_idx][cmp]);
-                            }
-
-                            writer.write_n(
-                                &self.linear_deadzone_threshold[pivot_idx][cmp].to_be_bytes(),
-                                coefficient_log2_denom_length,
-                            );
-                        }
+                    if header.coefficient_data_type == 0 {
+                        writer.write_ue(&self.linear_deadzone_slope_int[cmp]);
                     }
-                } else if self.num_nlq_param_predictors[pivot_idx][cmp] > 1 {
-                    writer.write_ue(self.diff_pred_part_idx_nlq_minus1[pivot_idx][cmp]);
+
+                    writer.write_n(
+                        &self.linear_deadzone_threshold[cmp],
+                        coefficient_log2_denom_length,
+                    );
                 }
             }
         }
@@ -255,43 +150,28 @@ impl RpuDataNlq {
     }
 
     pub fn mel_default() -> Self {
+        let zeroed_cmps = [0_u64; NUM_COMPONENTS];
+        let vdr_in_max_int = [1; NUM_COMPONENTS];
+
         Self {
-            num_nlq_param_predictors: vec![[0; NUM_COMPONENTS]],
-            nlq_param_pred_flag: vec![[false; NUM_COMPONENTS]],
-            diff_pred_part_idx_nlq_minus1: vec![[0; NUM_COMPONENTS]],
-            nlq_offset: vec![[0; NUM_COMPONENTS]],
-            vdr_in_max_int: vec![[1; NUM_COMPONENTS]],
-            vdr_in_max: vec![[0; NUM_COMPONENTS]],
-            linear_deadzone_slope_int: vec![[0; NUM_COMPONENTS]],
-            linear_deadzone_slope: vec![[0; NUM_COMPONENTS]],
-            linear_deadzone_threshold_int: vec![[0; NUM_COMPONENTS]],
-            linear_deadzone_threshold: vec![[0; NUM_COMPONENTS]],
+            nlq_offset: [0_u16; NUM_COMPONENTS],
+            vdr_in_max_int,
+            vdr_in_max: zeroed_cmps,
+            linear_deadzone_slope_int: zeroed_cmps,
+            linear_deadzone_slope: zeroed_cmps,
+            linear_deadzone_threshold_int: zeroed_cmps,
+            linear_deadzone_threshold: zeroed_cmps,
         }
     }
 
     pub fn is_mel(&self) -> bool {
-        let zero_nlq_offset = self.nlq_offset.iter().all(|v| v.iter().all(|e| *e == 0));
-        let one_vdr_in_max_int = self
-            .vdr_in_max_int
-            .iter()
-            .all(|v| v.iter().all(|e| *e == 1));
-        let one_vdr_in_max = self.vdr_in_max.iter().all(|v| v.iter().all(|e| *e == 0));
-        let zero_dz_slope_int = self
-            .linear_deadzone_slope_int
-            .iter()
-            .all(|v| v.iter().all(|e| *e == 0));
-        let zero_dz_slope = self
-            .linear_deadzone_slope
-            .iter()
-            .all(|v| v.iter().all(|e| *e == 0));
-        let zero_dz_threshold_int = self
-            .linear_deadzone_threshold_int
-            .iter()
-            .all(|v| v.iter().all(|e| *e == 0));
-        let zero_dz_threshold = self
-            .linear_deadzone_threshold
-            .iter()
-            .all(|v| v.iter().all(|e| *e == 0));
+        let zero_nlq_offset = self.nlq_offset.iter().all(|e| *e == 0);
+        let one_vdr_in_max_int = self.vdr_in_max_int.iter().all(|e| *e == 1);
+        let one_vdr_in_max = self.vdr_in_max.iter().all(|e| *e == 0);
+        let zero_dz_slope_int = self.linear_deadzone_slope_int.iter().all(|e| *e == 0);
+        let zero_dz_slope = self.linear_deadzone_slope.iter().all(|e| *e == 0);
+        let zero_dz_threshold_int = self.linear_deadzone_threshold_int.iter().all(|e| *e == 0);
+        let zero_dz_threshold = self.linear_deadzone_threshold.iter().all(|e| *e == 0);
 
         zero_nlq_offset
             && one_vdr_in_max_int
@@ -300,5 +180,28 @@ impl RpuDataNlq {
             && zero_dz_slope
             && zero_dz_threshold_int
             && zero_dz_threshold
+    }
+
+    pub fn el_type(&self) -> DoviELType {
+        if self.is_mel() {
+            DoviELType::MEL
+        } else {
+            DoviELType::FEL
+        }
+    }
+}
+
+impl DoviELType {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            DoviELType::MEL => MEL_STR,
+            DoviELType::FEL => FEL_STR,
+        }
+    }
+}
+
+impl Display for DoviELType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }

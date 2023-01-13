@@ -16,6 +16,7 @@ pub const L1_MAX_PQ_MIN_VALUE: u16 = 2081;
 pub const L1_MAX_PQ_MAX_VALUE: u16 = 4095;
 /// cbindgen:ignore
 pub const L1_AVG_PQ_MIN_VALUE: u16 = 819;
+/// cbindgen:ignore
 pub const L1_AVG_PQ_MIN_VALUE_CMV40: u16 = 1229;
 
 /// Statistical analysis of the frame: min, max, avg brightness.
@@ -40,9 +41,9 @@ impl ExtMetadataBlockLevel1 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.min_pq.to_be_bytes(), 12);
-        writer.write_n(&self.max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.avg_pq.to_be_bytes(), 12);
+        writer.write_n(&self.min_pq, 12);
+        writer.write_n(&self.max_pq, 12);
+        writer.write_n(&self.avg_pq, 12);
 
         Ok(())
     }

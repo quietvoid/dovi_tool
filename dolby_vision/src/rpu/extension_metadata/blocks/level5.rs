@@ -32,10 +32,10 @@ impl ExtMetadataBlockLevel5 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.active_area_left_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_right_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_top_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_bottom_offset.to_be_bytes(), 13);
+        writer.write_n(&self.active_area_left_offset, 13);
+        writer.write_n(&self.active_area_right_offset, 13);
+        writer.write_n(&self.active_area_top_offset, 13);
+        writer.write_n(&self.active_area_bottom_offset, 13);
 
         Ok(())
     }

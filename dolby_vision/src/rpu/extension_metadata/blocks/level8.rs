@@ -96,39 +96,39 @@ impl ExtMetadataBlockLevel8 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_display_index.to_be_bytes(), 8);
-        writer.write_n(&self.trim_slope.to_be_bytes(), 12);
-        writer.write_n(&self.trim_offset.to_be_bytes(), 12);
-        writer.write_n(&self.trim_power.to_be_bytes(), 12);
-        writer.write_n(&self.trim_chroma_weight.to_be_bytes(), 12);
-        writer.write_n(&self.trim_saturation_gain.to_be_bytes(), 12);
-        writer.write_n(&self.ms_weight.to_be_bytes(), 12);
+        writer.write_n(&self.target_display_index, 8);
+        writer.write_n(&self.trim_slope, 12);
+        writer.write_n(&self.trim_offset, 12);
+        writer.write_n(&self.trim_power, 12);
+        writer.write_n(&self.trim_chroma_weight, 12);
+        writer.write_n(&self.trim_saturation_gain, 12);
+        writer.write_n(&self.ms_weight, 12);
 
         // Write default values when the fields can not be omitted
         if self.length > 10 {
-            writer.write_n(&self.target_mid_contrast.to_be_bytes(), 12);
+            writer.write_n(&self.target_mid_contrast, 12);
         }
 
         if self.length > 12 {
-            writer.write_n(&self.clip_trim.to_be_bytes(), 12);
+            writer.write_n(&self.clip_trim, 12);
         }
 
         if self.length > 13 {
-            writer.write_n(&self.saturation_vector_field0.to_be_bytes(), 8);
-            writer.write_n(&self.saturation_vector_field1.to_be_bytes(), 8);
-            writer.write_n(&self.saturation_vector_field2.to_be_bytes(), 8);
-            writer.write_n(&self.saturation_vector_field3.to_be_bytes(), 8);
-            writer.write_n(&self.saturation_vector_field4.to_be_bytes(), 8);
-            writer.write_n(&self.saturation_vector_field5.to_be_bytes(), 8);
+            writer.write_n(&self.saturation_vector_field0, 8);
+            writer.write_n(&self.saturation_vector_field1, 8);
+            writer.write_n(&self.saturation_vector_field2, 8);
+            writer.write_n(&self.saturation_vector_field3, 8);
+            writer.write_n(&self.saturation_vector_field4, 8);
+            writer.write_n(&self.saturation_vector_field5, 8);
         }
 
         if self.length > 19 {
-            writer.write_n(&self.hue_vector_field0.to_be_bytes(), 8);
-            writer.write_n(&self.hue_vector_field1.to_be_bytes(), 8);
-            writer.write_n(&self.hue_vector_field2.to_be_bytes(), 8);
-            writer.write_n(&self.hue_vector_field3.to_be_bytes(), 8);
-            writer.write_n(&self.hue_vector_field4.to_be_bytes(), 8);
-            writer.write_n(&self.hue_vector_field5.to_be_bytes(), 8);
+            writer.write_n(&self.hue_vector_field0, 8);
+            writer.write_n(&self.hue_vector_field1, 8);
+            writer.write_n(&self.hue_vector_field2, 8);
+            writer.write_n(&self.hue_vector_field3, 8);
+            writer.write_n(&self.hue_vector_field4, 8);
+            writer.write_n(&self.hue_vector_field5, 8);
         }
 
         Ok(())

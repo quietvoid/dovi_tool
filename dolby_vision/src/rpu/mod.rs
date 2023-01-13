@@ -11,12 +11,12 @@ pub mod vdr_dm_data;
 
 pub mod utils;
 
+static CRC32_INSTANCE: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
+
 pub const NUM_COMPONENTS: usize = 3;
 
-pub const FEL_STR: &str = "FEL";
-pub const MEL_STR: &str = "MEL";
-
-static CRC32_INSTANCE: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
+pub(crate) const MMR_MAX_COEFFS: usize = 7;
+pub(crate) const NLQ_NUM_PIVOTS: usize = 2;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConversionMode {

@@ -19,6 +19,15 @@ pub struct Data {
 
 /// Struct representing a data buffer
 #[repr(C)]
+pub struct U16Data {
+    /// Pointer to the data buffer. Can be null if length is zero.
+    pub data: *const u16,
+    /// Data buffer size
+    pub len: size_t,
+}
+
+/// Struct representing a data buffer
+#[repr(C)]
 pub struct U64Data {
     /// Pointer to the data buffer. Can be null if length is zero.
     pub data: *const u64,
@@ -100,6 +109,15 @@ impl From<Vec<bool>> for Data {
     }
 }
 
+impl From<Vec<u16>> for U16Data {
+    fn from(buf: Vec<u16>) -> Self {
+        U16Data {
+            len: buf.len(),
+            data: Box::into_raw(buf.into_boxed_slice()) as *const u16,
+        }
+    }
+}
+
 impl<const N: usize> From<[bool; N]> for Data {
     fn from(array: [bool; N]) -> Self {
         let res: [u8; N] = array.map(|e| e as u8);
@@ -129,26 +147,20 @@ impl From<Vec<i64>> for I64Data {
     }
 }
 
+impl<const N: usize> From<[u16; N]> for U16Data {
+    fn from(array: [u16; N]) -> Self {
+        U16Data {
+            len: array.len(),
+            data: Box::into_raw(Box::new(array)) as *const u16,
+        }
+    }
+}
+
 impl<const N: usize> From<[u64; N]> for U64Data {
     fn from(array: [u64; N]) -> Self {
         U64Data {
             len: array.len(),
             data: Box::into_raw(Box::new(array)) as *const u64,
-        }
-    }
-}
-
-impl<const N: usize> From<&Vec<[bool; N]>> for Data2D {
-    fn from(buf_2d: &Vec<[bool; N]>) -> Self {
-        let list: Vec<*const Data> = buf_2d
-            .clone()
-            .into_iter()
-            .map(|buf| Box::into_raw(Box::new(Data::from(buf))) as *const Data)
-            .collect();
-
-        Data2D {
-            len: list.len(),
-            list: Box::into_raw(list.into_boxed_slice()) as *const *const Data,
         }
     }
 }
@@ -209,30 +221,23 @@ impl From<Vec<Vec<Vec<i64>>>> for I64Data3D {
     }
 }
 
-impl<const N: usize> From<&Vec<[u64; N]>> for U64Data2D {
-    fn from(buf_2d: &Vec<[u64; N]>) -> Self {
-        let list: Vec<*const U64Data> = buf_2d
-            .clone()
-            .into_iter()
-            .map(|buf| Box::into_raw(Box::new(U64Data::from(buf))) as *const U64Data)
-            .collect();
-
-        U64Data2D {
-            len: list.len(),
-            list: Box::into_raw(list.into_boxed_slice()) as *const *const U64Data,
-        }
-    }
-}
-
-impl<const N: usize> From<Option<[u64; N]>> for U64Data {
-    fn from(maybe_array: Option<[u64; N]>) -> Self {
-        maybe_array.map_or(U64Data::empty(), U64Data::from)
+impl<const N: usize> From<Option<[u16; N]>> for U16Data {
+    fn from(maybe_array: Option<[u16; N]>) -> Self {
+        maybe_array.map_or(U16Data::empty(), U16Data::from)
     }
 }
 
 impl Freeable for Data {
     unsafe fn free(&self) {
         Vec::from_raw_parts(self.data as *mut u8, self.len, self.len);
+    }
+}
+
+impl Freeable for U16Data {
+    unsafe fn free(&self) {
+        if !self.data.is_null() {
+            Vec::from_raw_parts(self.data as *mut u16, self.len, self.len);
+        }
     }
 }
 
@@ -305,7 +310,7 @@ impl Freeable for I64Data3D {
     }
 }
 
-impl U64Data {
+impl U16Data {
     fn empty() -> Self {
         Self {
             len: 0,

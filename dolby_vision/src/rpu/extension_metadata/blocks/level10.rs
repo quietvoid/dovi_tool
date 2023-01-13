@@ -64,20 +64,20 @@ impl ExtMetadataBlockLevel10 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_display_index.to_be_bytes(), 8);
-        writer.write_n(&self.target_max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.target_min_pq.to_be_bytes(), 12);
-        writer.write_n(&self.target_primary_index.to_be_bytes(), 8);
+        writer.write_n(&self.target_display_index, 8);
+        writer.write_n(&self.target_max_pq, 12);
+        writer.write_n(&self.target_min_pq, 12);
+        writer.write_n(&self.target_primary_index, 8);
 
         if self.length > 5 {
-            writer.write_n(&self.target_primary_red_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_red_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_green_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_green_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_blue_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_blue_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_white_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_white_y.to_be_bytes(), 16);
+            writer.write_n(&self.target_primary_red_x, 16);
+            writer.write_n(&self.target_primary_red_y, 16);
+            writer.write_n(&self.target_primary_green_x, 16);
+            writer.write_n(&self.target_primary_green_y, 16);
+            writer.write_n(&self.target_primary_blue_x, 16);
+            writer.write_n(&self.target_primary_blue_y, 16);
+            writer.write_n(&self.target_primary_white_x, 16);
+            writer.write_n(&self.target_primary_white_y, 16);
         }
 
         Ok(())

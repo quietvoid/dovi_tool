@@ -7,7 +7,8 @@ use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
-use dolby_vision::rpu::{ConversionMode, FEL_STR, MEL_STR};
+use dolby_vision::rpu::rpu_data_nlq::DoviELType;
+use dolby_vision::rpu::ConversionMode;
 use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
 
 use crate::commands::GenerateArgs;
@@ -93,7 +94,7 @@ fn profile8() -> Result<()> {
 fn fel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    assert_eq!(dovi_rpu.subprofile.unwrap(), FEL_STR);
+    assert_eq!(dovi_rpu.el_type.as_ref().unwrap(), &DoviELType::FEL);
 
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
@@ -106,7 +107,7 @@ fn fel() -> Result<()> {
 fn mel() -> Result<()> {
     let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/mel_rpu.bin"))?;
     assert_eq!(dovi_rpu.dovi_profile, 7);
-    assert_eq!(dovi_rpu.subprofile.unwrap(), MEL_STR);
+    assert_eq!(dovi_rpu.el_type.as_ref().unwrap(), &DoviELType::MEL);
 
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
@@ -1038,7 +1039,9 @@ fn p81_to_p84() -> Result<()> {
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     assert_eq!(dovi_rpu.dovi_profile, 8);
-    assert_eq!(dovi_rpu.header.num_pivots_minus_2[0], 7);
+
+    let num_pivots = dovi_rpu.rpu_data_mapping.unwrap().curves[0].num_pivots_minus2;
+    assert_eq!(num_pivots, 7);
 
     Ok(())
 }
@@ -1060,7 +1063,8 @@ fn profile5_to_p84() -> Result<()> {
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     assert_eq!(dovi_rpu.dovi_profile, 8);
-    assert_eq!(dovi_rpu.header.num_pivots_minus_2[0], 7);
+    let num_pivots = dovi_rpu.rpu_data_mapping.unwrap().curves[0].num_pivots_minus2;
+    assert_eq!(num_pivots, 7);
 
     Ok(())
 }

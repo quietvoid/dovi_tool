@@ -46,13 +46,13 @@ impl ExtMetadataBlockLevel2 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.trim_slope.to_be_bytes(), 12);
-        writer.write_n(&self.trim_offset.to_be_bytes(), 12);
-        writer.write_n(&self.trim_power.to_be_bytes(), 12);
-        writer.write_n(&self.trim_chroma_weight.to_be_bytes(), 12);
-        writer.write_n(&self.trim_saturation_gain.to_be_bytes(), 12);
-        writer.write_n(&self.ms_weight.to_be_bytes(), 13);
+        writer.write_n(&self.target_max_pq, 12);
+        writer.write_n(&self.trim_slope, 12);
+        writer.write_n(&self.trim_offset, 12);
+        writer.write_n(&self.trim_power, 12);
+        writer.write_n(&self.trim_chroma_weight, 12);
+        writer.write_n(&self.trim_saturation_gain, 12);
+        writer.write_n(&self.ms_weight, 13);
 
         Ok(())
     }

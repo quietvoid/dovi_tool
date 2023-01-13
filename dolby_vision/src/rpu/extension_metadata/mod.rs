@@ -80,7 +80,7 @@ pub trait WithExtMetadataBlocks {
     fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         let num_ext_blocks = self.num_ext_blocks();
 
-        writer.write_ue(num_ext_blocks);
+        writer.write_ue(&num_ext_blocks);
 
         // dm_alignment_zero_bit
         while !writer.is_aligned() {
@@ -93,8 +93,8 @@ pub trait WithExtMetadataBlocks {
             let remaining_bits =
                 ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
 
-            writer.write_ue(ext_metadata_block.length_bytes());
-            writer.write_n(&ext_metadata_block.level().to_be_bytes(), 8);
+            writer.write_ue(&ext_metadata_block.length_bytes());
+            writer.write_n(&ext_metadata_block.level(), 8);
 
             ext_metadata_block.write(writer)?;
 

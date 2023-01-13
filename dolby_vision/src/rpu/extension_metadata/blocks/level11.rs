@@ -50,10 +50,10 @@ impl ExtMetadataBlockLevel11 {
             wp += MAX_WHITEPOINT_VALUE + 1
         }
 
-        writer.write_n(&self.content_type.to_be_bytes(), 8);
-        writer.write_n(&wp.to_be_bytes(), 8);
-        writer.write_n(&self.reserved_byte2.to_be_bytes(), 8);
-        writer.write_n(&self.reserved_byte3.to_be_bytes(), 8);
+        writer.write_n(&self.content_type, 8);
+        writer.write_n(&wp, 8);
+        writer.write_n(&self.reserved_byte2, 8);
+        writer.write_n(&self.reserved_byte3, 8);
 
         Ok(())
     }

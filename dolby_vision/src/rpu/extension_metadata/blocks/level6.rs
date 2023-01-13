@@ -33,10 +33,10 @@ impl ExtMetadataBlockLevel6 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.max_display_mastering_luminance.to_be_bytes(), 16);
-        writer.write_n(&self.min_display_mastering_luminance.to_be_bytes(), 16);
-        writer.write_n(&self.max_content_light_level.to_be_bytes(), 16);
-        writer.write_n(&self.max_frame_average_light_level.to_be_bytes(), 16);
+        writer.write_n(&self.max_display_mastering_luminance, 16);
+        writer.write_n(&self.min_display_mastering_luminance, 16);
+        writer.write_n(&self.max_content_light_level, 16);
+        writer.write_n(&self.max_frame_average_light_level, 16);
 
         Ok(())
     }

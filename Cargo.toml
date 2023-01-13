@@ -8,14 +8,14 @@ license = "MIT"
 build = "build.rs"
 
 [dependencies]
-bitvec_helpers = "2.0.1"
+bitvec_helpers = "3.0.0"
 hevc_parser = { version = "0.5.2", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 madvr_parse = "1.0.1"
 
 anyhow = "1.0.68"
-clap = { version = "4.0.32", features = ["derive", "wrap_help", "deprecated"] }
-indicatif = "0.17.2"
+clap = { version = "4.1.1", features = ["derive", "wrap_help", "deprecated"] }
+indicatif = "0.17.3"
 regex = "1.7.1"
 bitvec = "1.0.1"
 serde = { version = "1.0.152", features = ["derive"] }

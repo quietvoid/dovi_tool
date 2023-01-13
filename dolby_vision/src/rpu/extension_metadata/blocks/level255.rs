@@ -34,12 +34,12 @@ impl ExtMetadataBlockLevel255 {
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_n(&self.dm_run_mode.to_be_bytes(), 8);
-        writer.write_n(&self.dm_run_version.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug0.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug1.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug2.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug3.to_be_bytes(), 8);
+        writer.write_n(&self.dm_run_mode, 8);
+        writer.write_n(&self.dm_run_version, 8);
+        writer.write_n(&self.dm_debug0, 8);
+        writer.write_n(&self.dm_debug1, 8);
+        writer.write_n(&self.dm_debug2, 8);
+        writer.write_n(&self.dm_debug3, 8);
 
         Ok(())
     }

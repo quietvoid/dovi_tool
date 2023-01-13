@@ -26,8 +26,8 @@ impl ExtMetadataBlockLevel4 {
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.anchor_pq.to_be_bytes(), 12);
-        writer.write_n(&self.anchor_power.to_be_bytes(), 12);
+        writer.write_n(&self.anchor_pq, 12);
+        writer.write_n(&self.anchor_power, 12);
 
         Ok(())
     }

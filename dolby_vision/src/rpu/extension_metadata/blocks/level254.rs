@@ -25,8 +25,8 @@ impl ExtMetadataBlockLevel254 {
     }
 
     pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_n(&self.dm_mode.to_be_bytes(), 8);
-        writer.write_n(&self.dm_version_index.to_be_bytes(), 8);
+        writer.write_n(&self.dm_mode, 8);
+        writer.write_n(&self.dm_version_index, 8);
 
         Ok(())
     }
