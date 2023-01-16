@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -174,53 +174,53 @@ impl RpuDataMapping {
         Ok(mapping)
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter, header: &RpuDataHeader) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter, header: &RpuDataHeader) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
-        let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as usize;
+        let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as u32;
 
-        writer.write_ue(&self.vdr_rpu_id);
-        writer.write_ue(&self.mapping_color_space);
-        writer.write_ue(&self.mapping_chroma_format_idc);
+        writer.write_ue(&self.vdr_rpu_id)?;
+        writer.write_ue(&self.mapping_color_space)?;
+        writer.write_ue(&self.mapping_chroma_format_idc)?;
 
         for cmp in 0..NUM_COMPONENTS {
             let curve = &self.curves[cmp];
-            writer.write_ue(&curve.num_pivots_minus2);
+            writer.write_ue(&curve.num_pivots_minus2)?;
 
-            curve.pivots.iter().for_each(|e| {
-                writer.write_n(e, bl_bit_depth);
-            });
+            for p in &curve.pivots {
+                writer.write_n(p, bl_bit_depth)?;
+            }
         }
 
         if header.rpu_format & 0x700 == 0 && !header.disable_residual_flag {
             if let Some(nlq_method_idc) = self.nlq_method_idc {
-                writer.write_n(&(nlq_method_idc as u8), 3);
+                writer.write_n(&(nlq_method_idc as u8), 3)?;
             }
 
             if let Some(nlq_pred_pivot_value) = &self.nlq_pred_pivot_value {
-                nlq_pred_pivot_value
-                    .iter()
-                    .for_each(|pv| writer.write_n(pv, bl_bit_depth));
+                for pv in nlq_pred_pivot_value {
+                    writer.write_n(pv, bl_bit_depth)?;
+                }
             }
         }
 
-        writer.write_ue(&self.num_x_partitions_minus1);
-        writer.write_ue(&self.num_y_partitions_minus1);
+        writer.write_ue(&self.num_x_partitions_minus1)?;
+        writer.write_ue(&self.num_y_partitions_minus1)?;
 
         for cmp in 0..NUM_COMPONENTS {
             let curve = &self.curves[cmp];
             let num_pieces = (curve.num_pivots_minus2 + 1) as usize;
 
             for i in 0..num_pieces {
-                writer.write_ue(&(curve.mapping_idc as u64));
+                writer.write_ue(&(curve.mapping_idc as u64))?;
 
                 // MAPPING_POLYNOMIAL
                 if let Some(poly_curve) = &curve.polynomial {
-                    writer.write_ue(&poly_curve.poly_order_minus1[i]);
+                    writer.write_ue(&poly_curve.poly_order_minus1[i])?;
 
                     let poly_order_minus1 = poly_curve.poly_order_minus1[i];
                     if poly_order_minus1 == 0 {
-                        writer.write(poly_curve.linear_interp_flag[i]);
+                        writer.write(poly_curve.linear_interp_flag[i])?;
                     }
 
                     if poly_order_minus1 == 0 && poly_curve.linear_interp_flag[i] {
@@ -257,35 +257,35 @@ impl RpuDataMapping {
 
                         for j in 0..=poly_coef_count {
                             if header.coefficient_data_type == 0 {
-                                writer.write_se(&poly_curve.poly_coef_int[i][j]);
+                                writer.write_se(&poly_curve.poly_coef_int[i][j])?;
                             }
 
                             writer.write_n(
                                 &poly_curve.poly_coef[i][j],
                                 coefficient_log2_denom_length,
-                            );
+                            )?;
                         }
                     }
                 } else if let Some(mmr_curve) = &curve.mmr {
                     // MAPPING_MMR
-                    writer.write_n(&mmr_curve.mmr_order_minus1[i], 2);
+                    writer.write_n(&mmr_curve.mmr_order_minus1[i], 2)?;
 
                     if header.coefficient_data_type == 0 {
-                        writer.write_se(&mmr_curve.mmr_constant_int[i]);
+                        writer.write_se(&mmr_curve.mmr_constant_int[i])?;
                     }
 
-                    writer.write_n(&mmr_curve.mmr_constant[i], coefficient_log2_denom_length);
+                    writer.write_n(&mmr_curve.mmr_constant[i], coefficient_log2_denom_length)?;
 
                     for j in 0..mmr_curve.mmr_order_minus1[i] as usize + 1 {
                         for k in 0..MMR_MAX_COEFFS {
                             if header.coefficient_data_type == 0 {
-                                writer.write_se(&mmr_curve.mmr_coef_int[i][j][k]);
+                                writer.write_se(&mmr_curve.mmr_coef_int[i][j][k])?;
                             }
 
                             writer.write_n(
                                 &mmr_curve.mmr_coef[i][j][k],
                                 coefficient_log2_denom_length,
-                            );
+                            )?;
                         }
                     }
                 } else {
@@ -388,7 +388,7 @@ impl DoviPolynomialCurve {
     }
 
     fn parse(&mut self, reader: &mut BitSliceReader, header: &RpuDataHeader) -> Result<()> {
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
 
         let poly_order_minus1 = reader.get_ue()?;
         ensure!(poly_order_minus1 <= 1);
@@ -476,7 +476,7 @@ impl DoviMMRCurve {
     }
 
     fn parse(&mut self, reader: &mut BitSliceReader, header: &RpuDataHeader) -> Result<()> {
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
 
         let mmr_order_minus1 = reader.get_n(2)?;
         ensure!(mmr_order_minus1 <= 2);

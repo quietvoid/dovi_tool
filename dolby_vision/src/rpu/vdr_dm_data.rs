@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -185,49 +185,49 @@ impl VdrDmData {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_ue(&self.affected_dm_metadata_id);
-        writer.write_ue(&self.current_dm_metadata_id);
-        writer.write_ue(&self.scene_refresh_flag);
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        writer.write_ue(&self.affected_dm_metadata_id)?;
+        writer.write_ue(&self.current_dm_metadata_id)?;
+        writer.write_ue(&self.scene_refresh_flag)?;
 
         if !self.compressed {
-            writer.write_n(&self.ycc_to_rgb_coef0, 16);
-            writer.write_n(&self.ycc_to_rgb_coef1, 16);
-            writer.write_n(&self.ycc_to_rgb_coef2, 16);
-            writer.write_n(&self.ycc_to_rgb_coef3, 16);
-            writer.write_n(&self.ycc_to_rgb_coef4, 16);
-            writer.write_n(&self.ycc_to_rgb_coef5, 16);
-            writer.write_n(&self.ycc_to_rgb_coef6, 16);
-            writer.write_n(&self.ycc_to_rgb_coef7, 16);
-            writer.write_n(&self.ycc_to_rgb_coef8, 16);
+            writer.write_signed_n(&self.ycc_to_rgb_coef0, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef1, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef2, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef3, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef4, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef5, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef6, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef7, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef8, 16)?;
 
-            writer.write_n(&self.ycc_to_rgb_offset0, 32);
-            writer.write_n(&self.ycc_to_rgb_offset1, 32);
-            writer.write_n(&self.ycc_to_rgb_offset2, 32);
+            writer.write_n(&self.ycc_to_rgb_offset0, 32)?;
+            writer.write_n(&self.ycc_to_rgb_offset1, 32)?;
+            writer.write_n(&self.ycc_to_rgb_offset2, 32)?;
 
-            writer.write_n(&self.rgb_to_lms_coef0, 16);
-            writer.write_n(&self.rgb_to_lms_coef1, 16);
-            writer.write_n(&self.rgb_to_lms_coef2, 16);
-            writer.write_n(&self.rgb_to_lms_coef3, 16);
-            writer.write_n(&self.rgb_to_lms_coef4, 16);
-            writer.write_n(&self.rgb_to_lms_coef5, 16);
-            writer.write_n(&self.rgb_to_lms_coef6, 16);
-            writer.write_n(&self.rgb_to_lms_coef7, 16);
-            writer.write_n(&self.rgb_to_lms_coef8, 16);
+            writer.write_signed_n(&self.rgb_to_lms_coef0, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef1, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef2, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef3, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef4, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef5, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef6, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef7, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef8, 16)?;
 
-            writer.write_n(&self.signal_eotf, 16);
-            writer.write_n(&self.signal_eotf_param0, 16);
-            writer.write_n(&self.signal_eotf_param1, 16);
-            writer.write_n(&self.signal_eotf_param2, 32);
+            writer.write_n(&self.signal_eotf, 16)?;
+            writer.write_n(&self.signal_eotf_param0, 16)?;
+            writer.write_n(&self.signal_eotf_param1, 16)?;
+            writer.write_n(&self.signal_eotf_param2, 32)?;
 
-            writer.write_n(&self.signal_bit_depth, 5);
-            writer.write_n(&self.signal_color_space, 2);
-            writer.write_n(&self.signal_chroma_format, 2);
-            writer.write_n(&self.signal_full_range_flag, 2);
+            writer.write_n(&self.signal_bit_depth, 5)?;
+            writer.write_n(&self.signal_color_space, 2)?;
+            writer.write_n(&self.signal_chroma_format, 2)?;
+            writer.write_n(&self.signal_full_range_flag, 2)?;
 
-            writer.write_n(&self.source_min_pq, 12);
-            writer.write_n(&self.source_max_pq, 12);
-            writer.write_n(&self.source_diagonal, 10);
+            writer.write_n(&self.source_min_pq, 12)?;
+            writer.write_n(&self.source_max_pq, 12)?;
+            writer.write_n(&self.source_diagonal, 10)?;
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {

@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,7 @@ impl ExtMetadataBlockLevel11 {
         Ok(ExtMetadataBlock::Level11(l11))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
         let mut wp = self.whitepoint;
@@ -50,10 +50,10 @@ impl ExtMetadataBlockLevel11 {
             wp += MAX_WHITEPOINT_VALUE + 1
         }
 
-        writer.write_n(&self.content_type, 8);
-        writer.write_n(&wp, 8);
-        writer.write_n(&self.reserved_byte2, 8);
-        writer.write_n(&self.reserved_byte3, 8);
+        writer.write_n(&self.content_type, 8)?;
+        writer.write_n(&wp, 8)?;
+        writer.write_n(&self.reserved_byte2, 8)?;
+        writer.write_n(&self.reserved_byte3, 8)?;
 
         Ok(())
     }

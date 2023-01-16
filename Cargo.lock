@@ -75,6 +75,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "bitstream-io"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d28070975aaf4ef1fd0bd1f29b739c06c2cdd9972e090617fb6dca3b2cb564e"
+
+[[package]]
 name = "bitvec"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -104,6 +110,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "201bfe1fe6b1e074762d947eba5ec745856b9c29f7202d62837dacf7fac3a5fc"
 dependencies = [
  "anyhow",
+ "bitvec",
+ "funty",
+]
+
+[[package]]
+name = "bitvec_helpers"
+version = "4.0.0"
+dependencies = [
+ "anyhow",
+ "bitstream-io",
  "bitvec",
  "funty",
 ]
@@ -364,7 +380,7 @@ version = "3.0.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers 3.0.0",
+ "bitvec_helpers 4.0.0",
  "crc",
  "criterion",
  "libc",

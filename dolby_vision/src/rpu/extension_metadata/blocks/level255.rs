@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -33,13 +33,13 @@ impl ExtMetadataBlockLevel255 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_n(&self.dm_run_mode, 8);
-        writer.write_n(&self.dm_run_version, 8);
-        writer.write_n(&self.dm_debug0, 8);
-        writer.write_n(&self.dm_debug1, 8);
-        writer.write_n(&self.dm_debug2, 8);
-        writer.write_n(&self.dm_debug3, 8);
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        writer.write_n(&self.dm_run_mode, 8)?;
+        writer.write_n(&self.dm_run_version, 8)?;
+        writer.write_n(&self.dm_debug0, 8)?;
+        writer.write_n(&self.dm_debug1, 8)?;
+        writer.write_n(&self.dm_debug2, 8)?;
+        writer.write_n(&self.dm_debug3, 8)?;
 
         Ok(())
     }

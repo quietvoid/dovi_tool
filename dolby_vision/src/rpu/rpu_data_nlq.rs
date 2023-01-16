@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -50,7 +50,7 @@ impl RpuDataNlq {
 
         let mut data = RpuDataNlq::default();
 
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
 
         for cmp in 0..NUM_COMPONENTS {
             // rpu_data_nlq_param
@@ -102,7 +102,7 @@ impl RpuDataNlq {
 
     pub fn write(
         &self,
-        writer: &mut BitVecWriter,
+        writer: &mut BitstreamIoWriter,
         header: &RpuDataHeader,
         mapping: &RpuDataMapping,
     ) -> Result<()> {
@@ -113,35 +113,35 @@ impl RpuDataNlq {
 
             writer.write_n(
                 &self.nlq_offset[cmp],
-                (header.el_bit_depth_minus8 + 8) as usize,
-            );
+                (header.el_bit_depth_minus8 + 8) as u32,
+            )?;
 
             if header.coefficient_data_type == 0 {
-                writer.write_ue(&self.vdr_in_max_int[cmp]);
+                writer.write_ue(&self.vdr_in_max_int[cmp])?;
             }
 
-            writer.write_n(&self.vdr_in_max[cmp], coefficient_log2_denom_length);
+            writer.write_n(&self.vdr_in_max[cmp], coefficient_log2_denom_length)?;
 
             if let Some(nlq_method_idc) = mapping.nlq_method_idc {
                 if nlq_method_idc == DoviNlqMethod::LinearDeadzone {
                     // NLQ_LINEAR_DZ
                     if header.coefficient_data_type == 0 {
-                        writer.write_ue(&self.linear_deadzone_slope_int[cmp]);
+                        writer.write_ue(&self.linear_deadzone_slope_int[cmp])?;
                     }
 
                     writer.write_n(
                         &self.linear_deadzone_slope[cmp],
                         coefficient_log2_denom_length,
-                    );
+                    )?;
 
                     if header.coefficient_data_type == 0 {
-                        writer.write_ue(&self.linear_deadzone_slope_int[cmp]);
+                        writer.write_ue(&self.linear_deadzone_slope_int[cmp])?;
                     }
 
                     writer.write_n(
                         &self.linear_deadzone_threshold[cmp],
                         coefficient_log2_denom_length,
-                    );
+                    )?;
                 }
             }
         }

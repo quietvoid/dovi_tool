@@ -1,6 +1,6 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -210,12 +210,12 @@ impl DoviRpu {
     #[inline(always)]
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
         // Capacity is in bits
-        let mut writer = BitVecWriter::with_capacity(self.original_payload_size * 8);
+        let mut writer = BitstreamIoWriter::with_capacity(self.original_payload_size * 8);
 
         self.validate()?;
 
         let header = &self.header;
-        header.write_header(&mut writer);
+        header.write_header(&mut writer)?;
 
         if header.rpu_type == 2 {
             if !header.use_prev_vdr_rpu_flag {
@@ -232,14 +232,14 @@ impl DoviRpu {
         }
 
         if !self.remaining.is_empty() {
-            self.remaining.iter().for_each(|b| writer.write(*b));
+            for b in &self.remaining {
+                writer.write(*b)?;
+            }
         }
 
-        while !writer.is_aligned() {
-            writer.write(false);
-        }
+        writer.byte_align()?;
 
-        let computed_crc32 = compute_crc32(&writer.as_slice()[1..]);
+        let computed_crc32 = compute_crc32(&writer.as_slice().unwrap()[1..]);
 
         if !self.modified {
             // Validate the parsed crc32 is the same
@@ -250,15 +250,17 @@ impl DoviRpu {
         }
 
         // Write crc32
-        writer.write_n(&computed_crc32, 32);
-        writer.write_n(&0x80_u8, 8);
+        writer.write_n(&computed_crc32, 32)?;
+        writer.write_n(&0x80_u8, 8)?;
 
         // Trailing bytes
         if self.trailing_zeroes > 0 {
-            (0..self.trailing_zeroes).for_each(|_| writer.write_n(&0_u8, 8));
+            for _ in 0..self.trailing_zeroes {
+                writer.write_n(&0_u8, 8)?;
+            }
         }
 
-        Ok(writer.as_slice().to_owned())
+        Ok(writer.as_slice().unwrap().to_owned())
     }
 
     fn validate(&self) -> Result<()> {

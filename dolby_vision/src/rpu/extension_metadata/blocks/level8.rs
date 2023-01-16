@@ -1,5 +1,5 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -93,42 +93,42 @@ impl ExtMetadataBlockLevel8 {
         Ok(ExtMetadataBlock::Level8(block))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_display_index, 8);
-        writer.write_n(&self.trim_slope, 12);
-        writer.write_n(&self.trim_offset, 12);
-        writer.write_n(&self.trim_power, 12);
-        writer.write_n(&self.trim_chroma_weight, 12);
-        writer.write_n(&self.trim_saturation_gain, 12);
-        writer.write_n(&self.ms_weight, 12);
+        writer.write_n(&self.target_display_index, 8)?;
+        writer.write_n(&self.trim_slope, 12)?;
+        writer.write_n(&self.trim_offset, 12)?;
+        writer.write_n(&self.trim_power, 12)?;
+        writer.write_n(&self.trim_chroma_weight, 12)?;
+        writer.write_n(&self.trim_saturation_gain, 12)?;
+        writer.write_n(&self.ms_weight, 12)?;
 
         // Write default values when the fields can not be omitted
         if self.length > 10 {
-            writer.write_n(&self.target_mid_contrast, 12);
+            writer.write_n(&self.target_mid_contrast, 12)?;
         }
 
         if self.length > 12 {
-            writer.write_n(&self.clip_trim, 12);
+            writer.write_n(&self.clip_trim, 12)?;
         }
 
         if self.length > 13 {
-            writer.write_n(&self.saturation_vector_field0, 8);
-            writer.write_n(&self.saturation_vector_field1, 8);
-            writer.write_n(&self.saturation_vector_field2, 8);
-            writer.write_n(&self.saturation_vector_field3, 8);
-            writer.write_n(&self.saturation_vector_field4, 8);
-            writer.write_n(&self.saturation_vector_field5, 8);
+            writer.write_n(&self.saturation_vector_field0, 8)?;
+            writer.write_n(&self.saturation_vector_field1, 8)?;
+            writer.write_n(&self.saturation_vector_field2, 8)?;
+            writer.write_n(&self.saturation_vector_field3, 8)?;
+            writer.write_n(&self.saturation_vector_field4, 8)?;
+            writer.write_n(&self.saturation_vector_field5, 8)?;
         }
 
         if self.length > 19 {
-            writer.write_n(&self.hue_vector_field0, 8);
-            writer.write_n(&self.hue_vector_field1, 8);
-            writer.write_n(&self.hue_vector_field2, 8);
-            writer.write_n(&self.hue_vector_field3, 8);
-            writer.write_n(&self.hue_vector_field4, 8);
-            writer.write_n(&self.hue_vector_field5, 8);
+            writer.write_n(&self.hue_vector_field0, 8)?;
+            writer.write_n(&self.hue_vector_field1, 8)?;
+            writer.write_n(&self.hue_vector_field2, 8)?;
+            writer.write_n(&self.hue_vector_field3, 8)?;
+            writer.write_n(&self.hue_vector_field4, 8)?;
+            writer.write_n(&self.hue_vector_field5, 8)?;
         }
 
         Ok(())

@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -19,7 +19,7 @@ pub struct RpuDataHeader {
     pub coefficient_data_type: u8,
     pub coefficient_log2_denom: u64,
     /// Calculated for `coefficient_data_type`
-    pub coefficient_log2_denom_length: usize,
+    pub coefficient_log2_denom_length: u32,
     pub vdr_rpu_normalized_idc: u8,
     pub bl_video_full_range_flag: bool,
 
@@ -86,7 +86,7 @@ impl RpuDataHeader {
             }
 
             header.coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
-                header.coefficient_log2_denom as usize
+                header.coefficient_log2_denom as u32
             } else if header.coefficient_data_type == 1 {
                 32
             } else {
@@ -183,44 +183,46 @@ impl RpuDataHeader {
         }
     }
 
-    pub fn write_header(&self, writer: &mut BitVecWriter) {
-        writer.write_n(&self.rpu_nal_prefix, 8);
+    pub fn write_header(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        writer.write_n(&self.rpu_nal_prefix, 8)?;
 
-        writer.write_n(&self.rpu_type, 6);
-        writer.write_n(&self.rpu_format, 11);
+        writer.write_n(&self.rpu_type, 6)?;
+        writer.write_n(&self.rpu_format, 11)?;
 
-        writer.write_n(&self.vdr_rpu_profile, 4);
-        writer.write_n(&self.vdr_rpu_level, 4);
-        writer.write(self.vdr_seq_info_present_flag);
+        writer.write_n(&self.vdr_rpu_profile, 4)?;
+        writer.write_n(&self.vdr_rpu_level, 4)?;
+        writer.write(self.vdr_seq_info_present_flag)?;
 
         if self.vdr_seq_info_present_flag {
-            writer.write(self.chroma_resampling_explicit_filter_flag);
-            writer.write_n(&self.coefficient_data_type, 2);
+            writer.write(self.chroma_resampling_explicit_filter_flag)?;
+            writer.write_n(&self.coefficient_data_type, 2)?;
 
             if self.coefficient_data_type == 0 {
-                writer.write_ue(&self.coefficient_log2_denom);
+                writer.write_ue(&self.coefficient_log2_denom)?;
             }
 
-            writer.write_n(&self.vdr_rpu_normalized_idc, 2);
-            writer.write(self.bl_video_full_range_flag);
+            writer.write_n(&self.vdr_rpu_normalized_idc, 2)?;
+            writer.write(self.bl_video_full_range_flag)?;
 
             if self.rpu_format & 0x700 == 0 {
-                writer.write_ue(&self.bl_bit_depth_minus8);
-                writer.write_ue(&self.el_bit_depth_minus8);
-                writer.write_ue(&self.vdr_bit_depth_minus8);
-                writer.write(self.spatial_resampling_filter_flag);
-                writer.write_n(&self.reserved_zero_3bits, 3);
-                writer.write(self.el_spatial_resampling_filter_flag);
-                writer.write(self.disable_residual_flag);
+                writer.write_ue(&self.bl_bit_depth_minus8)?;
+                writer.write_ue(&self.el_bit_depth_minus8)?;
+                writer.write_ue(&self.vdr_bit_depth_minus8)?;
+                writer.write(self.spatial_resampling_filter_flag)?;
+                writer.write_n(&self.reserved_zero_3bits, 3)?;
+                writer.write(self.el_spatial_resampling_filter_flag)?;
+                writer.write(self.disable_residual_flag)?;
             }
         }
 
-        writer.write(self.vdr_dm_metadata_present_flag);
-        writer.write(self.use_prev_vdr_rpu_flag);
+        writer.write(self.vdr_dm_metadata_present_flag)?;
+        writer.write(self.use_prev_vdr_rpu_flag)?;
 
         if self.use_prev_vdr_rpu_flag {
-            writer.write_ue(&self.prev_vdr_rpu_id);
+            writer.write_ue(&self.prev_vdr_rpu_id)?;
         }
+
+        Ok(())
     }
 
     pub fn p5_default() -> RpuDataHeader {

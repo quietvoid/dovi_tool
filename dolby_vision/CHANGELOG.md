@@ -1,7 +1,9 @@
 ## 3.0.0
 - Breaking changes from `RpuDataMapping` refactor.
-    - Moved some fields from `RpuDataHeader` into `RpuDataMapping.
-    - `RpuDataNlq` is now part of `RpuDataMapping`.
+- Renamed `serde_feature` to simply `serde`.
+
+- Moved some fields from `RpuDataHeader` into `RpuDataMapping.
+- `RpuDataNlq` is now part of `RpuDataMapping`.
 
 - The mapping now has one curve per component, which is a `DoviReshapingCurve`.
 - `DoviReshapingCurve` contains the pivots, mapping method and the respective curve params.
