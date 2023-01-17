@@ -97,22 +97,6 @@ impl ExtMetadataBlockLevel1 {
     pub fn clamp_values_cm_version(&mut self, cm_version: CmVersion) {
         self.clamp_values_int(cm_version);
     }
-
-    #[deprecated(
-        since = "1.7.1",
-        note = "Replaced by `from_stats_cm_version` with CmVersion::V29"
-    )]
-    pub fn from_stats(min_pq: u16, max_pq: u16, avg_pq: u16) -> ExtMetadataBlockLevel1 {
-        Self::from_stats_cm_version(min_pq, max_pq, avg_pq, CmVersion::V29)
-    }
-
-    #[deprecated(
-        since = "1.7.1",
-        note = "Replaced by `clamp_values_cm_version` with CmVersion::V29"
-    )]
-    pub fn clamp_values(&mut self) {
-        self.clamp_values_int(CmVersion::V29);
-    }
 }
 
 impl ExtMetadataBlockInfo for ExtMetadataBlockLevel1 {

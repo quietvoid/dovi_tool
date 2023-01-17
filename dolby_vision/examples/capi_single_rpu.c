@@ -21,7 +21,7 @@ int main(void) {
         printf("%s\n", error);
 
         dovi_rpu_free(rpu);
-        return 0;
+        return 1;
     }
 
     // Process the RPU..

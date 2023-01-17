@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec::prelude::*;
+use bitvec::prelude::{BitVec, Msb0};
 use bitvec_helpers::{
     bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -7,10 +7,7 @@ use bitvec_helpers::{
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use super::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel5, ExtMetadataBlockLevel9,
-};
-use super::extension_metadata::{CmV40DmData, DmData};
+use super::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel5};
 use super::generate::GenerateConfig;
 use super::profiles::profile81::Profile81;
 use super::profiles::profile84::Profile84;
@@ -47,11 +44,11 @@ pub struct DoviRpu {
     #[cfg_attr(
         feature = "serde",
         serde(
-            serialize_with = "crate::utils::bitvec_ser_bits",
-            skip_serializing_if = "BitVec::is_empty"
+            serialize_with = "crate::utils::opt_bitvec_ser_bits",
+            skip_serializing_if = "Option::is_none"
         )
     )]
-    pub remaining: BitVec<u8, Msb0>,
+    pub remaining: Option<BitVec<u8, Msb0>>,
     pub rpu_data_crc32: u32,
 
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
@@ -165,12 +162,18 @@ impl DoviRpu {
         }
 
         // CRC32 is at the end, there can be more data in between
-        let mut remaining: BitVec<u8, Msb0> = BitVec::new();
-        if reader.available()? != final_length {
+
+        let remaining = if reader.available()? != final_length {
+            let mut remaining: BitVec<u8, Msb0> = BitVec::new();
+
             while reader.available()? != final_length {
                 remaining.push(reader.get()?);
             }
-        }
+
+            Some(remaining)
+        } else {
+            None
+        };
 
         let rpu_data_crc32 = reader.get_n(32)?;
         let last_byte: u8 = reader.get_n(8)?;
@@ -234,8 +237,8 @@ impl DoviRpu {
             }
         }
 
-        if !self.remaining.is_empty() {
-            for b in &self.remaining {
+        if let Some(remaining) = &self.remaining {
+            for b in remaining {
                 writer.write(*b)?;
             }
         }
@@ -489,30 +492,6 @@ impl DoviRpu {
             .map(|rpu| DoviRpu::parse_unspec62_nalu(rpu))
             .filter_map(Result::ok)
             .collect()
-    }
-
-    #[deprecated(
-        since = "1.6.6",
-        note = "Causes issues in playback when L8 metadata is not present. Will be removed"
-    )]
-    pub fn convert_to_cmv40(&mut self) -> Result<()> {
-        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
-            if vdr_dm_data.cmv40_metadata.is_none() {
-                self.modified = true;
-
-                vdr_dm_data.cmv40_metadata = Some(DmData::V40(CmV40DmData::new_with_l254_402()));
-
-                // Defaults
-                vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level9(
-                    ExtMetadataBlockLevel9::default_dci_p3(),
-                ))?;
-                vdr_dm_data.add_metadata_block(ExtMetadataBlock::Level11(
-                    ExtMetadataBlockLevel11::default_reference_cinema(),
-                ))?;
-            }
-        }
-
-        Ok(())
     }
 
     pub fn profile84_config(config: &GenerateConfig) -> Result<Self> {

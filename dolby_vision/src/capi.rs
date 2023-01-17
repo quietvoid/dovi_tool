@@ -314,12 +314,7 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
 
                         let opaque_list: Vec<*mut RpuOpaque> = rpus
                             .into_iter()
-                            .map(|rpu| {
-                                Box::into_raw(Box::new(RpuOpaque {
-                                    rpu: Some(rpu),
-                                    error: None,
-                                }))
-                            })
+                            .map(|rpu| Box::into_raw(Box::new(RpuOpaque::new(Some(rpu), None))))
                             .collect();
 
                         rpu_list.list =
@@ -388,6 +383,27 @@ pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
                 -1
             }
         }
+    } else {
+        -1
+    }
+}
+
+/// # Safety
+/// The struct pointer must be valid.
+///
+/// Converts the existing reshaping/mapping to become no-op.
+#[no_mangle]
+pub unsafe extern "C" fn dovi_rpu_remove_mapping(ptr: *mut RpuOpaque) -> i32 {
+    if ptr.is_null() {
+        return -1;
+    }
+
+    let opaque = &mut *ptr;
+
+    if let Some(rpu) = &mut opaque.rpu {
+        rpu.remove_mapping();
+
+        0
     } else {
         -1
     }

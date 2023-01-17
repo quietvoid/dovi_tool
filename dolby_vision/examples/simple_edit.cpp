@@ -26,6 +26,10 @@ int main(void) {
         if (ret < 0)
             goto fail;
 
+        ret = dovi_rpu_remove_mapping(rpu);
+        if (ret < 0)
+            goto fail;
+
         ret = dovi_rpu_set_active_area_offsets(rpu, 0, 0, 138, 138);
         if (ret < 0)
             goto fail;
@@ -43,8 +47,6 @@ int main(void) {
         // Do something with the edited payload
         dovi_data_free(rpu_payload);
     }
-
-    process_rpu_info(rpu, header);
 
 fail:
     if (header)

@@ -106,8 +106,13 @@ dependencies = [
 [[package]]
 name = "bitvec_helpers"
 version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26d3e7fdfdd22663428c6621c2b4c12aabfd316622554e9e5b8dc6002c4e9c24"
 dependencies = [
+ "anyhow",
  "bitstream-io",
+ "bitvec",
+ "funty",
 ]
 
 [[package]]

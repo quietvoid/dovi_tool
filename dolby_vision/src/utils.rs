@@ -67,3 +67,17 @@ pub(crate) fn bitvec_ser_bits<S: Serializer>(
     let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
     bits.serialize(s)
 }
+
+/// Serializing an optional bitvec as a vec of bits
+#[cfg(feature = "serde")]
+pub(crate) fn opt_bitvec_ser_bits<S: Serializer>(
+    bitvec: &Option<BitVec<u8, Msb0>>,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    let bits: Vec<u8> = if let Some(vec) = bitvec {
+        vec.iter().map(|b| *b as u8).collect()
+    } else {
+        Vec::new()
+    };
+    bits.serialize(s)
+}
