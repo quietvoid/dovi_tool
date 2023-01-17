@@ -1,7 +1,7 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::{BitVec, Msb0};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -127,8 +127,7 @@ impl DoviRpu {
 
     #[inline(always)]
     fn read_rpu_data(bytes: &[u8], trailing_zeroes: usize) -> Result<DoviRpu> {
-        let cursor = std::io::Cursor::new(bytes);
-        let mut reader = BitstreamIoReader::new(cursor, bytes.len() as u64);
+        let mut reader = BsIoSliceReader::from_slice(bytes);
 
         // CRC32 + 0x80 + trailing
         let final_length = (32 + 8 + (trailing_zeroes * 8)) as u64;

@@ -1,9 +1,8 @@
 use std::fmt::Display;
-use std::io;
 
 use anyhow::{ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -38,8 +37,8 @@ pub struct RpuDataNlq {
 }
 
 impl RpuDataNlq {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
+    pub(crate) fn parse(
+        reader: &mut BsIoSliceReader,
         header: &RpuDataHeader,
         mapping: &RpuDataMapping,
     ) -> Result<RpuDataNlq> {

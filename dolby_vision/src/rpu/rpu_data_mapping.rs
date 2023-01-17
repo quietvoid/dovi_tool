@@ -1,8 +1,6 @@
-use std::io;
-
 use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -98,8 +96,8 @@ pub struct DoviMMRCurve {
 }
 
 impl RpuDataMapping {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
+    pub(crate) fn parse(
+        reader: &mut BsIoSliceReader,
         header: &RpuDataHeader,
     ) -> Result<RpuDataMapping> {
         let mut mapping = RpuDataMapping {
@@ -391,11 +389,7 @@ impl DoviPolynomialCurve {
         }
     }
 
-    fn parse<R: io::Read + io::Seek>(
-        &mut self,
-        reader: &mut BitstreamIoReader<R>,
-        header: &RpuDataHeader,
-    ) -> Result<()> {
+    fn parse(&mut self, reader: &mut BsIoSliceReader, header: &RpuDataHeader) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         let poly_order_minus1 = reader.get_ue()?;
@@ -483,11 +477,7 @@ impl DoviMMRCurve {
         }
     }
 
-    fn parse<R: io::Read + io::Seek>(
-        &mut self,
-        reader: &mut BitstreamIoReader<R>,
-        header: &RpuDataHeader,
-    ) -> Result<()> {
+    fn parse(&mut self, reader: &mut BsIoSliceReader, header: &RpuDataHeader) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         let mmr_order_minus1 = reader.get_n(2)?;

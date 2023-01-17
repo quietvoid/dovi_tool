@@ -1,8 +1,6 @@
-use std::io;
-
 use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -44,9 +42,7 @@ pub struct RpuDataHeader {
 }
 
 impl RpuDataHeader {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
-    ) -> Result<RpuDataHeader> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<RpuDataHeader> {
         let rpu_nal_prefix = reader.get_n(8)?;
         ensure!(rpu_nal_prefix == 25);
 

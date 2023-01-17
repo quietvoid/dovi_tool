@@ -1,8 +1,6 @@
-use std::io;
-
 use anyhow::{ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -195,9 +193,9 @@ impl ExtMetadataBlock {
         Ok(())
     }
 
-    pub(crate) fn validate_and_read_remaining<T: WithExtMetadataBlocks, R: io::Read + io::Seek>(
+    pub(crate) fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
         &self,
-        reader: &mut BitstreamIoReader<R>,
+        reader: &mut BsIoSliceReader,
         block_length: u64,
     ) -> Result<()> {
         let level = self.level();

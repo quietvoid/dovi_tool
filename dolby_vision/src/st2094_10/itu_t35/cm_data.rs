@@ -1,7 +1,5 @@
-use std::io;
-
 use anyhow::Result;
-use bitvec_helpers::bitstream_io_reader::BitstreamIoReader;
+use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 use super::UserDataTypeStruct;
 
@@ -40,9 +38,7 @@ pub struct ST2094_10CmData {
 }
 
 impl ST2094_10CmData {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
-    ) -> Result<UserDataTypeStruct> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10CmData {
             ccm_profile: reader.get_n(4)?,
             ccm_level: reader.get_n(4)?,

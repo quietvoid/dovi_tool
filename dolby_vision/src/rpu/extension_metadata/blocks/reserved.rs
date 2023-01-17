@@ -1,10 +1,8 @@
-use std::io;
-
 use anyhow::{bail, Result};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -26,10 +24,10 @@ pub struct ReservedExtMetadataBlock {
 }
 
 impl ReservedExtMetadataBlock {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
+    pub(crate) fn parse(
         ext_block_length: u64,
         ext_block_level: u8,
-        reader: &mut BitstreamIoReader<R>,
+        reader: &mut BsIoSliceReader,
     ) -> Result<ExtMetadataBlock> {
         let bits = 8 * ext_block_length;
         let mut data = BitVec::new();

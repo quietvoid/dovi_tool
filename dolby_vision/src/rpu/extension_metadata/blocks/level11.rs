@@ -1,8 +1,6 @@
-use std::io;
-
 use anyhow::{ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -28,9 +26,7 @@ pub struct ExtMetadataBlockLevel11 {
 }
 
 impl ExtMetadataBlockLevel11 {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
-    ) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         let mut l11 = Self {
             content_type: reader.get_n(8)?,
             whitepoint: reader.get_n(8)?,

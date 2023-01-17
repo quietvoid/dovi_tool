@@ -1,7 +1,5 @@
-use std::io;
-
 use anyhow::Result;
-use bitvec_helpers::bitstream_io_reader::BitstreamIoReader;
+use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 use crate::rpu::extension_metadata::{CmV29DmData, DmData};
 
@@ -16,9 +14,7 @@ pub struct ST2094_10DmData {
 }
 
 impl ST2094_10DmData {
-    pub(crate) fn parse<R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
-    ) -> Result<UserDataTypeStruct> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10DmData {
             app_identifier: reader.get_ue()?,
             app_version: reader.get_ue()?,
@@ -27,7 +23,7 @@ impl ST2094_10DmData {
         };
 
         if meta.metadata_refresh_flag {
-            meta.dm_data = DmData::parse::<CmV29DmData, R>(reader)?;
+            meta.dm_data = DmData::parse::<CmV29DmData>(reader)?;
         }
 
         Ok(UserDataTypeStruct::DMData(meta))

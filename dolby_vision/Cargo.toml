@@ -9,7 +9,7 @@ description = "Dolby Vision metadata parsing and writing"
 repository = "https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision"
 
 [dependencies]
-bitvec_helpers = { version = "3.1.0", default-features = false, features = ["bitstream-io"] }
+bitvec_helpers = { version = "3.1.1", default-features = false, features = ["bitstream-io"] }
 anyhow = "1.0.68"
 bitvec = "1.0.1"
 crc = "3.0.0"

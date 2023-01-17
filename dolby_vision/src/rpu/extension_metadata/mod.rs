@@ -1,8 +1,6 @@
-use std::io;
-
 use anyhow::{ensure, Result};
 use bitvec_helpers::{
-    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
@@ -29,7 +27,7 @@ pub enum DmData {
 }
 
 pub trait ExtMetadata {
-    fn parse<R: io::Read + io::Seek>(&mut self, reader: &mut BitstreamIoReader<R>) -> Result<()>;
+    fn parse(&mut self, reader: &mut BsIoSliceReader) -> Result<()>;
     fn write(&self, writer: &mut BitstreamIoWriter);
 }
 
@@ -42,10 +40,7 @@ pub trait WithExtMetadataBlocks {
     fn set_num_ext_blocks(&mut self, num_ext_blocks: u64);
     fn num_ext_blocks(&self) -> u64;
 
-    fn parse_block<R: io::Read + io::Seek>(
-        &mut self,
-        reader: &mut BitstreamIoReader<R>,
-    ) -> Result<()>;
+    fn parse_block(&mut self, reader: &mut BsIoSliceReader) -> Result<()>;
     fn blocks_ref(&self) -> &Vec<ExtMetadataBlock>;
     fn blocks_mut(&mut self) -> &mut Vec<ExtMetadataBlock>;
 
@@ -114,8 +109,8 @@ pub trait WithExtMetadataBlocks {
 }
 
 impl DmData {
-    pub(crate) fn parse<T: WithExtMetadataBlocks + Default, R: io::Read + io::Seek>(
-        reader: &mut BitstreamIoReader<R>,
+    pub(crate) fn parse<T: WithExtMetadataBlocks + Default>(
+        reader: &mut BsIoSliceReader,
     ) -> Result<Option<T>> {
         let num_ext_blocks = reader.get_ue()?;
         let mut meta = T::with_blocks_allocation(num_ext_blocks);
