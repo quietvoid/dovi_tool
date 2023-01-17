@@ -1,5 +1,7 @@
+use std::io;
+
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::bitslice_reader::BitSliceReader;
+use bitvec_helpers::bitstream_io_reader::BitstreamIoReader;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -41,7 +43,10 @@ impl WithExtMetadataBlocks for CmV29DmData {
         self.ext_metadata_blocks.as_mut()
     }
 
-    fn parse_block(&mut self, reader: &mut BitSliceReader) -> Result<()> {
+    fn parse_block<R: io::Read + io::Seek>(
+        &mut self,
+        reader: &mut BitstreamIoReader<R>,
+    ) -> Result<()> {
         let ext_block_length = reader.get_ue()?;
         let ext_block_level = reader.get_n(8)?;
 
@@ -71,7 +76,7 @@ impl WithExtMetadataBlocks for CmV29DmData {
             }
         };
 
-        ext_metadata_block.validate_and_read_remaining::<Self>(reader, ext_block_length)?;
+        ext_metadata_block.validate_and_read_remaining::<Self, R>(reader, ext_block_length)?;
 
         self.ext_metadata_blocks.push(ext_metadata_block);
 

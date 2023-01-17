@@ -105,23 +105,9 @@ dependencies = [
 
 [[package]]
 name = "bitvec_helpers"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "201bfe1fe6b1e074762d947eba5ec745856b9c29f7202d62837dacf7fac3a5fc"
+version = "3.1.0"
 dependencies = [
- "anyhow",
- "bitvec",
- "funty",
-]
-
-[[package]]
-name = "bitvec_helpers"
-version = "4.0.0"
-dependencies = [
- "anyhow",
  "bitstream-io",
- "bitvec",
- "funty",
 ]
 
 [[package]]
@@ -380,7 +366,7 @@ version = "3.0.0"
 dependencies = [
  "anyhow",
  "bitvec",
- "bitvec_helpers 4.0.0",
+ "bitvec_helpers 3.1.0",
  "crc",
  "criterion",
  "libc",
@@ -397,7 +383,7 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "bitvec",
- "bitvec_helpers 3.0.0",
+ "bitvec_helpers 3.1.0",
  "clap 4.1.1",
  "dolby_vision",
  "hevc_parser",

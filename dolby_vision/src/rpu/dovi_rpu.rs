@@ -1,6 +1,8 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -128,10 +130,11 @@ impl DoviRpu {
 
     #[inline(always)]
     fn read_rpu_data(bytes: &[u8], trailing_zeroes: usize) -> Result<DoviRpu> {
-        let mut reader = BitSliceReader::new(bytes);
+        let cursor = std::io::Cursor::new(bytes);
+        let mut reader = BitstreamIoReader::new(cursor, bytes.len() as u64);
 
         // CRC32 + 0x80 + trailing
-        let final_length = 32 + 8 + (trailing_zeroes * 8);
+        let final_length = (32 + 8 + (trailing_zeroes * 8)) as u64;
 
         let header = RpuDataHeader::parse(&mut reader)?;
 
@@ -163,8 +166,8 @@ impl DoviRpu {
 
         // CRC32 is at the end, there can be more data in between
         let mut remaining: BitVec<u8, Msb0> = BitVec::new();
-        if reader.available() != final_length {
-            while reader.available() != final_length {
+        if reader.available()? != final_length {
+            while reader.available()? != final_length {
                 remaining.push(reader.get()?);
             }
         }

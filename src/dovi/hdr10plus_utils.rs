@@ -1,6 +1,8 @@
+use std::io;
+
 use anyhow::Result;
 
-use bitvec_helpers::bitslice_reader::BitSliceReader;
+use bitvec_helpers::bitstream_io_reader::BitstreamIoReader;
 use hevc_parser::hevc::{NALUnit, SeiMessage, NAL_SEI_PREFIX, USER_DATA_REGISTERED_ITU_T_35};
 use hevc_parser::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
@@ -17,7 +19,9 @@ pub fn st2094_40_sei_msg(sei_payload: &[u8]) -> Result<Option<SeiMessage>> {
                 let start = msg.payload_offset;
                 let end = start + msg.payload_size;
 
-                let mut reader = BitSliceReader::new(&sei_payload[start..end]);
+                let bytes = &sei_payload[start..end];
+                let cursor = io::Cursor::new(bytes);
+                let mut reader = BitstreamIoReader::new(cursor, bytes.len() as u64);
 
                 let itu_t_t35_country_code = reader.get_n::<u8>(8).unwrap();
                 let itu_t_t35_terminal_provider_code = reader.get_n::<u16>(16).unwrap();

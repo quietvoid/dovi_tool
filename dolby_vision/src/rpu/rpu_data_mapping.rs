@@ -1,5 +1,9 @@
+use std::io;
+
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -94,8 +98,8 @@ pub struct DoviMMRCurve {
 }
 
 impl RpuDataMapping {
-    pub(crate) fn parse(
-        reader: &mut BitSliceReader,
+    pub(crate) fn parse<R: io::Read + io::Seek>(
+        reader: &mut BitstreamIoReader<R>,
         header: &RpuDataHeader,
     ) -> Result<RpuDataMapping> {
         let mut mapping = RpuDataMapping {
@@ -105,7 +109,7 @@ impl RpuDataMapping {
             ..Default::default()
         };
 
-        let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as usize;
+        let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as u32;
 
         for cmp in 0..NUM_COMPONENTS {
             let mut curve = &mut mapping.curves[cmp];
@@ -387,8 +391,12 @@ impl DoviPolynomialCurve {
         }
     }
 
-    fn parse(&mut self, reader: &mut BitSliceReader, header: &RpuDataHeader) -> Result<()> {
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
+    fn parse<R: io::Read + io::Seek>(
+        &mut self,
+        reader: &mut BitstreamIoReader<R>,
+        header: &RpuDataHeader,
+    ) -> Result<()> {
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         let poly_order_minus1 = reader.get_ue()?;
         ensure!(poly_order_minus1 <= 1);
@@ -475,8 +483,12 @@ impl DoviMMRCurve {
         }
     }
 
-    fn parse(&mut self, reader: &mut BitSliceReader, header: &RpuDataHeader) -> Result<()> {
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
+    fn parse<R: io::Read + io::Seek>(
+        &mut self,
+        reader: &mut BitstreamIoReader<R>,
+        header: &RpuDataHeader,
+    ) -> Result<()> {
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         let mmr_order_minus1 = reader.get_n(2)?;
         ensure!(mmr_order_minus1 <= 2);

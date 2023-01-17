@@ -1,5 +1,9 @@
+use std::io;
+
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -72,10 +76,10 @@ pub enum CmVersion {
     V40,
 }
 
-pub(crate) fn vdr_dm_data_payload(
-    reader: &mut BitSliceReader,
+pub(crate) fn vdr_dm_data_payload<R: io::Read + io::Seek>(
+    reader: &mut BitstreamIoReader<R>,
     header: &RpuDataHeader,
-    final_length: usize,
+    final_length: u64,
 ) -> Result<VdrDmData> {
     let compressed_dm_data = header.reserved_zero_3bits == 1;
 
@@ -92,13 +96,13 @@ pub(crate) fn vdr_dm_data_payload(
         VdrDmData::parse(reader)?
     };
 
-    if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData>(reader)? {
+    if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData, R>(reader)? {
         vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
     }
 
     // 16 bits min for required level 254
-    if reader.available() >= final_length + 16 {
-        if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
+    if reader.available()? >= final_length + 16 {
+        if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData, R>(reader)? {
             vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));
         }
     }
@@ -107,7 +111,9 @@ pub(crate) fn vdr_dm_data_payload(
 }
 
 impl VdrDmData {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<VdrDmData> {
+    pub(crate) fn parse<R: io::Read + io::Seek>(
+        reader: &mut BitstreamIoReader<R>,
+    ) -> Result<VdrDmData> {
         let data = VdrDmData {
             affected_dm_metadata_id: reader.get_ue()?,
             current_dm_metadata_id: reader.get_ue()?,

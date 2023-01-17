@@ -1,7 +1,10 @@
 use std::fmt::Display;
+use std::io;
 
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -35,8 +38,8 @@ pub struct RpuDataNlq {
 }
 
 impl RpuDataNlq {
-    pub(crate) fn parse(
-        reader: &mut BitSliceReader,
+    pub(crate) fn parse<R: io::Read + io::Seek>(
+        reader: &mut BitstreamIoReader<R>,
         header: &RpuDataHeader,
         mapping: &RpuDataMapping,
     ) -> Result<RpuDataNlq> {
@@ -50,12 +53,12 @@ impl RpuDataNlq {
 
         let mut data = RpuDataNlq::default();
 
-        let coefficient_log2_denom_length = header.coefficient_log2_denom_length as usize;
+        let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         for cmp in 0..NUM_COMPONENTS {
             // rpu_data_nlq_param
 
-            data.nlq_offset[cmp] = reader.get_n((header.el_bit_depth_minus8 + 8) as usize)?;
+            data.nlq_offset[cmp] = reader.get_n((header.el_bit_depth_minus8 + 8) as u32)?;
 
             if header.coefficient_data_type == 0 {
                 data.vdr_in_max_int[cmp] = reader.get_ue()?;

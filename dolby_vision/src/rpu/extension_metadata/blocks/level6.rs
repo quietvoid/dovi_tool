@@ -1,5 +1,9 @@
+use std::io;
+
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -21,7 +25,9 @@ pub struct ExtMetadataBlockLevel6 {
 }
 
 impl ExtMetadataBlockLevel6 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse<R: io::Read + io::Seek>(
+        reader: &mut BitstreamIoReader<R>,
+    ) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level6(Self {
             max_display_mastering_luminance: reader.get_n(16)?,
             min_display_mastering_luminance: reader.get_n(16)?,

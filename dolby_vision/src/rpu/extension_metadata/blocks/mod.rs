@@ -1,5 +1,9 @@
+use std::io;
+
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitstream_io_writer::BitstreamIoWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BitstreamIoReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -191,9 +195,9 @@ impl ExtMetadataBlock {
         Ok(())
     }
 
-    pub(crate) fn validate_and_read_remaining<T: WithExtMetadataBlocks>(
+    pub(crate) fn validate_and_read_remaining<T: WithExtMetadataBlocks, R: io::Read + io::Seek>(
         &self,
-        reader: &mut BitSliceReader,
+        reader: &mut BitstreamIoReader<R>,
         block_length: u64,
     ) -> Result<()> {
         let level = self.level();
