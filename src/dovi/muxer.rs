@@ -198,7 +198,7 @@ impl IoProcessor for Muxer {
                         NalBuffer {
                             nal_type: NAL_AUD,
                             start_code: NALUStartCode::Length4,
-                            data: hevc_parser::utils::aud_for_frame(previous_frame, None),
+                            data: hevc_parser::utils::aud_for_frame(previous_frame, None)?,
                         },
                     );
                 }
@@ -275,7 +275,7 @@ impl IoProcessor for Muxer {
                     NalBuffer {
                         nal_type: NAL_AUD,
                         start_code: NALUStartCode::Length4,
-                        data: hevc_parser::utils::aud_for_frame(last_frame, None),
+                        data: hevc_parser::utils::aud_for_frame(last_frame, None)?,
                     },
                 );
             }

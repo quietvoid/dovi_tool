@@ -8,8 +8,8 @@ license = "MIT"
 build = "build.rs"
 
 [dependencies]
-bitvec_helpers = { version = "3.1.1", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.5.2", features = ["hevc_io"] }
+bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
+hevc_parser = { version = "0.6.0", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 madvr_parse = "1.0.1"
 

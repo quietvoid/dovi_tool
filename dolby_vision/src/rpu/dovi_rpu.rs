@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use bitvec::prelude::{BitVec, Msb0};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
@@ -244,7 +244,11 @@ impl DoviRpu {
 
         writer.byte_align()?;
 
-        let computed_crc32 = compute_crc32(&writer.as_slice().unwrap()[1..]);
+        let computed_crc32 = compute_crc32(
+            &writer
+                .as_slice()
+                .ok_or_else(|| anyhow!("Unaligned bytes"))?[1..],
+        );
 
         if !self.modified {
             // Validate the parsed crc32 is the same
@@ -265,7 +269,10 @@ impl DoviRpu {
             }
         }
 
-        Ok(writer.as_slice().unwrap().to_owned())
+        Ok(writer
+            .as_slice()
+            .ok_or_else(|| anyhow!("Unaligned bytes"))?
+            .to_owned())
     }
 
     fn validate(&self) -> Result<()> {
