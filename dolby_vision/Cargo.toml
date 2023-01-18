@@ -23,7 +23,6 @@ libc = { version = "0.2.139", optional = true }
 criterion = "0.4.0"
 
 [features]
-default = ["capi"]
 xml = ["roxmltree"]
 serde = ["dep:serde", "dep:serde_json"]
 capi = ["libc"]
