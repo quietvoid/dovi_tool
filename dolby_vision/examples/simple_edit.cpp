@@ -24,7 +24,7 @@ int main(void) {
     DoviRpuOpaque *rpu = dovi_parse_unspec62_nalu(buf.data(), buf.size());
     const DoviRpuDataHeader *header = dovi_rpu_get_header(rpu);
 
-    if (header && strcmp(header->el_type, "FEL") == 0) {
+    if (header && header->el_type && strcmp(header->el_type, "FEL") == 0) {
         printf("Converting profile 7 FEL to 8.1 with mapping removed\n");
 
         // Convert the base to 8.1 compatible
