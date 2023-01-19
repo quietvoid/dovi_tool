@@ -109,7 +109,7 @@ impl RpuInfo {
             if profiles.contains('7') {
                 let subprofiles = rpus
                     .iter()
-                    .filter_map(|rpu| rpu.subprofile.as_ref())
+                    .filter_map(|rpu| rpu.el_type.as_ref().map(|e| e.to_string()))
                     .unique()
                     .sorted()
                     .join(", ");

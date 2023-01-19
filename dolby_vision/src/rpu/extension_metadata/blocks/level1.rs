@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -16,6 +18,7 @@ pub const L1_MAX_PQ_MIN_VALUE: u16 = 2081;
 pub const L1_MAX_PQ_MAX_VALUE: u16 = 4095;
 /// cbindgen:ignore
 pub const L1_AVG_PQ_MIN_VALUE: u16 = 819;
+/// cbindgen:ignore
 pub const L1_AVG_PQ_MIN_VALUE_CMV40: u16 = 1229;
 
 /// Statistical analysis of the frame: min, max, avg brightness.
@@ -29,7 +32,7 @@ pub struct ExtMetadataBlockLevel1 {
 }
 
 impl ExtMetadataBlockLevel1 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level1(Self {
             min_pq: reader.get_n(12)?,
             max_pq: reader.get_n(12)?,
@@ -37,12 +40,12 @@ impl ExtMetadataBlockLevel1 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.min_pq.to_be_bytes(), 12);
-        writer.write_n(&self.max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.avg_pq.to_be_bytes(), 12);
+        writer.write_n(&self.min_pq, 12)?;
+        writer.write_n(&self.max_pq, 12)?;
+        writer.write_n(&self.avg_pq, 12)?;
 
         Ok(())
     }
@@ -89,22 +92,6 @@ impl ExtMetadataBlockLevel1 {
 
     pub fn clamp_values_cm_version(&mut self, cm_version: CmVersion) {
         self.clamp_values_int(cm_version);
-    }
-
-    #[deprecated(
-        since = "1.7.1",
-        note = "Replaced by `from_stats_cm_version` with CmVersion::V29"
-    )]
-    pub fn from_stats(min_pq: u16, max_pq: u16, avg_pq: u16) -> ExtMetadataBlockLevel1 {
-        Self::from_stats_cm_version(min_pq, max_pq, avg_pq, CmVersion::V29)
-    }
-
-    #[deprecated(
-        since = "1.7.1",
-        note = "Replaced by `clamp_values_cm_version` with CmVersion::V29"
-    )]
-    pub fn clamp_values(&mut self) {
-        self.clamp_values_int(CmVersion::V29);
     }
 }
 

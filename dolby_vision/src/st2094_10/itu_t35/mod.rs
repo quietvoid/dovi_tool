@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::bitslice_reader::BitSliceReader;
+use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 use crate::utils::clear_start_code_emulation_prevention_3_byte;
 
@@ -27,7 +27,7 @@ impl ST2094_10ItuT35 {
         let trimmed_data = Self::validated_trimmed_data(data)?;
         let bytes = clear_start_code_emulation_prevention_3_byte(trimmed_data);
 
-        let mut reader = BitSliceReader::new(&bytes);
+        let mut reader = BsIoSliceReader::from_slice(&bytes);
 
         let itu_t_t35_country_code: u8 = reader.get_n(8)?;
         let itu_t_t35_provider_code: u16 = reader.get_n(16)?;

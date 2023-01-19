@@ -1,3 +1,26 @@
+## 3.0.0
+- Breaking changes from `RpuDataMapping` refactor.
+- Renamed `serde_feature` to simply `serde`.
+
+- Moved some fields from `RpuDataHeader` into `RpuDataMapping.
+- `RpuDataNlq` is now part of `RpuDataMapping`.
+
+- The mapping now has one curve per component, which is a `DoviReshapingCurve`.
+- `DoviReshapingCurve` contains the pivots, mapping method and the respective curve params.
+    - Component 0 describes the polynomial params in `DoviPolynomialCurve`.
+    - Components 1 and 2 describe can be either polynomial or the MMR params in `DoviMMRCurve`.
+    - Polynomial interpolation fields were removed as there are no existing samples.
+
+- `RpuDataNlq` was changed to contain only one set of params, as there is no significant pivot.
+- All `_minus_X` suffixed names were uniformized as `minusX`.
+
+The changes also affect the C API.
+
+C API:
+    - Added `dovi_rpu_set_active_area_offsets` function to edit L5 metadata.
+    - Added `dovi_rpu_remove_mapping` function.
+
+
 ## 2.1.0
 - Made some parsing functions private, as they were always meant to be internal only.
 - Replaced `DoviRpu::trailing_bytes` by `trailing_zeroes`, which is only the count of the zero bytes.

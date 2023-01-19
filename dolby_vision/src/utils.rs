@@ -24,23 +24,23 @@ pub fn nits_to_pq(nits: f64) -> f64 {
 /// Unescapes a byte slice from annexb.
 /// Allocates a new Vec.
 pub fn clear_start_code_emulation_prevention_3_byte(data: &[u8]) -> Vec<u8> {
-    let mut unescaped_bytes: Vec<u8> = Vec::with_capacity(data.len());
+    let len = data.len();
 
-    let unescaped_bytes_iter = data.iter().enumerate().filter_map(|(index, value)| {
-        if index > 2
-            && index < data.len() - 2
-            && data[index - 2] == 0
-            && data[index - 1] == 0
-            && data[index] == 3
-        {
-            None
-        } else {
-            Some(*value)
+    if len > 2 {
+        let mut unescaped_bytes: Vec<u8> = Vec::with_capacity(len);
+        unescaped_bytes.push(data[0]);
+        unescaped_bytes.push(data[1]);
+
+        for i in 2..len {
+            if !(data[i - 2] == 0 && data[i - 1] == 0 && data[i] == 3) {
+                unescaped_bytes.push(data[i]);
+            }
         }
-    });
-    unescaped_bytes.extend(unescaped_bytes_iter);
 
-    unescaped_bytes
+        unescaped_bytes
+    } else {
+        data.to_owned()
+    }
 }
 
 /// Escapes the vec to annexb to avoid emulating a start code by accident
@@ -65,5 +65,19 @@ pub(crate) fn bitvec_ser_bits<S: Serializer>(
     s: S,
 ) -> Result<S::Ok, S::Error> {
     let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
+    bits.serialize(s)
+}
+
+/// Serializing an optional bitvec as a vec of bits
+#[cfg(feature = "serde")]
+pub(crate) fn opt_bitvec_ser_bits<S: Serializer>(
+    bitvec: &Option<BitVec<u8, Msb0>>,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    let bits: Vec<u8> = if let Some(vec) = bitvec {
+        vec.iter().map(|b| *b as u8).collect()
+    } else {
+        Vec::new()
+    };
     bits.serialize(s)
 }

@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -37,7 +39,7 @@ pub struct ExtMetadataBlockLevel10 {
 }
 
 impl ExtMetadataBlockLevel10 {
-    pub(crate) fn parse(reader: &mut BitSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
             target_display_index: reader.get_n(8)?,
@@ -61,23 +63,23 @@ impl ExtMetadataBlockLevel10 {
         Ok(ExtMetadataBlock::Level10(block))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_display_index.to_be_bytes(), 8);
-        writer.write_n(&self.target_max_pq.to_be_bytes(), 12);
-        writer.write_n(&self.target_min_pq.to_be_bytes(), 12);
-        writer.write_n(&self.target_primary_index.to_be_bytes(), 8);
+        writer.write_n(&self.target_display_index, 8)?;
+        writer.write_n(&self.target_max_pq, 12)?;
+        writer.write_n(&self.target_min_pq, 12)?;
+        writer.write_n(&self.target_primary_index, 8)?;
 
         if self.length > 5 {
-            writer.write_n(&self.target_primary_red_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_red_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_green_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_green_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_blue_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_blue_y.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_white_x.to_be_bytes(), 16);
-            writer.write_n(&self.target_primary_white_y.to_be_bytes(), 16);
+            writer.write_n(&self.target_primary_red_x, 16)?;
+            writer.write_n(&self.target_primary_red_y, 16)?;
+            writer.write_n(&self.target_primary_green_x, 16)?;
+            writer.write_n(&self.target_primary_green_y, 16)?;
+            writer.write_n(&self.target_primary_blue_x, 16)?;
+            writer.write_n(&self.target_primary_blue_y, 16)?;
+            writer.write_n(&self.target_primary_white_x, 16)?;
+            writer.write_n(&self.target_primary_white_y, 16)?;
         }
 
         Ok(())

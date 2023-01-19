@@ -1,10 +1,11 @@
 use anyhow::{bail, ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use super::dovi_rpu::DoviRpu;
 use super::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel9,
 };
@@ -16,6 +17,7 @@ use super::profiles::profile84::Profile84;
 use super::profiles::DoviProfile;
 
 use super::extension_metadata::WithExtMetadataBlocks;
+use super::rpu_data_header::RpuDataHeader;
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -73,11 +75,11 @@ pub enum CmVersion {
 }
 
 pub(crate) fn vdr_dm_data_payload(
-    dovi_rpu: &mut DoviRpu,
-    reader: &mut BitSliceReader,
-    final_length: usize,
-) -> Result<()> {
-    let compressed_dm_data = dovi_rpu.header.reserved_zero_3bits == 1;
+    reader: &mut BsIoSliceReader,
+    header: &RpuDataHeader,
+    final_length: u64,
+) -> Result<VdrDmData> {
+    let compressed_dm_data = header.reserved_zero_3bits == 1;
 
     let mut vdr_dm_data = if compressed_dm_data {
         VdrDmData {
@@ -97,19 +99,17 @@ pub(crate) fn vdr_dm_data_payload(
     }
 
     // 16 bits min for required level 254
-    if reader.available() >= final_length + 16 {
+    if reader.available()? >= final_length + 16 {
         if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
             vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));
         }
     }
 
-    dovi_rpu.vdr_dm_data = Some(vdr_dm_data);
-
-    Ok(())
+    Ok(vdr_dm_data)
 }
 
 impl VdrDmData {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<VdrDmData> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<VdrDmData> {
         let data = VdrDmData {
             affected_dm_metadata_id: reader.get_ue()?,
             current_dm_metadata_id: reader.get_ue()?,
@@ -187,49 +187,49 @@ impl VdrDmData {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_ue(self.affected_dm_metadata_id);
-        writer.write_ue(self.current_dm_metadata_id);
-        writer.write_ue(self.scene_refresh_flag);
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        writer.write_ue(&self.affected_dm_metadata_id)?;
+        writer.write_ue(&self.current_dm_metadata_id)?;
+        writer.write_ue(&self.scene_refresh_flag)?;
 
         if !self.compressed {
-            writer.write_n(&self.ycc_to_rgb_coef0.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef1.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef2.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef3.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef4.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef5.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef6.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef7.to_be_bytes(), 16);
-            writer.write_n(&self.ycc_to_rgb_coef8.to_be_bytes(), 16);
+            writer.write_signed_n(&self.ycc_to_rgb_coef0, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef1, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef2, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef3, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef4, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef5, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef6, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef7, 16)?;
+            writer.write_signed_n(&self.ycc_to_rgb_coef8, 16)?;
 
-            writer.write_n(&self.ycc_to_rgb_offset0.to_be_bytes(), 32);
-            writer.write_n(&self.ycc_to_rgb_offset1.to_be_bytes(), 32);
-            writer.write_n(&self.ycc_to_rgb_offset2.to_be_bytes(), 32);
+            writer.write_n(&self.ycc_to_rgb_offset0, 32)?;
+            writer.write_n(&self.ycc_to_rgb_offset1, 32)?;
+            writer.write_n(&self.ycc_to_rgb_offset2, 32)?;
 
-            writer.write_n(&self.rgb_to_lms_coef0.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef1.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef2.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef3.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef4.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef5.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef6.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef7.to_be_bytes(), 16);
-            writer.write_n(&self.rgb_to_lms_coef8.to_be_bytes(), 16);
+            writer.write_signed_n(&self.rgb_to_lms_coef0, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef1, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef2, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef3, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef4, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef5, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef6, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef7, 16)?;
+            writer.write_signed_n(&self.rgb_to_lms_coef8, 16)?;
 
-            writer.write_n(&self.signal_eotf.to_be_bytes(), 16);
-            writer.write_n(&self.signal_eotf_param0.to_be_bytes(), 16);
-            writer.write_n(&self.signal_eotf_param1.to_be_bytes(), 16);
-            writer.write_n(&self.signal_eotf_param2.to_be_bytes(), 32);
+            writer.write_n(&self.signal_eotf, 16)?;
+            writer.write_n(&self.signal_eotf_param0, 16)?;
+            writer.write_n(&self.signal_eotf_param1, 16)?;
+            writer.write_n(&self.signal_eotf_param2, 32)?;
 
-            writer.write_n(&self.signal_bit_depth.to_be_bytes(), 5);
-            writer.write_n(&self.signal_color_space.to_be_bytes(), 2);
-            writer.write_n(&self.signal_chroma_format.to_be_bytes(), 2);
-            writer.write_n(&self.signal_full_range_flag.to_be_bytes(), 2);
+            writer.write_n(&self.signal_bit_depth, 5)?;
+            writer.write_n(&self.signal_color_space, 2)?;
+            writer.write_n(&self.signal_chroma_format, 2)?;
+            writer.write_n(&self.signal_full_range_flag, 2)?;
 
-            writer.write_n(&self.source_min_pq.to_be_bytes(), 12);
-            writer.write_n(&self.source_max_pq.to_be_bytes(), 12);
-            writer.write_n(&self.source_diagonal.to_be_bytes(), 10);
+            writer.write_n(&self.source_min_pq, 12)?;
+            writer.write_n(&self.source_max_pq, 12)?;
+            writer.write_n(&self.source_diagonal, 10)?;
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {

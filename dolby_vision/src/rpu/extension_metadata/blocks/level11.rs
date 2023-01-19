@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -24,7 +26,7 @@ pub struct ExtMetadataBlockLevel11 {
 }
 
 impl ExtMetadataBlockLevel11 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         let mut l11 = Self {
             content_type: reader.get_n(8)?,
             whitepoint: reader.get_n(8)?,
@@ -41,7 +43,7 @@ impl ExtMetadataBlockLevel11 {
         Ok(ExtMetadataBlock::Level11(l11))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
         let mut wp = self.whitepoint;
@@ -50,10 +52,10 @@ impl ExtMetadataBlockLevel11 {
             wp += MAX_WHITEPOINT_VALUE + 1
         }
 
-        writer.write_n(&self.content_type.to_be_bytes(), 8);
-        writer.write_n(&wp.to_be_bytes(), 8);
-        writer.write_n(&self.reserved_byte2.to_be_bytes(), 8);
-        writer.write_n(&self.reserved_byte3.to_be_bytes(), 8);
+        writer.write_n(&self.content_type, 8)?;
+        writer.write_n(&wp, 8)?;
+        writer.write_n(&self.reserved_byte2, 8)?;
+        writer.write_n(&self.reserved_byte3, 8)?;
 
         Ok(())
     }

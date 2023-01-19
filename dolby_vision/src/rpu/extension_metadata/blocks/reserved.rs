@@ -1,7 +1,9 @@
 use anyhow::{bail, Result};
 
 use bitvec::{order::Msb0, prelude::BitVec};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -25,7 +27,7 @@ impl ReservedExtMetadataBlock {
     pub(crate) fn parse(
         ext_block_length: u64,
         ext_block_level: u8,
-        reader: &mut BitSliceReader,
+        reader: &mut BsIoSliceReader,
     ) -> Result<ExtMetadataBlock> {
         let bits = 8 * ext_block_length;
         let mut data = BitVec::new();
@@ -41,9 +43,9 @@ impl ReservedExtMetadataBlock {
         }))
     }
 
-    pub fn write(&self, _writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, _writer: &mut BitstreamIoWriter) -> Result<()> {
         bail!("Cannot write reserved block");
-        // self.data.iter().for_each(|b| writer.write(*b));
+        // self.data.iter().for_each(|b| writer.write(*b))?;
     }
 }
 

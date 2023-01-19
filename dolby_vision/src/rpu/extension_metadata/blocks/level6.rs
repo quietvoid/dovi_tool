@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -21,7 +23,7 @@ pub struct ExtMetadataBlockLevel6 {
 }
 
 impl ExtMetadataBlockLevel6 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level6(Self {
             max_display_mastering_luminance: reader.get_n(16)?,
             min_display_mastering_luminance: reader.get_n(16)?,
@@ -30,13 +32,13 @@ impl ExtMetadataBlockLevel6 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.max_display_mastering_luminance.to_be_bytes(), 16);
-        writer.write_n(&self.min_display_mastering_luminance.to_be_bytes(), 16);
-        writer.write_n(&self.max_content_light_level.to_be_bytes(), 16);
-        writer.write_n(&self.max_frame_average_light_level.to_be_bytes(), 16);
+        writer.write_n(&self.max_display_mastering_luminance, 16)?;
+        writer.write_n(&self.min_display_mastering_luminance, 16)?;
+        writer.write_n(&self.max_content_light_level, 16)?;
+        writer.write_n(&self.max_frame_average_light_level, 16)?;
 
         Ok(())
     }

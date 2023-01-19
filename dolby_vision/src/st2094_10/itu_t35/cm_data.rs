@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bitvec_helpers::bitslice_reader::BitSliceReader;
+use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 use super::UserDataTypeStruct;
 
@@ -38,7 +38,7 @@ pub struct ST2094_10CmData {
 }
 
 impl ST2094_10CmData {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<UserDataTypeStruct> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10CmData {
             ccm_profile: reader.get_n(4)?,
             ccm_level: reader.get_n(4)?,
@@ -50,7 +50,7 @@ impl ST2094_10CmData {
             ..Default::default()
         };
 
-        let coefficient_log2_denom_length = meta.coefficient_log2_denom as usize;
+        let coefficient_log2_denom_length = meta.coefficient_log2_denom as u32;
 
         for cmp in 0..NUM_COMPONENTS {
             meta.num_pivots_minus2[cmp] = reader.get_ue()?;
@@ -60,7 +60,7 @@ impl ST2094_10CmData {
 
             for pivot_idx in 0..(meta.num_pivots_minus2[cmp] as usize) + 2 {
                 meta.pred_pivot_value[cmp][pivot_idx] =
-                    reader.get_n((meta.el_bit_depth_minus8 as usize) + 8)?;
+                    reader.get_n((meta.el_bit_depth_minus8 as u32) + 8)?;
             }
         }
 
@@ -139,7 +139,7 @@ impl ST2094_10CmData {
 
         if !meta.disable_residual_flag {
             for cmp in 0..NUM_COMPONENTS {
-                meta.nlq_offset[cmp] = reader.get_n((meta.el_bit_depth_minus8 as usize) + 8)?;
+                meta.nlq_offset[cmp] = reader.get_n((meta.el_bit_depth_minus8 as u32) + 8)?;
                 meta.hdr_in_max_int[cmp] = reader.get_ue()?;
                 meta.hdr_in_max[cmp] = reader.get_n(coefficient_log2_denom_length)?;
                 meta.linear_deadzone_slope_int[cmp] = reader.get_ue()?;

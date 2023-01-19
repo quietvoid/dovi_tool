@@ -1,5 +1,7 @@
 use anyhow::Result;
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -22,7 +24,7 @@ pub struct ExtMetadataBlockLevel255 {
 }
 
 impl ExtMetadataBlockLevel255 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level255(Self {
             dm_run_mode: reader.get_n(8)?,
             dm_run_version: reader.get_n(8)?,
@@ -33,13 +35,13 @@ impl ExtMetadataBlockLevel255 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
-        writer.write_n(&self.dm_run_mode.to_be_bytes(), 8);
-        writer.write_n(&self.dm_run_version.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug0.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug1.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug2.to_be_bytes(), 8);
-        writer.write_n(&self.dm_debug3.to_be_bytes(), 8);
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        writer.write_n(&self.dm_run_mode, 8)?;
+        writer.write_n(&self.dm_run_version, 8)?;
+        writer.write_n(&self.dm_debug0, 8)?;
+        writer.write_n(&self.dm_debug1, 8)?;
+        writer.write_n(&self.dm_debug2, 8)?;
+        writer.write_n(&self.dm_debug3, 8)?;
 
         Ok(())
     }

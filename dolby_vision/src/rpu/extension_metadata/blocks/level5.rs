@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -20,7 +22,7 @@ pub struct ExtMetadataBlockLevel5 {
 }
 
 impl ExtMetadataBlockLevel5 {
-    pub(crate) fn parse(reader: &mut BitSliceReader) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level5(Self {
             active_area_left_offset: reader.get_n(13)?,
             active_area_right_offset: reader.get_n(13)?,
@@ -29,13 +31,13 @@ impl ExtMetadataBlockLevel5 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.active_area_left_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_right_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_top_offset.to_be_bytes(), 13);
-        writer.write_n(&self.active_area_bottom_offset.to_be_bytes(), 13);
+        writer.write_n(&self.active_area_left_offset, 13)?;
+        writer.write_n(&self.active_area_right_offset, 13)?;
+        writer.write_n(&self.active_area_top_offset, 13)?;
+        writer.write_n(&self.active_area_bottom_offset, 13)?;
 
         Ok(())
     }

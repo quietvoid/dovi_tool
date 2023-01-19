@@ -1,5 +1,7 @@
 use anyhow::{ensure, Result};
-use bitvec_helpers::{bitslice_reader::BitSliceReader, bitvec_writer::BitVecWriter};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
 #[cfg(feature = "serde")]
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -55,7 +57,7 @@ pub struct ExtMetadataBlockLevel9 {
 }
 
 impl ExtMetadataBlockLevel9 {
-    pub(crate) fn parse(reader: &mut BitSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
             source_primary_index: reader.get_n(8)?,
@@ -76,20 +78,20 @@ impl ExtMetadataBlockLevel9 {
         Ok(ExtMetadataBlock::Level9(block))
     }
 
-    pub fn write(&self, writer: &mut BitVecWriter) -> Result<()> {
+    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.source_primary_index.to_be_bytes(), 8);
+        writer.write_n(&self.source_primary_index, 8)?;
 
         if self.length > 1 {
-            writer.write_n(&self.source_primary_red_x.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_red_y.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_green_x.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_green_y.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_blue_x.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_blue_y.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_white_x.to_be_bytes(), 16);
-            writer.write_n(&self.source_primary_white_y.to_be_bytes(), 16);
+            writer.write_n(&self.source_primary_red_x, 16)?;
+            writer.write_n(&self.source_primary_red_y, 16)?;
+            writer.write_n(&self.source_primary_green_x, 16)?;
+            writer.write_n(&self.source_primary_green_y, 16)?;
+            writer.write_n(&self.source_primary_blue_x, 16)?;
+            writer.write_n(&self.source_primary_blue_y, 16)?;
+            writer.write_n(&self.source_primary_white_x, 16)?;
+            writer.write_n(&self.source_primary_white_y, 16)?;
         }
 
         Ok(())

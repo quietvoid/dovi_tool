@@ -1,4 +1,9 @@
-use crate::rpu::rpu_data_mapping::RpuDataMapping;
+use crate::rpu::{
+    rpu_data_mapping::{
+        DoviMappingMethod, DoviPolynomialCurve, DoviReshapingCurve, RpuDataMapping,
+    },
+    NUM_COMPONENTS,
+};
 
 use super::{DoviProfile, VdrDmData};
 
@@ -35,22 +40,33 @@ impl DoviProfile for Profile81 {
 
 impl Profile81 {
     pub fn rpu_data_mapping() -> RpuDataMapping {
+        let curves: [DoviReshapingCurve; NUM_COMPONENTS] = [
+            Self::dovi_reshaping_curve(),
+            Self::dovi_reshaping_curve(),
+            Self::dovi_reshaping_curve(),
+        ];
+
         RpuDataMapping {
-            mapping_idc: [vec![0], vec![0], vec![0]],
-            mapping_param_pred_flag: [vec![false], vec![false], vec![false]],
-            num_mapping_param_predictors: [vec![0], vec![0], vec![0]],
-            diff_pred_part_idx_mapping_minus1: [vec![], vec![], vec![]],
-            poly_order_minus1: [vec![0], vec![0], vec![0]],
-            linear_interp_flag: [vec![false], vec![false], vec![false]],
-            pred_linear_interp_value_int: [vec![], vec![], vec![]],
-            pred_linear_interp_value: [vec![], vec![], vec![]],
-            poly_coef_int: [vec![vec![0, 1]], vec![vec![0, 1]], vec![vec![0, 1]]],
-            poly_coef: [vec![vec![0, 0]], vec![vec![0, 0]], vec![vec![0, 0]]],
-            mmr_order_minus1: [vec![], vec![], vec![]],
-            mmr_constant_int: [vec![], vec![], vec![]],
-            mmr_constant: [vec![], vec![], vec![]],
-            mmr_coef_int: [vec![vec![]], vec![vec![]], vec![vec![]]],
-            mmr_coef: [vec![vec![]], vec![vec![]], vec![vec![]]],
+            vdr_rpu_id: 0,
+            mapping_color_space: 0,
+            mapping_chroma_format_idc: 0,
+            nlq_method_idc: None,
+            nlq_num_pivots_minus2: None,
+            nlq_pred_pivot_value: None,
+            num_x_partitions_minus1: 0,
+            num_y_partitions_minus1: 0,
+            curves,
+            nlq: None,
+        }
+    }
+
+    pub fn dovi_reshaping_curve() -> DoviReshapingCurve {
+        DoviReshapingCurve {
+            num_pivots_minus2: 0,
+            pivots: vec![0, 1023],
+            mapping_idc: DoviMappingMethod::Polynomial,
+            polynomial: Some(DoviPolynomialCurve::p81_default()),
+            mmr: None,
         }
     }
 }
