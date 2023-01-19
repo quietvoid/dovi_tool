@@ -24,7 +24,8 @@ int main(void) {
     DoviRpuOpaque *rpu = dovi_parse_unspec62_nalu(buf.data(), buf.size());
     const DoviRpuDataHeader *header = dovi_rpu_get_header(rpu);
 
-    if (header) {
+    // Only converts profile 7 as they are guaranteed to be HDR10 base
+    if (header && header->guessed_profile == 7) {
         // Convert the base to 8.1 compatible
         int ret = dovi_convert_rpu_with_mode(rpu, 2);
 
