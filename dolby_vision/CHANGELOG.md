@@ -17,8 +17,8 @@
 The changes also affect the C API.
 
 C API:
-    - Added `dovi_rpu_set_active_area_offsets` function to edit L5 metadata.
-    - Added `dovi_rpu_remove_mapping` function.
+- Added `dovi_rpu_set_active_area_offsets` function to edit L5 metadata.  
+- Added `dovi_rpu_remove_mapping` function.
 
 
 ## 2.1.0
