@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
+#include <cstring>
 
 extern "C"
 {
@@ -23,10 +24,17 @@ int main(void) {
     DoviRpuOpaque *rpu = dovi_parse_unspec62_nalu(buf.data(), buf.size());
     const DoviRpuDataHeader *header = dovi_rpu_get_header(rpu);
 
-    if (header) {
+    if (header && strcmp(header->el_type, "FEL") == 0) {
+        printf("Converting profile 7 FEL to 8.1 with mapping removed\n");
+
+        // Convert the base to 8.1 compatible
         int ret = dovi_convert_rpu_with_mode(rpu, 2);
+
+        // Remove the extra mapping metadata from FEL
         ret = dovi_rpu_remove_mapping(rpu);
-        ret = dovi_rpu_set_active_area_offsets(rpu, 0, 0, 138, 138);
+
+        // Final video has letterboxing completely cropped
+        ret = dovi_rpu_set_active_area_offsets(rpu, 0, 0, 0, 0);
 
         const DoviData *rpu_payload = dovi_write_unspec62_nalu(rpu);
         
