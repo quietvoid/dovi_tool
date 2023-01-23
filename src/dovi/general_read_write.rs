@@ -169,7 +169,7 @@ impl DoviProcessor {
                 .map(|e| e.as_ref())
                 .unwrap_or(&chunk[nal.start..nal.end]);
 
-            if let Some(ref mut sl_writer) = self.dovi_writer.sl_writer {
+            if let Some(sl_writer) = self.dovi_writer.sl_writer.as_mut() {
                 if nal.nal_type == NAL_UNSPEC63 && self.options.discard_el {
                     continue;
                 }
@@ -204,7 +204,7 @@ impl DoviProcessor {
 
             match nal.nal_type {
                 NAL_UNSPEC63 => {
-                    if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
+                    if let Some(el_writer) = self.dovi_writer.el_writer.as_mut() {
                         // Can't know for EL, always size 4
                         NALUnit::write_with_preset(
                             el_writer,
@@ -221,20 +221,17 @@ impl DoviProcessor {
 
                     // No mode: Copy
                     // Mode 0: Parse, untouched
-                    // Mode 1: to MEL
-                    // Mode 2: to 8.1
-                    // Mode 3: 5 to 8.1
                     if self.options.mode.is_some() || self.options.edit_config.is_some() {
                         let modified_data = convert_encoded_from_opts(&self.options, rpu_data)?;
 
-                        if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
+                        if let Some(_rpu_writer) = self.dovi_writer.rpu_writer.as_mut() {
                             // RPU for x265, remove 0x7C01
                             self.rpu_nals.push(RpuNal {
                                 decoded_index: self.rpu_nals.len(),
                                 presentation_number: 0,
                                 data: modified_data[2..].to_owned(),
                             });
-                        } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
+                        } else if let Some(el_writer) = self.dovi_writer.el_writer.as_mut() {
                             // RPU should never be first NAL
                             NALUnit::write_with_preset(
                                 el_writer,
@@ -244,14 +241,14 @@ impl DoviProcessor {
                                 false,
                             )?;
                         }
-                    } else if let Some(ref mut _rpu_writer) = self.dovi_writer.rpu_writer {
+                    } else if let Some(_rpu_writer) = self.dovi_writer.rpu_writer.as_mut() {
                         // RPU for x265, remove 0x7C01
                         self.rpu_nals.push(RpuNal {
                             decoded_index: self.rpu_nals.len(),
                             presentation_number: 0,
                             data: rpu_data[2..].to_vec(),
                         });
-                    } else if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
+                    } else if let Some(el_writer) = self.dovi_writer.el_writer.as_mut() {
                         // RPU should never be first NAL
                         NALUnit::write_with_preset(
                             el_writer,
@@ -263,7 +260,7 @@ impl DoviProcessor {
                     }
                 }
                 _ => {
-                    if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
+                    if let Some(bl_writer) = self.dovi_writer.bl_writer.as_mut() {
                         NALUnit::write_with_preset(
                             bl_writer,
                             final_chunk_data,
@@ -280,16 +277,16 @@ impl DoviProcessor {
     }
 
     fn flush_writer(&mut self, parser: &HevcParser) -> Result<()> {
-        if let Some(ref mut bl_writer) = self.dovi_writer.bl_writer {
+        if let Some(bl_writer) = self.dovi_writer.bl_writer.as_mut() {
             bl_writer.flush()?;
         }
 
-        if let Some(ref mut el_writer) = self.dovi_writer.el_writer {
+        if let Some(el_writer) = self.dovi_writer.el_writer.as_mut() {
             el_writer.flush()?;
         }
 
         // Reorder RPUs to display output order
-        if let Some(ref mut rpu_writer) = self.dovi_writer.rpu_writer {
+        if let Some(rpu_writer) = self.dovi_writer.rpu_writer.as_mut() {
             let frames = parser.ordered_frames();
 
             if frames.is_empty() {

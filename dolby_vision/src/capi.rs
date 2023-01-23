@@ -147,11 +147,12 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
 ///
 /// Converts the RPU to be compatible with a different Dolby Vision profile.
 /// Possible modes:
-///     0: Don't modify the RPU
-///     1: Converts the RPU to be MEL compatible
-///     2: Converts the RPU to be profile 8.1 compatible
-///     3: Converts profile 5 to 8.1
-///     4: Converts to static profile 8.4
+///     - 0: Don't modify the RPU
+///     - 1: Converts the RPU to be MEL compatible
+///     - 2: Converts the RPU to be profile 8.1 compatible. Both luma and chroma mapping curves are set to no-op.
+///          This mode handles source profiles 5, 7 and 8.
+///     - 3: Converts to static profile 8.4
+///     - 4: Converts to profile 8.1 preserving luma and chroma mapping. Old mode 2 behaviour.
 ///
 /// If an error occurs, it is logged to RpuOpaque.error.
 /// Returns 0 if successful, -1 otherwise.

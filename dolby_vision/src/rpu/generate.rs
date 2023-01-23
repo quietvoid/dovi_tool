@@ -155,7 +155,7 @@ impl GenerateConfig {
             for i in 0..end {
                 let mut frame_rpu = rpu.clone();
 
-                if let Some(ref mut vdr_dm_data) = frame_rpu.vdr_dm_data {
+                if let Some(vdr_dm_data) = frame_rpu.vdr_dm_data.as_mut() {
                     if i == 0 || self.long_play_mode {
                         vdr_dm_data.set_scene_cut(true);
                     }

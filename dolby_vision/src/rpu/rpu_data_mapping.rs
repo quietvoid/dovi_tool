@@ -363,6 +363,10 @@ impl RpuDataMapping {
 
     pub fn set_empty_p81_mapping(&mut self) {
         self.curves.iter_mut().for_each(|curve| {
+            curve.num_pivots_minus2 = 0;
+            curve.pivots.clear();
+            curve.pivots.extend([0, 1023]);
+
             curve.mapping_idc = DoviMappingMethod::Polynomial;
             curve.mmr = None;
 

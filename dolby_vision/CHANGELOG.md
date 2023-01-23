@@ -1,3 +1,7 @@
+## ???
+- Conversion mode 2 now defaults to remove luma and chroma mapping by default, only for profile 7 FEL.
+- Added `ConversionMode::To81MappingPreserved` for old mode 2 behaviour.
+
 ## 3.0.0
 - Breaking changes from `RpuDataMapping` refactor.
 - Renamed `serde_feature` to simply `serde`.
