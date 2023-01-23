@@ -297,11 +297,14 @@ impl DoviRpu {
     }
 
     /// Modes:
-    ///     0: Don't modify the RPU
-    ///     1: Converts the RPU to be MEL compatible
-    ///     2: Converts the RPU to be profile 8.1 compatible
-    ///     3: Converts profile 5 to 8.1
-    ///     4: Converts to static profile 8.4
+    ///     - 0: Don't modify the RPU
+    ///     - 1: Converts the RPU to be MEL compatible
+    ///     - 2: Converts the RPU to be profile 8.1 compatible.
+    ///          Both luma and chroma mapping curves are set to no-op.
+    ///          This mode handles source profiles 5, 7 and 8.
+    ///     - 3: Converts to static profile 8.4
+    ///     - 4: Converts to profile 8.1 preserving luma and chroma mapping.
+    ///          Old mode 2 behaviour.
     ///
     /// noop when profile 8 and mode 2 is used
     pub fn convert_with_mode<T: Into<ConversionMode>>(&mut self, mode: T) -> Result<()> {
@@ -323,7 +326,7 @@ impl DoviRpu {
             }
             ConversionMode::To81 => match self.dovi_profile {
                 7 | 8 => {
-                    self.convert_to_p81();
+                    self.convert_to_p81_remove_mapping();
                     true
                 }
                 5 => {
@@ -335,6 +338,14 @@ impl DoviRpu {
             ConversionMode::To84 => {
                 self.convert_to_p84();
                 true
+            }
+            ConversionMode::To81MappingPreserved => {
+                if matches!(self.dovi_profile, 7 | 8) {
+                    self.convert_to_p81();
+                    true
+                } else {
+                    false
+                }
             }
         };
 
@@ -362,7 +373,7 @@ impl DoviRpu {
             // BL is always 10 bit in current spec
             mapping.nlq_pred_pivot_value = Some([0, 1023]);
 
-            if let Some(ref mut nlq) = mapping.nlq.as_mut() {
+            if let Some(nlq) = mapping.nlq.as_mut() {
                 nlq.convert_to_mel();
             } else if self.dovi_profile == 8 {
                 mapping.nlq = Some(RpuDataNlq::mel_default());
@@ -394,8 +405,19 @@ impl DoviRpu {
             mapping.nlq = None;
         }
 
-        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+        if let Some(vdr_dm_data) = self.vdr_dm_data.as_mut() {
             vdr_dm_data.set_p81_coeffs();
+        }
+    }
+
+    fn convert_to_p81_remove_mapping(&mut self) {
+        self.modified = true;
+        self.convert_to_p81();
+
+        if let Some(el_type) = self.el_type.as_ref() {
+            if el_type == &DoviELType::FEL {
+                self.remove_mapping();
+            }
         }
     }
 
@@ -412,7 +434,7 @@ impl DoviRpu {
 
             self.remove_mapping();
 
-            if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+            if let Some(vdr_dm_data) = self.vdr_dm_data.as_mut() {
                 vdr_dm_data.set_p81_coeffs();
             }
         } else {
@@ -449,7 +471,7 @@ impl DoviRpu {
     pub fn crop(&mut self) -> Result<()> {
         self.modified = true;
 
-        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+        if let Some(vdr_dm_data) = self.vdr_dm_data.as_mut() {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
                 ExtMetadataBlockLevel5::default(),
             ))?;
@@ -467,7 +489,7 @@ impl DoviRpu {
     ) -> Result<()> {
         self.modified = true;
 
-        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+        if let Some(vdr_dm_data) = self.vdr_dm_data.as_mut() {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
                 ExtMetadataBlockLevel5::from_offsets(left, right, top, bottom),
             ))?;
@@ -479,16 +501,7 @@ impl DoviRpu {
     pub fn remove_mapping(&mut self) {
         self.modified = true;
 
-        if let Some(mapping) = self.rpu_data_mapping.as_mut() {
-            mapping.curves.iter_mut().for_each(|e| {
-                e.num_pivots_minus2 = 0;
-
-                e.pivots.clear();
-                e.pivots.extend([0, 1023]);
-            });
-        }
-
-        if let Some(ref mut rpu_data_mapping) = self.rpu_data_mapping {
+        if let Some(rpu_data_mapping) = self.rpu_data_mapping.as_mut() {
             rpu_data_mapping.set_empty_p81_mapping();
         }
     }
@@ -519,7 +532,7 @@ impl DoviRpu {
     }
 
     pub fn remove_cmv40_extension_metadata(&mut self) -> Result<()> {
-        if let Some(ref mut vdr_dm_data) = self.vdr_dm_data {
+        if let Some(vdr_dm_data) = self.vdr_dm_data.as_mut() {
             if vdr_dm_data.cmv40_metadata.is_some() {
                 self.modified = true;
 

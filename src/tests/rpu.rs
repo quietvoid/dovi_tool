@@ -132,7 +132,7 @@ fn fel_conversions() -> Result<()> {
     parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&mel_data[4..], &parsed_data[2..]);
 
-    // FEL to 8.1
+    // MEL to 8.1
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
 
@@ -1065,6 +1065,25 @@ fn profile5_to_p84() -> Result<()> {
     assert_eq!(dovi_rpu.dovi_profile, 8);
     let num_pivots = dovi_rpu.rpu_data_mapping.unwrap().curves[0].num_pivots_minus2;
     assert_eq!(num_pivots, 7);
+
+    Ok(())
+}
+
+#[test]
+fn fel_to_p81_preserve_mapping() -> Result<()> {
+    let (original_data, mut dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_orig.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 7);
+    let mut parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    dovi_rpu.convert_with_mode(ConversionMode::To81MappingPreserved)?;
+    parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    // fEL to 8.1, mapping preserved
+    let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
+    assert_eq!(p81_rpu.dovi_profile, 8);
+    assert_eq!(&p81_data[4..], &parsed_data[2..]);
 
     Ok(())
 }

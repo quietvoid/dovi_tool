@@ -149,7 +149,7 @@ impl Editor {
 
         let mut data = GenerateConfig::encode_option_rpus(&mut rpus);
 
-        if let Some(ref mut to_duplicate) = config.duplicate {
+        if let Some(to_duplicate) = config.duplicate.as_mut() {
             to_duplicate.sort_by_key(|meta| meta.offset);
             to_duplicate.reverse();
         }
@@ -353,7 +353,7 @@ impl EditConfig {
     fn change_source_levels(&self, rpu: &mut DoviRpu) {
         rpu.modified = true;
 
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             vdr_dm_data.change_source_levels(self.min_pq, self.max_pq)
         }
     }
@@ -365,7 +365,7 @@ impl EditConfig {
     ) -> Result<()> {
         rpu.modified = true;
 
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level6(level6.clone()))?;
         }
 
@@ -385,7 +385,7 @@ impl EditConfig {
             ..Default::default()
         };
 
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             rpu.modified = true;
 
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level9(level9))?;
@@ -399,7 +399,7 @@ impl EditConfig {
         rpu: &mut DoviRpu,
         level11: &ExtMetadataBlockLevel11,
     ) -> Result<()> {
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             rpu.modified = true;
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level11(level11.clone()))?;
         }
@@ -416,7 +416,7 @@ impl EditConfig {
         // Do "all" presets before specific ranges
         for edit in edits {
             if edit.0.to_lowercase() == "all" {
-                if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
                     rpu.modified = true;
                     vdr_dm_data.set_scene_cut(*edit.1);
                 }
@@ -441,7 +441,7 @@ impl EditConfig {
             }
 
             for rpu in rpus[start..=end].iter_mut().filter_map(|e| e.as_mut()) {
-                if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+                if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
                     rpu.modified = true;
                     vdr_dm_data.set_scene_cut(*edit.1)
                 }
@@ -458,7 +458,7 @@ impl EditConfig {
     ) -> Result<()> {
         rpu.modified = true;
 
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level255(level255.clone()))?;
         }
 
@@ -568,7 +568,7 @@ impl ActiveArea {
             active_area_offsets.bottom,
         );
 
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             vdr_dm_data.replace_metadata_block(ExtMetadataBlock::Level5(
                 ExtMetadataBlockLevel5::from_offsets(left, right, top, bottom),
             ))?;
@@ -578,7 +578,7 @@ impl ActiveArea {
     }
 
     fn drop_specific_l5(&self, param: &str, rpu: &mut DoviRpu) -> Result<()> {
-        if let Some(ref mut vdr_dm_data) = rpu.vdr_dm_data {
+        if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
             let drop_it = if param == "zeroes" {
                 let level5_block = vdr_dm_data.get_block(5);
 

@@ -24,6 +24,7 @@ pub enum ConversionMode {
     ToMel,
     To81,
     To84,
+    To81MappingPreserved,
 }
 
 #[inline(always)]
@@ -53,6 +54,9 @@ impl std::fmt::Display for ConversionMode {
             ConversionMode::ToMel => write!(f, "To MEL"),
             ConversionMode::To81 => write!(f, "To 8.1"),
             ConversionMode::To84 => write!(f, "To 8.4"),
+            ConversionMode::To81MappingPreserved => {
+                write!(f, "To 8.1, preserving the mapping metadata")
+            }
         }
     }
 }

@@ -66,6 +66,8 @@ pub enum ConversionModeCli {
     Profile5To81,
     #[value(name = "4")]
     To84,
+    #[value(name = "5")]
+    To81MappingPreserved,
 }
 
 impl From<ConversionModeCli> for ConversionMode {
@@ -75,6 +77,7 @@ impl From<ConversionModeCli> for ConversionMode {
             ConversionModeCli::ToMel => ConversionMode::ToMel,
             ConversionModeCli::To81 | ConversionModeCli::Profile5To81 => ConversionMode::To81,
             ConversionModeCli::To84 => ConversionMode::To84,
+            ConversionModeCli::To81MappingPreserved => ConversionMode::To81MappingPreserved,
         }
     }
 }

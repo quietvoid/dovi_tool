@@ -125,13 +125,20 @@ dovi_tool <SUBCOMMAND> --help
 
 # **HEVC parsing & handling**
 For working with an HEVC source file, there are multiple options that apply to most commands:
+
+### Conversion modes
 * `-m`, `--mode` Sets the mode for RPU processing.
   * Default (no mode) - Copies the RPU untouched.
   * `0` - Parses the RPU, rewrites it untouched.
   * `1` - Converts the RPU to be MEL compatible.
   * `2` - Converts the RPU to be profile 8.1 compatible.
+      - Removes luma/chroma mapping for profile 7 FEL.
   * `3` - Converts profile 5 to 8.1.
   * `4` - Converts to profile 8.4.
+  * `5` - Converts to profile 8.1, preserving mapping.
+      - Old mode 2.
+
+### Other options
 * `-c`, `--crop` Set active area offsets to 0 (meaning no letterbox bars).
 * `--drop-hdr10plus` Ignore HDR10+ metadata when writing the output HEVC.
 * `--edit-config` Path to editor config JSON file.

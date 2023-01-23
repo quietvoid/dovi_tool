@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
-#include <cstring>
 
 extern "C"
 {
@@ -27,15 +26,11 @@ int main(void) {
     // Only converts profile 7 as they are guaranteed to be HDR10 base
     if (header && header->guessed_profile == 7) {
         // Convert the base to 8.1 compatible
+        // Also handles removing mapping for FEL
         int ret = dovi_convert_rpu_with_mode(rpu, 2);
 
         // Final video has letterboxing completely cropped
         ret = dovi_rpu_set_active_area_offsets(rpu, 0, 0, 0, 0);
-
-        if (header->el_type && strcmp(header->el_type, "FEL") == 0) {
-            // Remove the extra mapping metadata from FEL
-            ret = dovi_rpu_remove_mapping(rpu);
-        }
 
         const DoviData *rpu_payload = dovi_write_unspec62_nalu(rpu);
         

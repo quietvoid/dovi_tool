@@ -39,9 +39,10 @@ struct Opt {
         long_help = "Sets the mode for RPU processing.\n  \
                      Mode 0: Parses the RPU, rewrites it untouched\n  \
                      Mode 1: Converts the RPU to be MEL compatible\n  \
-                     Mode 2: Converts the RPU to be profile 8.1 compatible\n  \
+                     Mode 2: Converts the RPU to be profile 8.1 compatible. Removes mapping\n  \
                      Mode 3: Converts profile 5 to 8.1\n  \
-                     Mode 4: Converts to profile 8.4",
+                     Mode 4: Converts to profile 8.4\n  \
+                     Mode 5: Converts to profile 8.1, preserving luma/chroma mapping",
         value_enum
     )]
     mode: Option<ConversionModeCli>,

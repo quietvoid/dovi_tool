@@ -171,7 +171,7 @@ impl RpuInjector {
         // If we have a RPU buffered frame, write it
         // Otherwise, write the same data as previous
         let rpu_nb = if let Some(frame) = existing_frame {
-            if let Some(ref mut dovi_rpu) = rpus.get(frame.presentation_number as usize) {
+            if let Some(dovi_rpu) = rpus.get(frame.presentation_number as usize) {
                 let rpu_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
                 Some(NalBuffer {
