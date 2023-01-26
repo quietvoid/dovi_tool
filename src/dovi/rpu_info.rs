@@ -48,7 +48,7 @@ impl RpuInfo {
             let rpu = &rpus[f];
 
             if let Ok(rpu_serialized) = serde_json::to_string_pretty(&rpu) {
-                println!("{}", rpu_serialized);
+                println!("{rpu_serialized}");
             }
         }
 
@@ -130,7 +130,7 @@ impl RpuInfo {
 
             write!(summary_str, "\n  Scene/shot count: {scene_count}")?;
 
-            println!("\n{}", summary_str)
+            println!("\n{summary_str}");
         }
 
         Ok(())

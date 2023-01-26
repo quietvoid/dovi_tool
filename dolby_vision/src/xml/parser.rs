@@ -136,17 +136,16 @@ impl CmXmlParser {
             if rev >= 0x402 {
                 match rev {
                     0x402 | 0x500 | 0x510 => {}
-                    0x510.. => println!("Possibly unhandled new XML version {} found! Please open an issue if you get anything wrong.", version_text),
-                    _ => bail!("invalid XML version {} found!", version_text)
+                    0x510.. => println!("Possibly unhandled new XML version {version_text} found! Please open an issue if you get anything wrong."),
+                    _ => bail!("invalid XML version {version_text} found!")
                 };
             } else {
                 match rev {
                     0x205 => {}
                     0x1 | 0x20 | 0x201 | 0x204 => bail!(
-                        "Unhandled legacy XML version {} found! Please open an issue.",
-                        version_text
+                        "Unhandled legacy XML version {version_text} found! Please open an issue."
                     ),
-                    _ => bail!("invalid legacy XML version {} found!", version_text),
+                    _ => bail!("invalid legacy XML version {version_text} found!"),
                 };
             }
 
@@ -288,10 +287,7 @@ impl CmXmlParser {
 
                 ensure!(
                     application_type.is_some(),
-                    format!(
-                        "XML v5.0+: Missing ApplicationType for Target display ID {}",
-                        id
-                    )
+                    format!("XML v5.0+: Missing ApplicationType for Target display ID {id}")
                 );
 
                 let application_type = application_type.unwrap().text().unwrap().to_string();

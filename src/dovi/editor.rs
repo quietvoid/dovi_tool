@@ -321,7 +321,7 @@ impl EditConfig {
             }
         }
 
-        println!("Removed {} metadata frames.", amount);
+        println!("Removed {amount} metadata frames.");
 
         Ok(())
     }
