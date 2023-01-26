@@ -38,7 +38,7 @@ impl From<Result<DoviRpu, anyhow::Error>> for RpuOpaque {
             Ok(rpu) => Self::new(Some(rpu), None),
             Err(e) => Self::new(
                 None,
-                Some(CString::new(format!("Failed parsing RPU: {}", e)).unwrap()),
+                Some(CString::new(format!("Failed parsing RPU: {e}")).unwrap()),
             ),
         }
     }

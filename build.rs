@@ -8,7 +8,7 @@ fn main() {
 
     // Generate the instructions
     if let Err(e) = vergen(config) {
-        eprintln!("error occured while generating instructions: {:?}", e);
+        eprintln!("error occured while generating instructions: {e:?}");
 
         config = Config::default();
         *config.git_mut().enabled_mut() = false;

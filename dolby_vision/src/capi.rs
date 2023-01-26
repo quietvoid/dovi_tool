@@ -105,7 +105,7 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
                 opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
+                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
                 null_mut()
             }
         }
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
                 opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {}", e)).unwrap());
+                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
                 null_mut()
             }
         }
@@ -170,9 +170,8 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
         match rpu.convert_with_mode(mode) {
             Ok(_) => 0,
             Err(e) => {
-                opaque.error = Some(
-                    CString::new(format!("Failed converting with mode {}: {}", mode, e)).unwrap(),
-                );
+                opaque.error =
+                    Some(CString::new(format!("Failed converting with mode {mode}: {e}")).unwrap());
                 -1
             }
         }
@@ -322,7 +321,7 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
                             Box::into_raw(opaque_list.into_boxed_slice()) as *const *mut RpuOpaque;
                     }
                     Err(e) => {
-                        error = Some(format!("parse_rpu_bin_file: Errored while parsing: {}", e))
+                        error = Some(format!("parse_rpu_bin_file: Errored while parsing: {e}"))
                     }
                 }
             } else {
@@ -378,9 +377,8 @@ pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
         match rpu.set_active_area_offsets(left, right, top, bottom) {
             Ok(_) => 0,
             Err(e) => {
-                opaque.error = Some(
-                    CString::new(format!("Failed editing active area offsets: {}", e)).unwrap(),
-                );
+                opaque.error =
+                    Some(CString::new(format!("Failed editing active area offsets: {e}")).unwrap());
                 -1
             }
         }
