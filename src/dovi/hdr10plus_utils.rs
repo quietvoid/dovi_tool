@@ -6,11 +6,10 @@ use hevc_parser::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
 
+/// The bytes must have start_code_emulation_prevention_3_byte removed
 pub fn st2094_40_sei_msg(sei_payload: &[u8]) -> Result<Option<SeiMessage>> {
-    let sei_payload = clear_start_code_emulation_prevention_3_byte(sei_payload);
-
     let res = if sei_payload.len() >= 4 {
-        let sei = SeiMessage::parse_sei_rbsp(&sei_payload)?;
+        let sei = SeiMessage::parse_sei_rbsp(sei_payload)?;
 
         sei.into_iter().find(|msg| {
             if msg.payload_type == USER_DATA_REGISTERED_ITU_T_35 && msg.payload_size >= 7 {
