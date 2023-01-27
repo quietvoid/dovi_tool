@@ -179,3 +179,30 @@ fn annexb() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn drop_hdr10plus_case() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/sei-double-3byte-case.hevc");
+
+    let output_file = temp.child("converted.hevc");
+    let expected_removed = Path::new("assets/hevc_tests/sei-double-3byte-start-code-4.hevc");
+
+    let assert = cmd
+        .arg("--drop-hdr10plus")
+        .arg(SUBCOMMAND)
+        .arg(input_file)
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_file
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_removed));
+
+    Ok(())
+}
