@@ -1,4 +1,4 @@
-## ???
+## 3.1.0
 - Conversion mode 2 now defaults to remove luma and chroma mapping by default, only for profile 7 FEL.
 - Added `ConversionMode::To81MappingPreserved` for old mode 2 behaviour.
 
@@ -6,13 +6,13 @@
 - Breaking changes from `RpuDataMapping` refactor.
 - Renamed `serde_feature` to simply `serde`.
 
-- Moved some fields from `RpuDataHeader` into `RpuDataMapping.
+- Moved some fields from `RpuDataHeader` into `RpuDataMapping`.
 - `RpuDataNlq` is now part of `RpuDataMapping`.
 
 - The mapping now has one curve per component, which is a `DoviReshapingCurve`.
 - `DoviReshapingCurve` contains the pivots, mapping method and the respective curve params.
     - Component 0 describes the polynomial params in `DoviPolynomialCurve`.
-    - Components 1 and 2 describe can be either polynomial or the MMR params in `DoviMMRCurve`.
+    - Components 1 and 2 can be either polynomial or the MMR params in `DoviMMRCurve`.
     - Polynomial interpolation fields were removed as there are no existing samples.
 
 - `RpuDataNlq` was changed to contain only one set of params, as there is no significant pivot.
