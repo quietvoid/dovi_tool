@@ -42,7 +42,7 @@ jobs:
         if: matrix.build == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install musl-tools -y
+          sudo apt-get install musl-tools libfontconfig1-dev -y
 
       - name: Build (Linux)
         if: matrix.build == 'Linux'
