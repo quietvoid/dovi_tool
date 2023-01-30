@@ -2,6 +2,9 @@ use std::fmt::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 
+#[cfg(not(feature = "system-font"))]
+use anyhow::bail;
+
 use anyhow::Result;
 use plotters::coord::ranged1d::{KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter};
 use plotters::coord::types::RangedCoordusize;
@@ -18,6 +21,12 @@ use super::input_from_either;
 use super::rpu_info::RpusListSummary;
 use crate::commands::PlotArgs;
 
+#[cfg(not(feature = "system-font"))]
+const NOTO_SANS_REGULAR: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/NotoSans-Regular.ttf"
+));
+
 const MAX_COLOR: RGBColor = RGBColor(65, 105, 225);
 const AVERAGE_COLOR: RGBColor = RGBColor(75, 0, 130);
 
@@ -27,6 +36,19 @@ pub struct Plotter {
 
 impl Plotter {
     pub fn plot(args: PlotArgs) -> Result<()> {
+        #[cfg(not(feature = "system-font"))]
+        {
+            let res = plotters::style::register_font(
+                "sans-serif",
+                plotters::style::FontStyle::Normal,
+                NOTO_SANS_REGULAR,
+            );
+
+            if res.is_err() {
+                bail!("Failed registering font!");
+            }
+        }
+
         let PlotArgs {
             input,
             input_pos,

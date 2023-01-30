@@ -7,6 +7,15 @@ rust-version = "1.64.0"
 license = "MIT"
 build = "build.rs"
 
+[[bin]]
+name = "dovi_tool"
+path = "src/main.rs"
+
+[workspace]
+members = [
+    "dolby_vision",
+]
+
 [dependencies]
 bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
 hevc_parser = { version = "0.6.0", features = ["hevc_io"] }
@@ -21,7 +30,7 @@ bitvec = "1.0.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
 itertools = "0.10.5"
-plotters = "0.3.4"
+plotters = { git = "https://github.com/plotters-rs/plotters", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.8"
@@ -31,11 +40,7 @@ predicates = "2.1.5"
 [build-dependencies]
 vergen = { version = "7.5.0", default-features = false, features = ["build", "git", "cargo"] }
 
-[[bin]]
-name = "dovi_tool"
-path = "src/main.rs"
-
-[workspace]
-members = [
-    "dolby_vision",
-]
+[features]
+default = ["system-font"]
+system-font = ["plotters/ttf"]
+internal-font = ["plotters/ab_glyph"]

@@ -17,8 +17,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [macOS, Windows]
+        build: [Linux, macOS, Windows]
         include: 
+          - build: Linux
+            os: ubuntu-latest
           - build: macOS
             os: macos-latest
           - build: Windows
@@ -40,13 +42,13 @@ jobs:
         if: matrix.build == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install musl-tools libfontconfig1-dev -y
+          sudo apt-get install musl-tools -y
 
       - name: Build (Linux)
         if: matrix.build == 'Linux'
         run: |
           rustup target add ${{ env.LINUX_TARGET }}
-          cargo build --release --target ${{ env.LINUX_TARGET }}
+          cargo build --release --target ${{ env.LINUX_TARGET }} --no-default-features --features internal-font
 
       - name: Build (macOS)
         if: matrix.build == 'macOS'

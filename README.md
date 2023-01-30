@@ -11,6 +11,10 @@ The **`dolby_vision`** crate is also hosted in this repo, see [README](dolby_vis
 
 The minimum Rust version to build **`dovi_tool`** is 1.64.0.
 
+### **Dependencies**
+On Linux systems, [fontconfig](https://github.com/yeslogic/fontconfig-rs#dependencies) is required.  
+Alternatively, system fonts can be bypassed by building with `--no-default-features --features internal-font`.
+
 ### **Release binary**
 To build release binary in `target/release/dovi_tool` run:
 ```console
