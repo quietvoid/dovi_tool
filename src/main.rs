@@ -17,6 +17,7 @@ use dovi::{
     exporter::Exporter,
     generator::Generator,
     muxer::Muxer,
+    plotter::Plotter,
     rpu_extractor::RpuExtractor,
     rpu_info::RpuInfo,
     rpu_injector::RpuInjector,
@@ -109,5 +110,6 @@ fn main() -> Result<()> {
         Command::Generate(args) => Generator::generate(args),
         Command::Export(args) => Exporter::export(args),
         Command::Mux(args) => Muxer::mux_el(args, cli_options),
+        Command::Plot(args) => Plotter::plot(args),
     }
 }

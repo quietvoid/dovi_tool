@@ -14,13 +14,14 @@ dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 madvr_parse = "1.0.1"
 
 anyhow = "1.0.68"
-clap = { version = "4.1.1", features = ["derive", "wrap_help", "deprecated"] }
+clap = { version = "4.1.4", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.17.3"
 regex = "1.7.1"
 bitvec = "1.0.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
 itertools = "0.10.5"
+plotters = "0.3.4"
 
 [dev-dependencies]
 assert_cmd = "2.0.8"

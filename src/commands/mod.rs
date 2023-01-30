@@ -11,6 +11,7 @@ mod generate;
 mod info;
 mod inject_rpu;
 mod mux;
+mod plot;
 
 pub use convert::ConvertArgs;
 pub use demux::DemuxArgs;
@@ -21,6 +22,7 @@ pub use generate::GenerateArgs;
 pub use info::InfoArgs;
 pub use inject_rpu::InjectRpuArgs;
 pub use mux::MuxArgs;
+pub use plot::PlotArgs;
 
 #[derive(Parser, Debug)]
 pub enum Command {
@@ -52,6 +54,9 @@ pub enum Command {
 
     #[command(about = "Interleaves the enhancement layer into a base layer HEVC bitstream")]
     Mux(MuxArgs),
+
+    #[command(about = "Plot the L1 dynamic brightness metadata")]
+    Plot(PlotArgs),
 }
 
 #[derive(clap::ValueEnum, Debug, Copy, Clone)]

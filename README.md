@@ -32,7 +32,7 @@ dovi_tool <SUBCOMMAND> --help
 ## All options
 - `--help`, `--version`, `--crop`, `--drop-hdr10plus`, `--mode`, `--edit-config`, `--start-code`
 ## All subcommands
-- Metadata utilities: **`info`**, **`generate`**, **`editor`**, **`export`**
+- Metadata utilities: **`info`**, **`generate`**, **`editor`**, **`export`**, **`plot`**
 - HEVC parsing & handling: **`convert`**, **`demux`**, **`mux`**, **`extract-rpu`**, **`inject-rpu`**
 
 **More information and detailed examples for the subcommands below.**
@@ -119,6 +119,19 @@ dovi_tool <SUBCOMMAND> --help
     **Example**:
     ```console
     dovi_tool export -i RPU.bin -o RPU_export.json
+    ```
+
+&nbsp;
+* ### **plot**
+    Allows plotting the RPU L1 metadata into a graph.  
+    The output is a PNG image.
+
+    **Flags**:
+    - `-t`, `--title` The title to set at the top of the plot
+
+    **Example**:
+    ```console
+    dovi_tool plot RPU.bin -t "Dolby Vision L1 plot" -o L1_plot.png
     ```
 
 &nbsp;

@@ -19,6 +19,7 @@ pub mod editor;
 pub mod exporter;
 pub mod generator;
 pub mod muxer;
+pub mod plotter;
 pub mod rpu_extractor;
 pub mod rpu_info;
 pub mod rpu_injector;

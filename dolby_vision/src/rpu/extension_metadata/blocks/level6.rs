@@ -13,7 +13,7 @@ pub const MAX_PQ_LUMINANCE: u16 = 10_000;
 
 /// ST2086/HDR10 metadata fallback
 #[repr(C)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel6 {
     pub max_display_mastering_luminance: u16,
