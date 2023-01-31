@@ -105,7 +105,13 @@ impl Plotter {
 
         let mut chart_caption = String::new();
         let l6_meta_str = if let Some(l6) = summary.l6_meta.as_ref() {
-            l6.join(". ")
+            if l6.len() > 2 {
+                let l6_list = l6[..2].join(". ");
+
+                format!("{l6_list}. Total different: {}", l6.len())
+            } else {
+                l6.join(". ")
+            }
         } else {
             String::from("None")
         };
@@ -177,8 +183,12 @@ impl Plotter {
             AVERAGE_COLOR.mix(0.50),
         )
         .border_style(AVERAGE_COLOR);
-        let min_series = AreaSeries::new((0..).zip(data.iter()).map(|(x, y)| (x, y.0)), 0.0, BLACK)
-            .border_style(BLACK);
+        let min_series = AreaSeries::new(
+            (0..).zip(data.iter()).map(|(x, y)| (x, y.0)),
+            0.0,
+            BLACK.mix(0.50),
+        )
+        .border_style(BLACK);
 
         chart
             .draw_series(max_series)?
