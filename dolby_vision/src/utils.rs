@@ -62,7 +62,7 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
     let mut i = 0;
 
     while i < count {
-        if i > 2 && i < count - 2 && data[i - 2] == 0 && data[i - 1] == 0 && data[i] <= 3 {
+        if i > 2 && data[i - 2] == 0 && data[i - 1] == 0 && data[i] <= 3 {
             data.insert(i, 3);
             count += 1;
         }

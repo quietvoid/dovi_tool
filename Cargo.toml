@@ -1,6 +1,6 @@
 [package]
 name = "dovi_tool"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["quietvoid"]
 edition = "2021"
 rust-version = "1.64.0"
@@ -18,7 +18,7 @@ members = [
 
 [dependencies]
 bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.6.0", features = ["hevc_io"] }
+hevc_parser = { version = "0.6.1", features = ["hevc_io"] }
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 madvr_parse = "1.0.1"
 

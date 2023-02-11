@@ -1,3 +1,6 @@
+## 3.1.1
+- Fixed RPU writing edge case that resulted in non conformant NALU bytes when using `write_hevc_unspec62_nalu`.
+
 ## 3.1.0
 - Conversion mode 2 now defaults to remove luma and chroma mapping by default, only for profile 7 FEL.
 - Added `ConversionMode::To81MappingPreserved` for old mode 2 behaviour.

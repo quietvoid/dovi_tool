@@ -4,7 +4,7 @@ use std::{io::Read, path::PathBuf};
 use anyhow::Result;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
-use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
+use dolby_vision::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel6};
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
 use dolby_vision::rpu::rpu_data_nlq::DoviELType;
@@ -1084,6 +1084,38 @@ fn fel_to_p81_preserve_mapping() -> Result<()> {
     let (p81_data, p81_rpu) = _parse_file(PathBuf::from("./assets/tests/fel_to_81.bin"))?;
     assert_eq!(p81_rpu.dovi_profile, 8);
     assert_eq!(&p81_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
+
+#[test]
+fn source_p5_to_p8_001_end_crc32() -> Result<()> {
+    use dolby_vision::rpu::utils::parse_rpu_file;
+
+    let mut rpus = parse_rpu_file(PathBuf::from(
+        "./assets/tests/source_p5_to_p8_001_end_crc32.bin",
+    ))?;
+    assert_eq!(rpus.len(), 1);
+
+    let dovi_rpu = rpus.first_mut().unwrap();
+    assert_eq!(5, dovi_rpu.dovi_profile);
+    assert_eq!([130, 214, 190, 85], dovi_rpu.rpu_data_crc32.to_be_bytes());
+
+    dovi_rpu.convert_with_mode(ConversionMode::To81)?;
+    dovi_rpu.set_active_area_offsets(0, 0, 69, 69)?;
+
+    let vdr_dm_data = dovi_rpu.vdr_dm_data.as_mut().unwrap();
+    vdr_dm_data.replace_metadata_level(ExtMetadataBlock::Level6(ExtMetadataBlockLevel6 {
+        max_display_mastering_luminance: 4000,
+        min_display_mastering_luminance: 50,
+        max_content_light_level: 2095,
+        max_frame_average_light_level: 46,
+    }))?;
+
+    assert_eq!(8, dovi_rpu.dovi_profile);
+    let data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!([183, 0, 0, 3, 1, 128], &data[data.len() - 6..]);
 
     Ok(())
 }

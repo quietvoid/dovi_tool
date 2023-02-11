@@ -494,7 +494,7 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
 name = "dolby_vision"
-version = "3.1.0"
+version = "3.1.1"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "dovi_tool"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -809,9 +809,9 @@ dependencies = [
 
 [[package]]
 name = "hevc_parser"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce7a8f2b967679b2d12bf851b0c68f3cbc7a4dcf3b5ca063fd9b3efe37f8a5a4"
+checksum = "e447b63b4e80dac36e368a9d147d7ba212b4c4b10c516312137f39cea60ff617"
 dependencies = [
  "anyhow",
  "bitvec_helpers",

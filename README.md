@@ -209,8 +209,10 @@ For working with an HEVC source file, there are multiple options that apply to m
 
     **Flags**:
     - `--eos-before-el` Write the EOS/EOB NALUs before the EL. Defaults to `false`.  
-        This flag enables the same behaviour as MakeMKV and yusesope's mux script.  
+        This flag enables the same behaviour yusesope's mux script.  
         Enabling this therefore results in identical output using **`dovi_tool`**.  
+
+        In recent versions of `MakeMKV`, EOS/EOB NALUs are removed.
 
     - `--no-add-aud` Disable adding AUD NALUs between frames
     - `--discard` Discard the EL while muxing. This is equivalent to injecting the RPU, but without extracting first.
