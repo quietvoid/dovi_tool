@@ -2,7 +2,8 @@
 
 **`dovi_tool`** is a CLI tool combining multiple utilities for working with Dolby Vision.  
 
-The **`dolby_vision`** crate is also hosted in this repo, see [README](dolby_vision/README.md) for use as a Rust/C lib.
+The **`dolby_vision`** crate is also hosted in this repo, see [README](dolby_vision/README.md) for use as a Rust/C lib.  
+The C compatible library is also known as **`libdovi`**, refer to the same document for building/installing.
 
 &nbsp;
 
