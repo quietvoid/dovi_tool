@@ -11,24 +11,19 @@ build = "build.rs"
 name = "dovi_tool"
 path = "src/main.rs"
 
-[workspace]
-members = [
-    "dolby_vision",
-]
-
 [dependencies]
+dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
 hevc_parser = { version = "0.6.1", features = ["hevc_io"] }
-dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 madvr_parse = "1.0.1"
 
-anyhow = "1.0.68"
-clap = { version = "4.1.4", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.69"
+clap = { version = "4.1.6", features = ["derive", "wrap_help", "deprecated"] }
 indicatif = "0.17.3"
 regex = "1.7.1"
 bitvec = "1.0.1"
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = { version = "1.0.91", features = ["preserve_order"] }
+serde_json = { version = "1.0.93", features = ["preserve_order"] }
 itertools = "0.10.5"
 plotters = { git = "https://github.com/plotters-rs/plotters", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
@@ -38,7 +33,7 @@ assert_fs = "1.0.10"
 predicates = "2.1.5"
 
 [build-dependencies]
-vergen = { version = "7.5.0", default-features = false, features = ["build", "git", "cargo"] }
+vergen = { version = "7.5.1", default-features = false, features = ["build", "git", "cargo"] }
 
 [features]
 default = ["system-font"]
