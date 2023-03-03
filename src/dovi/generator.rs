@@ -1,7 +1,8 @@
 use anyhow::{bail, ensure, Result};
-use serde_json::Value;
+use hdr10plus::metadata::{PeakBrightnessSource, VariablePeakBrightness};
+use hdr10plus::metadata_json::MetadataJsonRoot;
 use std::fs::File;
-use std::io::{stdout, Read, Write};
+use std::io::{stdout, Write};
 use std::path::{Path, PathBuf};
 
 use crate::commands::GenerateArgs;
@@ -27,6 +28,7 @@ pub struct Generator {
     json_path: Option<PathBuf>,
     rpu_out: PathBuf,
     hdr10plus_path: Option<PathBuf>,
+    hdr10plus_peak_source: Option<PeakBrightnessSource>,
     xml_path: Option<PathBuf>,
     canvas_width: Option<u16>,
     canvas_height: Option<u16>,
@@ -44,6 +46,7 @@ impl Generator {
             json_file,
             rpu_out,
             hdr10plus_json,
+            hdr10plus_peak_source,
             xml,
             canvas_width,
             canvas_height,
@@ -63,6 +66,7 @@ impl Generator {
             json_path: json_file,
             rpu_out: out_path,
             hdr10plus_path: hdr10plus_json,
+            hdr10plus_peak_source: hdr10plus_peak_source.map(From::from),
             xml_path: xml,
             canvas_width,
             canvas_height,
@@ -92,7 +96,11 @@ impl Generator {
             config.l1_avg_pq_cm_version.get_or_insert(config.cm_version);
 
             if let Some(hdr10plus_path) = &self.hdr10plus_path {
-                parse_hdr10plus_for_l1(hdr10plus_path, &mut config)?;
+                let peak_source = self
+                    .hdr10plus_peak_source
+                    .as_ref()
+                    .expect("Missing required DR10+ peak source");
+                parse_hdr10plus_for_l1(hdr10plus_path, *peak_source, &mut config)?;
             } else if let Some(madvr_path) = &self.madvr_path {
                 generate_metadata_from_madvr(madvr_path, self.use_custom_targets, &mut config)?;
             } else if config.length == 0 && !config.shots.is_empty() {
@@ -168,105 +176,61 @@ impl Generator {
 
 fn parse_hdr10plus_for_l1<P: AsRef<Path>>(
     hdr10plus_path: P,
+    peak_source: PeakBrightnessSource,
     config: &mut GenerateConfig,
 ) -> Result<()> {
     println!("Parsing HDR10+ JSON file...");
     stdout().flush().ok();
 
-    let mut s = String::new();
-    File::open(hdr10plus_path)?.read_to_string(&mut s)?;
+    let metadata_root = MetadataJsonRoot::from_file(&hdr10plus_path)?;
 
-    let hdr10plus: Value = serde_json::from_str(&s)?;
+    let frame_count = metadata_root.scene_info.len();
 
-    let mut frame_count = 0;
+    let scene_first_frames = metadata_root.scene_info_summary.scene_first_frame_index;
+    let scene_frame_lengths = metadata_root.scene_info_summary.scene_frame_numbers;
 
-    if let Some(json) = hdr10plus.as_object() {
-        // Assume a proper JSON for scene info
-        let scene_summary = json
-            .get("SceneInfoSummary")
-            .expect("No scene info summary in JSON")
-            .as_object()
-            .unwrap();
+    let mut hdr10plus_shots = Vec::with_capacity(scene_first_frames.len());
 
-        let scene_first_frames: Vec<usize> = scene_summary
-            .get("SceneFirstFrameIndex")
-            .expect("No scene first frame index array")
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| v.as_u64().unwrap() as usize)
-            .collect();
+    let first_frames = metadata_root
+        .scene_info
+        .iter()
+        .enumerate()
+        .filter(|(frame_no, _)| scene_first_frames.contains(frame_no));
 
-        let scene_frame_lengths: Vec<usize> = scene_summary
-            .get("SceneFrameNumbers")
-            .expect("No scene frame numbers array")
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| v.as_u64().unwrap() as usize)
-            .collect();
+    for (current_shot_id, (frame_no, frame_meta)) in first_frames.enumerate() {
+        let avg_nits = frame_meta.luminance_parameters.average_rgb as f64 / 10.0;
+        let max_nits = frame_meta.peak_brightness_nits(peak_source).unwrap();
 
-        let mut current_shot_id = 0;
+        let min_pq = 0;
+        let max_pq = (nits_to_pq(max_nits.round()) * 4095.0).round() as u16;
+        let avg_pq = (nits_to_pq(avg_nits.round()) * 4095.0).round() as u16;
 
-        let mut hdr10plus_shots = Vec::with_capacity(scene_first_frames.len());
+        let mut shot = VideoShot {
+            start: frame_no,
+            duration: scene_frame_lengths[current_shot_id],
+            metadata_blocks: vec![ExtMetadataBlock::Level1(
+                ExtMetadataBlockLevel1::from_stats_cm_version(
+                    min_pq,
+                    max_pq,
+                    avg_pq,
+                    config.l1_avg_pq_cm_version.unwrap(),
+                ),
+            )],
+            ..Default::default()
+        };
 
-        if let Some(scene_info) = json.get("SceneInfo") {
-            if let Some(list) = scene_info.as_array() {
-                frame_count = list.len();
+        let config_shot = config.shots.get(hdr10plus_shots.len());
 
-                let json_frames = list.iter().filter_map(|e| e.as_object());
-                let first_frames = json_frames
-                    .enumerate()
-                    .filter(|(frame_no, _)| scene_first_frames.contains(frame_no));
-
-                for (frame_no, map) in first_frames {
-                    // Only use the metadata from the first frame of a shot.
-                    // The JSON is assumed to be shot based already.
-                    let lum_v = map.get("LuminanceParameters").unwrap();
-                    let lum = lum_v.as_object().unwrap();
-
-                    let avg_rgb = lum.get("AverageRGB").unwrap().as_u64().unwrap();
-                    let maxscl = lum.get("MaxScl").unwrap().as_array().unwrap();
-
-                    let max_rgb = maxscl.iter().filter_map(|e| e.as_u64()).max().unwrap();
-
-                    let min_pq = 0;
-                    let max_pq =
-                        (nits_to_pq((max_rgb as f64 / 10.0).round()) * 4095.0).round() as u16;
-                    let avg_pq =
-                        (nits_to_pq((avg_rgb as f64 / 10.0).round()) * 4095.0).round() as u16;
-
-                    let mut shot = VideoShot {
-                        start: frame_no,
-                        duration: scene_frame_lengths[current_shot_id],
-                        metadata_blocks: vec![ExtMetadataBlock::Level1(
-                            ExtMetadataBlockLevel1::from_stats_cm_version(
-                                min_pq,
-                                max_pq,
-                                avg_pq,
-                                config.l1_avg_pq_cm_version.unwrap(),
-                            ),
-                        )],
-                        ..Default::default()
-                    };
-
-                    let config_shot = config.shots.get(hdr10plus_shots.len());
-
-                    if let Some(override_shot) = config_shot {
-                        shot.copy_metadata_from_shot(override_shot, Some(&[1]))
-                    }
-
-                    hdr10plus_shots.push(shot);
-
-                    current_shot_id += 1;
-                }
-            }
+        if let Some(override_shot) = config_shot {
+            shot.copy_metadata_from_shot(override_shot, Some(&[1]))
         }
 
-        // Now that the metadata was copied, we can replace the shots
-        config.shots.clear();
-        config.shots.extend(hdr10plus_shots);
+        hdr10plus_shots.push(shot);
     }
+
+    // Now that the metadata was copied, we can replace the shots
+    config.shots.clear();
+    config.shots.extend(hdr10plus_shots);
 
     config.length = frame_count;
 

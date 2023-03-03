@@ -716,12 +716,15 @@ fn generate_full() -> Result<()> {
 #[cfg(target_os = "linux")]
 #[test]
 fn generate_full_hdr10plus() -> Result<()> {
+    use crate::commands::ArgHdr10PlusPeakBrightnessSource;
+
     let args = GenerateArgs {
         json_file: Some(PathBuf::from(
             "./assets/generator_examples/no_duration.json",
         )),
         rpu_out: Some(PathBuf::from("/dev/null")),
         hdr10plus_json: Some(PathBuf::from("./assets/tests/hdr10plus_metadata.json")),
+        hdr10plus_peak_source: Some(ArgHdr10PlusPeakBrightnessSource::MaxScl),
         ..Default::default()
     };
 

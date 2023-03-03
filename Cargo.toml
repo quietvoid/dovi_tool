@@ -16,6 +16,7 @@ dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
 hevc_parser = { version = "0.6.1", features = ["hevc_io"] }
 madvr_parse = "1.0.1"
+hdr10plus = { version = "2.1.0", features = ["json"] }
 
 anyhow = "1.0.69"
 clap = { version = "4.1.6", features = ["derive", "wrap_help", "deprecated"] }

@@ -366,6 +366,7 @@ dependencies = [
  "bitvec_helpers",
  "clap",
  "dolby_vision",
+ "hdr10plus",
  "hevc_parser",
  "indicatif",
  "itertools",
@@ -624,6 +625,18 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hdr10plus"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "557c7ac2fae5f10529b30f8da72c2ac9e845c15edac571ceec4d85e87cd98e09"
+dependencies = [
+ "anyhow",
+ "bitvec_helpers",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "heck"

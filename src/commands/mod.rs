@@ -18,7 +18,7 @@ pub use demux::DemuxArgs;
 pub use editor::EditorArgs;
 pub use export::ExportArgs;
 pub use extract_rpu::ExtractRpuArgs;
-pub use generate::GenerateArgs;
+pub use generate::{ArgHdr10PlusPeakBrightnessSource, GenerateArgs};
 pub use info::InfoArgs;
 pub use inject_rpu::InjectRpuArgs;
 pub use mux::MuxArgs;

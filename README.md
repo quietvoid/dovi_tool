@@ -91,6 +91,11 @@ dovi_tool <SUBCOMMAND> --help
     #### **From an existing HDR10+ metadata JSON file**
     - The metadata is generated from a configuration JSON file, and the L1 metadata is derived from HDR10+ metadata.  
         The HDR10+ metadata must contain scene information for proper scene cuts.
+
+        **Flags**:
+        - `--hdr10plus-peak-source` How to extract the peak brightness for the metadata [default: `histogram`]      
+            Possible values: `histogram`, `histogram99`, `max-scl`, `max-scl-luminance`
+
         
         **Example**:
         ```console

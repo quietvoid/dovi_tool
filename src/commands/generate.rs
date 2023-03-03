@@ -1,7 +1,21 @@
 use clap::{Args, ValueHint};
+use hdr10plus::metadata::PeakBrightnessSource;
 use std::path::PathBuf;
 
 use crate::dovi::generator::GeneratorProfile;
+
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArgHdr10PlusPeakBrightnessSource {
+    /// The max value from the histogram measurements
+    Histogram,
+    /// The last percentile in the histogram, usually 99.98% brightness percentile
+    Histogram99,
+    /// The max value in `maxscl`
+    MaxScl,
+    /// The luminance calculated from the `maxscl` components
+    /// Assumed BT.2020 primaries
+    MaxSclLuminance,
+}
 
 #[derive(Args, Debug, Default)]
 pub struct GenerateArgs {
@@ -32,6 +46,14 @@ pub struct GenerateArgs {
         value_hint = ValueHint::FilePath,
     )]
     pub hdr10plus_json: Option<PathBuf>,
+
+    #[arg(
+        value_enum,
+        long,
+        help = "HDR10+: How to extract the peak brightness for the metadata",
+        default_value = "histogram"
+    )]
+    pub hdr10plus_peak_source: Option<ArgHdr10PlusPeakBrightnessSource>,
 
     #[arg(
         short = 'x',
@@ -73,4 +95,15 @@ pub struct GenerateArgs {
 
     #[arg(long, help = "Set scene cut flag for every frame")]
     pub long_play_mode: Option<bool>,
+}
+
+impl From<ArgHdr10PlusPeakBrightnessSource> for PeakBrightnessSource {
+    fn from(e: ArgHdr10PlusPeakBrightnessSource) -> Self {
+        match e {
+            ArgHdr10PlusPeakBrightnessSource::Histogram => Self::Histogram,
+            ArgHdr10PlusPeakBrightnessSource::Histogram99 => Self::Histogram99,
+            ArgHdr10PlusPeakBrightnessSource::MaxScl => Self::MaxScl,
+            ArgHdr10PlusPeakBrightnessSource::MaxSclLuminance => Self::MaxSclLuminance,
+        }
+    }
 }

@@ -250,7 +250,7 @@ fn generate_full_hdr10plus() -> Result<()> {
     // Shot L1 is ignored, HDR10+ is used
     if let ExtMetadataBlock::Level1(level1) = shot1_vdr_dm_data.get_block(1).unwrap() {
         assert_eq!(level1.min_pq, 0);
-        assert_eq!(level1.max_pq, 3337);
+        assert_eq!(level1.max_pq, 3243);
         assert_eq!(level1.avg_pq, 2097);
     }
 
@@ -284,7 +284,7 @@ fn generate_full_hdr10plus() -> Result<()> {
 
     if let ExtMetadataBlock::Level1(level1) = shot2_vdr_dm_data.get_block(1).unwrap() {
         assert_eq!(level1.min_pq, 0);
-        assert_eq!(level1.max_pq, 3401);
+        assert_eq!(level1.max_pq, 2568);
         assert_eq!(level1.avg_pq, 1609);
     }
 
@@ -326,7 +326,7 @@ fn generate_full_hdr10plus() -> Result<()> {
     // Also ignored L1 from edit
     if let ExtMetadataBlock::Level1(level1) = edit_vdr_dm_data.get_block(1).unwrap() {
         assert_eq!(level1.min_pq, 0);
-        assert_eq!(level1.max_pq, 3401);
+        assert_eq!(level1.max_pq, 2568);
         assert_eq!(level1.avg_pq, 1609);
     }
 
