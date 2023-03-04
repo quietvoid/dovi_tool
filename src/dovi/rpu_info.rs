@@ -2,10 +2,13 @@ use std::fmt::Write;
 use std::path::PathBuf;
 
 use anyhow::{bail, ensure, Result};
+use dolby_vision::rpu::vdr_dm_data::CmVersion;
 use itertools::Itertools;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
-use dolby_vision::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel6};
+use dolby_vision::rpu::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel6,
+};
 use dolby_vision::rpu::utils::parse_rpu_file;
 use dolby_vision::utils::pq_to_nits;
 
@@ -250,6 +253,15 @@ impl RpusListSummary {
             None
         };
 
+        let cm_version = if dmv2_count > 0 {
+            CmVersion::V40
+        } else {
+            CmVersion::V29
+        };
+        let default_l1_for_missing = ExtMetadataBlock::Level1(
+            ExtMetadataBlockLevel1::from_stats_cm_version(0, 0, 0, cm_version),
+        );
+
         let l1_data: Vec<_> = rpus
             .iter()
             .map(|rpu| {
@@ -257,7 +269,7 @@ impl RpusListSummary {
                     .vdr_dm_data
                     .as_ref()
                     .and_then(|dm| dm.get_block(1))
-                    .expect("No L1 metadata for RPU");
+                    .unwrap_or(&default_l1_for_missing);
 
                 if let ExtMetadataBlock::Level1(l1) = block {
                     let min_pq = (l1.min_pq as f64) / 4095.0;
