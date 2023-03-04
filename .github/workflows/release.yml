@@ -93,7 +93,7 @@ jobs:
           mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
           7z a ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./${{ env.RELEASE_BIN }}.exe
 
-          mv ./target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
+          mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
           7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
       - name: Create universal macOS binary
