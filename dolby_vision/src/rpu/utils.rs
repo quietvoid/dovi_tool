@@ -13,7 +13,7 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
     let metadata = rpu_file.metadata()?;
 
     // Should never be this large, avoid mistakes
-    if metadata.len() > 250_000_000 {
+    if metadata.len() > 500_000_000 {
         bail!("Input file probably too large");
     }
 
