@@ -62,7 +62,7 @@ impl RpuInfo {
 
         println!("Parsing RPU file...");
 
-        let rpus = parse_rpu_file(&info.input)?;
+        let rpus = parse_rpu_file(info.input)?;
 
         if let Some(f) = frame {
             ensure!(

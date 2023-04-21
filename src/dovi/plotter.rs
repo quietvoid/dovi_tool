@@ -63,7 +63,7 @@ impl Plotter {
         let plotter = Plotter { input };
 
         println!("Parsing RPU file...");
-        let rpus = parse_rpu_file(&plotter.input)?;
+        let rpus = parse_rpu_file(plotter.input)?;
 
         let x_spec = 0..rpus.len();
 
