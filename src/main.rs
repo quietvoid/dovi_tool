@@ -29,7 +29,7 @@ use dovi::{
     name = env!("CARGO_PKG_NAME"),
     about = "CLI tool combining multiple utilities for working with Dolby Vision",
     author = "quietvoid",
-    version = option_env!("VERGEN_GIT_SEMVER_LIGHTWEIGHT").unwrap_or(env!("VERGEN_BUILD_SEMVER"))
+    version = option_env!("VERGEN_GIT_DESCRIBE").unwrap_or(env!("CARGO_PKG_VERSION"))
 )]
 struct Opt {
     #[arg(
