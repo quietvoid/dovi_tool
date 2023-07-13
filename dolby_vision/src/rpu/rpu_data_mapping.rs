@@ -110,7 +110,7 @@ impl RpuDataMapping {
         let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as u32;
 
         for cmp in 0..NUM_COMPONENTS {
-            let mut curve = &mut mapping.curves[cmp];
+            let curve = &mut mapping.curves[cmp];
 
             curve.num_pivots_minus2 = reader.get_ue()?;
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
