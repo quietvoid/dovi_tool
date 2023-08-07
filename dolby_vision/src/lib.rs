@@ -1,6 +1,9 @@
 /// Dolby Vision RPU (as found in HEVC type 62 NALUs) module
 pub mod rpu;
 
+/// Dolby Vision RPU (as found in AV1 ITU T.35 metadata OBUs)
+pub mod av1;
+
 /// SMPTE ST2094-10 metadata module
 pub mod st2094_10;
 

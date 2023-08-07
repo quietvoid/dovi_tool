@@ -14,11 +14,10 @@ use super::profiles::profile84::Profile84;
 use super::rpu_data_header::RpuDataHeader;
 use super::rpu_data_mapping::{DoviNlqMethod, RpuDataMapping};
 use super::rpu_data_nlq::{DoviELType, RpuDataNlq};
-use super::vdr_dm_data::VdrDmData;
+use super::vdr_dm_data::{vdr_dm_data_payload, VdrDmData};
 use super::{compute_crc32, ConversionMode};
 
-use crate::rpu::vdr_dm_data::vdr_dm_data_payload;
-
+use crate::av1::convert_regular_rpu_to_av1_payload;
 use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
@@ -80,6 +79,7 @@ impl DoviRpu {
         Ok(trimmed_data)
     }
 
+    /// HEVC UNSPEC62 NALU, clears start code emulation prevention 3 bytes
     pub fn parse_unspec62_nalu(data: &[u8]) -> Result<DoviRpu> {
         let trimmed_data = DoviRpu::validated_trimmed_data(data)?;
 
@@ -96,7 +96,7 @@ impl DoviRpu {
     }
 
     #[inline(always)]
-    fn parse(data: &[u8]) -> Result<DoviRpu> {
+    pub(crate) fn parse(data: &[u8]) -> Result<DoviRpu> {
         let trailing_zeroes = data.iter().rev().take_while(|b| **b == 0).count();
 
         // Ignore trailing bytes
@@ -106,6 +106,7 @@ impl DoviRpu {
         // Minus 4 bytes for the CRC32, 1 for the 0x80 ending byte
         let crc32_start = rpu_end - 5;
 
+        // Ignoring the prefix byte
         let received_crc32 = compute_crc32(&data[1..crc32_start]);
 
         if last_byte != FINAL_BYTE {
@@ -132,7 +133,16 @@ impl DoviRpu {
         // CRC32 + 0x80 + trailing
         let final_length = (32 + 8 + (trailing_zeroes * 8)) as u64;
 
-        let header = RpuDataHeader::parse(&mut reader)?;
+        let rpu_prefix = reader.get_n(8)?;
+        ensure!(rpu_prefix == 25, "rpu_nal_prefix should be 25");
+
+        let mut header = RpuDataHeader::parse(&mut reader)?;
+
+        // FIXME: rpu_nal_prefix deprecation
+        #[allow(deprecated)]
+        {
+            header.rpu_nal_prefix = rpu_prefix;
+        }
 
         // Preliminary header validation
         let dovi_profile = header.get_dovi_profile();
@@ -212,12 +222,22 @@ impl DoviRpu {
         self.write_rpu_data()
     }
 
+    pub fn write_av1_rpu_metadata_obu_t35_payload(&self) -> Result<Vec<u8>> {
+        let mut encoded_rpu = self.write_rpu_data()?;
+        convert_regular_rpu_to_av1_payload(encoded_rpu.as_mut())?;
+
+        Ok(encoded_rpu)
+    }
+
     #[inline(always)]
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
         // Capacity is in bits
         let mut writer = BitstreamIoWriter::with_capacity(self.original_payload_size * 8);
 
         self.validate()?;
+
+        // RPU prefix
+        writer.write_n(&0x19, 8)?;
 
         let header = &self.header;
         header.write_header(&mut writer)?;
