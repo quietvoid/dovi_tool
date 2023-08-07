@@ -9,8 +9,13 @@ use serde::Serialize;
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RpuDataHeader {
-    // Must be 25
+    /// Must be 25
+    #[deprecated(
+        since = "3.2.0",
+        note = "The field is not actually part of the RPU header"
+    )]
     pub rpu_nal_prefix: u8,
+
     // Must be 2
     pub rpu_type: u8,
     pub rpu_format: u16,
@@ -43,9 +48,6 @@ pub struct RpuDataHeader {
 
 impl RpuDataHeader {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<RpuDataHeader> {
-        let rpu_nal_prefix = reader.get_n(8)?;
-        ensure!(rpu_nal_prefix == 25);
-
         let rpu_type = reader.get_n(6)?;
         ensure!(rpu_type == 2);
 
@@ -57,7 +59,6 @@ impl RpuDataHeader {
         let vdr_seq_info_present_flag = reader.get()?;
 
         let mut header = RpuDataHeader {
-            rpu_nal_prefix,
             rpu_type,
             rpu_format,
             vdr_rpu_profile,
@@ -110,8 +111,6 @@ impl RpuDataHeader {
     }
 
     pub fn validate(&self, profile: u8) -> Result<()> {
-        ensure!(self.rpu_nal_prefix == 25, "rpu_nal_prefix should be 25");
-
         match profile {
             5 => {
                 ensure!(
@@ -186,8 +185,6 @@ impl RpuDataHeader {
     }
 
     pub fn write_header(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        writer.write_n(&self.rpu_nal_prefix, 8)?;
-
         writer.write_n(&self.rpu_type, 6)?;
         writer.write_n(&self.rpu_format, 11)?;
 
@@ -236,8 +233,7 @@ impl RpuDataHeader {
     }
 
     pub fn p8_default() -> RpuDataHeader {
-        RpuDataHeader {
-            rpu_nal_prefix: 25,
+        let mut header = RpuDataHeader {
             rpu_type: 2,
             rpu_format: 18,
             vdr_rpu_profile: 1,
@@ -259,6 +255,15 @@ impl RpuDataHeader {
             vdr_dm_metadata_present_flag: true,
             use_prev_vdr_rpu_flag: false,
             prev_vdr_rpu_id: 0,
+            ..Default::default()
+        };
+
+        // FIXME: rpu_nal_prefix deprecation
+        #[allow(deprecated)]
+        {
+            header.rpu_nal_prefix = 25;
         }
+
+        header
     }
 }

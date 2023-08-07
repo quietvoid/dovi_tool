@@ -1,3 +1,9 @@
+## 3.2.0
+- Deprecated `RpuDataHeader.rpu_nal_prefix`.
+- Added `av1` module for handling AV1 Dolby Vision ITU-T T.35 metadata OBU payloads.
+- AV1 RPU bytes can now be encoded with `write_av1_rpu_metadata_obu_t35_payload`.
+  - The payload is meant to be used for `itu_t_t35_payload_bytes`.
+
 ## 3.1.1
 - Fixed RPU writing edge case that resulted in non conformant NALU bytes when using `write_hevc_unspec62_nalu`.
 

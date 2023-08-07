@@ -13,7 +13,14 @@ pub struct RpuDataHeader {
     /// null pointer if not profile 7
     pub(crate) el_type: *const c_char,
 
+    /// Deprecated since 3.2.0
+    /// The field is not actually part of the RPU header
+    #[deprecated(
+        since = "3.2.0",
+        note = "The field is not actually part of the RPU header"
+    )]
     rpu_nal_prefix: u8,
+
     rpu_type: u8,
     rpu_format: u16,
     vdr_rpu_profile: u8,
@@ -48,9 +55,11 @@ impl RpuDataHeader {
 
 impl From<&RuRpuDataHeader> for RpuDataHeader {
     fn from(header: &RuRpuDataHeader) -> Self {
+        #[allow(deprecated)]
         Self {
             guessed_profile: header.get_dovi_profile(),
             el_type: null(),
+            // FIXME: rpu_nal_prefix deprecation
             rpu_nal_prefix: header.rpu_nal_prefix,
             rpu_type: header.rpu_type,
             rpu_format: header.rpu_format,
