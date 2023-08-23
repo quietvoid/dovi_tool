@@ -186,7 +186,17 @@ fn parse_hdr10plus_for_l1<P: AsRef<Path>>(
 
     let frame_count = metadata_root.scene_info.len();
 
-    let scene_first_frames = metadata_root.scene_info_summary.scene_first_frame_index;
+    let mut scene_first_frames = metadata_root.scene_info_summary.scene_first_frame_index;
+    let first_frame_index = scene_first_frames
+        .first()
+        .cloned()
+        .expect("Missing SceneFirstFrameIndex array");
+
+    // Offset indices according to first index, since they should start at 0
+    scene_first_frames
+        .iter_mut()
+        .for_each(|i| *i -= first_frame_index);
+
     let scene_frame_lengths = metadata_root.scene_info_summary.scene_frame_numbers;
 
     let mut hdr10plus_shots = Vec::with_capacity(scene_first_frames.len());
