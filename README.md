@@ -124,11 +124,25 @@ dovi_tool <SUBCOMMAND> --help
 
 &nbsp;
 * ### **export**
-    Allows exporting a binary RPU file to JSON for simpler analysis.
+    Allows exporting a binary RPU file to text files containing relevant information.  
+    The command allows specifying the desired data to export as file.  
+    **Default**: `export` outputs the full RPU serialized to JSON (equivalent to `--data all`).
 
-    **Example**:
+    * `-d`, `--data`: List of key-value export parameters formatted as `key=output,key2...`
+      * `all` - Exports the list of RPUs as a JSON file
+      * `scenes` - Exports the frame indices at which `scene_refresh_flag` is set to 1
+      * `level5` - Exports the video's L5 metadata in the form of an `editor` config JSON
+
+    &nbsp;
+
+    **Example to export the whole RPU list to JSON**:
     ```console
-    dovi_tool export -i RPU.bin -o RPU_export.json
+    dovi_tool export -i RPU.bin -d all=RPU_export.json
+    ```
+
+    **Example to export both scene change frames and L5 metadata (with specific path)**
+    ```console
+    dovi_tool export -i RPU.bin -d scenes,level5=L5.json
     ```
 
 &nbsp;

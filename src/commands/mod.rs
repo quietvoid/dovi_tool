@@ -16,7 +16,7 @@ mod plot;
 pub use convert::ConvertArgs;
 pub use demux::DemuxArgs;
 pub use editor::EditorArgs;
-pub use export::ExportArgs;
+pub use export::{ExportArgs, ExportData};
 pub use extract_rpu::ExtractRpuArgs;
 pub use generate::{ArgHdr10PlusPeakBrightnessSource, GenerateArgs};
 pub use info::InfoArgs;

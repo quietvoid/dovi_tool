@@ -39,9 +39,38 @@ fn exports_json() -> Result<()> {
     assert
         .success()
         .stderr(predicate::str::is_empty())
-        .stdout(predicate::str::contains("Exporting metadata..."));
+        .stdout(predicate::str::contains("Exporting serialized RPU list..."));
 
     output_json.assert(predicate::path::is_file());
+
+    Ok(())
+}
+
+#[test]
+fn export_all_and_scenes() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let root_path = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let input_rpu = root_path.join("assets/tests/fel_orig.bin");
+    let all_json = temp.child("RPU_export.json");
+    let scenes_file = temp.child("RPU_scenes_test.txt");
+
+    let assert = cmd
+        .current_dir(temp.canonicalize().unwrap())
+        .arg(SUBCOMMAND)
+        .arg(input_rpu)
+        .arg("--data")
+        .arg(format!("all,scenes={}", scenes_file.to_str().unwrap()))
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty()).stdout(
+        predicate::str::contains("Exporting serialized RPU list...")
+            .and(predicate::str::contains("Exporting scenes list...")),
+    );
+
+    all_json.assert(predicate::path::is_file());
+    scenes_file.assert(predicate::path::is_file());
 
     Ok(())
 }
