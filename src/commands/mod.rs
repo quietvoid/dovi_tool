@@ -12,6 +12,7 @@ mod info;
 mod inject_rpu;
 mod mux;
 mod plot;
+mod remove;
 
 pub use convert::ConvertArgs;
 pub use demux::DemuxArgs;
@@ -23,9 +24,10 @@ pub use info::InfoArgs;
 pub use inject_rpu::InjectRpuArgs;
 pub use mux::MuxArgs;
 pub use plot::PlotArgs;
+pub use remove::RemoveArgs;
 
 #[derive(Parser, Debug)]
-pub enum Command {
+pub enum Commands {
     #[command(about = "Converts RPU within a single layer HEVC file")]
     Convert(ConvertArgs),
 
@@ -57,6 +59,9 @@ pub enum Command {
 
     #[command(about = "Plot the L1 dynamic brightness metadata")]
     Plot(PlotArgs),
+
+    #[command(about = "Removes the enhancement layer and RPU data from the video")]
+    Remove(RemoveArgs),
 }
 
 #[derive(clap::ValueEnum, Debug, Copy, Clone)]

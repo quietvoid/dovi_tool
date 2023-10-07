@@ -202,7 +202,7 @@ For working with an HEVC source file, there are multiple options that apply to m
 * ### **demux**
     Rust port of yusesope's python tool. Credits goes to them.  
     Demuxes single track dual layer Dolby Vision into Base layer and Enhancement layer files.  
-    Also can be used to remove the RPUs from an HEVC file.
+    The base layer file output is equivalent to using the `remove` subcommand.
 
     **Flags**:
     - `--el-only` Output the EL file only.
@@ -281,6 +281,19 @@ For working with an HEVC source file, there are multiple options that apply to m
     **Example**:  
     ```console
     dovi_tool inject-rpu -i video.hevc --rpu-in RPU.bin -o injected_output.hevc
+    ```
+
+&nbsp;
+* ### **remove**
+    Removes the enhancement layer and RPU data from the video.  
+    Outputs to a `BL.hevc` file by default.
+
+    **Examples**:
+    ```console
+    dovi_tool remove file.hevc
+    ```
+    ```console
+    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool remove -
     ```
 
 &nbsp;
