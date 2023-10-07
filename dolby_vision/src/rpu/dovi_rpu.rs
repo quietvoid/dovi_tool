@@ -222,9 +222,18 @@ impl DoviRpu {
         self.write_rpu_data()
     }
 
+    /// `itu_t_t35_payload_bytes`
     pub fn write_av1_rpu_metadata_obu_t35_payload(&self) -> Result<Vec<u8>> {
         let mut encoded_rpu = self.write_rpu_data()?;
         convert_regular_rpu_to_av1_payload(encoded_rpu.as_mut())?;
+
+        Ok(encoded_rpu)
+    }
+
+    /// Complete `metadata_itut_t35()`, including `itu_t_t35_country_code`
+    pub fn write_av1_rpu_metadata_obu_t35_complete(&self) -> Result<Vec<u8>> {
+        let mut encoded_rpu = self.write_av1_rpu_metadata_obu_t35_payload()?;
+        encoded_rpu.insert(0, 0xB5);
 
         Ok(encoded_rpu)
     }

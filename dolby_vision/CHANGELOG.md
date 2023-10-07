@@ -1,3 +1,9 @@
+## Unreleased
+- Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.
+
+C API:
+- Added `dovi_write_av1_rpu_metadata_obu_t35_{payload,complete}` functions.
+
 ## 3.2.0
 - Deprecated `RpuDataHeader.rpu_nal_prefix`.
 - Added `av1` module for handling AV1 Dolby Vision ITU-T T.35 metadata OBU payloads.

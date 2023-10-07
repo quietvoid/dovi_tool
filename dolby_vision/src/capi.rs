@@ -407,3 +407,61 @@ pub unsafe extern "C" fn dovi_rpu_remove_mapping(ptr: *mut RpuOpaque) -> i32 {
         -1
     }
 }
+
+/// # Safety
+/// The struct pointer must be valid.
+///
+/// Writes the encoded RPU as `itu_t_t35_payload_bytes` for AV1 ITU-T T.35 metadata OBU
+/// If an error occurs in the writing, it is logged to RpuOpaque.error
+#[no_mangle]
+pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_payload(
+    ptr: *mut RpuOpaque,
+) -> *const Data {
+    if ptr.is_null() {
+        return null_mut();
+    }
+
+    let opaque = &mut *ptr;
+
+    if let Some(rpu) = &opaque.rpu {
+        match rpu.write_av1_rpu_metadata_obu_t35_payload() {
+            Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
+            Err(e) => {
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                null_mut()
+            }
+        }
+    } else {
+        null_mut()
+    }
+}
+
+/// # Safety
+/// The struct pointer must be valid.
+///
+/// Writes the encoded RPU a complete AV1 `metadata_itut_t35()` OBU
+/// If an error occurs in the writing, it is logged to RpuOpaque.error
+#[no_mangle]
+pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_complete(
+    ptr: *mut RpuOpaque,
+) -> *const Data {
+    if ptr.is_null() {
+        return null_mut();
+    }
+
+    let opaque = &mut *ptr;
+
+    if let Some(rpu) = &opaque.rpu {
+        match rpu.write_av1_rpu_metadata_obu_t35_complete() {
+            Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
+            Err(e) => {
+                opaque.error =
+                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                null_mut()
+            }
+        }
+    } else {
+        null_mut()
+    }
+}
