@@ -7,7 +7,7 @@ use clap::{Parser, ValueHint};
 mod tests;
 
 mod commands;
-use commands::{Command, ConversionModeCli};
+use commands::{Commands, ConversionModeCli};
 
 mod dovi;
 use dovi::{
@@ -18,6 +18,7 @@ use dovi::{
     generator::Generator,
     muxer::Muxer,
     plotter::Plotter,
+    remover::Remover,
     rpu_extractor::RpuExtractor,
     rpu_info::RpuInfo,
     rpu_injector::RpuInjector,
@@ -74,7 +75,7 @@ struct Opt {
     start_code: WriteStartCodePreset,
 
     #[command(subcommand)]
-    cmd: Command,
+    cmd: Commands,
 }
 
 fn main() -> Result<()> {
@@ -101,15 +102,16 @@ fn main() -> Result<()> {
     }
 
     match opt.cmd {
-        Command::Demux(args) => Demuxer::demux(args, cli_options),
-        Command::Editor(args) => Editor::edit(args),
-        Command::Convert(args) => Converter::convert(args, cli_options),
-        Command::ExtractRpu(args) => RpuExtractor::extract_rpu(args, cli_options),
-        Command::InjectRpu(args) => RpuInjector::inject_rpu(args, cli_options),
-        Command::Info(args) => RpuInfo::info(args),
-        Command::Generate(args) => Generator::generate(args),
-        Command::Export(args) => Exporter::export(args),
-        Command::Mux(args) => Muxer::mux_el(args, cli_options),
-        Command::Plot(args) => Plotter::plot(args),
+        Commands::Demux(args) => Demuxer::demux(args, cli_options),
+        Commands::Editor(args) => Editor::edit(args),
+        Commands::Convert(args) => Converter::convert(args, cli_options),
+        Commands::ExtractRpu(args) => RpuExtractor::extract_rpu(args, cli_options),
+        Commands::InjectRpu(args) => RpuInjector::inject_rpu(args, cli_options),
+        Commands::Info(args) => RpuInfo::info(args),
+        Commands::Generate(args) => Generator::generate(args),
+        Commands::Export(args) => Exporter::export(args),
+        Commands::Mux(args) => Muxer::mux_el(args, cli_options),
+        Commands::Plot(args) => Plotter::plot(args),
+        Commands::Remove(args) => Remover::remove(args, cli_options),
     }
 }
