@@ -23,7 +23,7 @@ clap = { version = "4.4.6", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
 indicatif = "0.17.7"
 bitvec = "1.0.1"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.189", features = ["derive"] }
 serde_json = { version = "1.0.107", features = ["preserve_order"] }
 itertools = "0.11.0"
 plotters = { version = "0.3.5", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
