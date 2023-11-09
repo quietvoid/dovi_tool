@@ -1,4 +1,7 @@
 ## Unreleased
+- Added support for parsing `ext_mapping_idc` in `RpuDataHeader`.
+  - `ext_mapping_idc_0_4` represents the 5 lowest bits, and `ext_mapping_idc_5_7` the 3 remaining bits.
+
 C API:
 - Added `dovi_parse_itu_t35_dovi_metadata_obu` function.
 
