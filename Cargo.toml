@@ -13,10 +13,10 @@ path = "src/main.rs"
 
 [dependencies]
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
-bitvec_helpers = { version = "3.1.2", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.6.1", features = ["hevc_io"] }
-madvr_parse = "1.0.1"
-hdr10plus = { version = "2.1.0", features = ["json"] }
+bitvec_helpers = { version = "3.1.3", default-features = false, features = ["bitstream-io"] }
+hevc_parser = { version = "0.6.2", features = ["hevc_io"] }
+madvr_parse = "1.0.2"
+hdr10plus = { version = "2.1.1", features = ["json"] }
 
 anyhow = "1.0.77"
 clap = { version = "4.4.11", features = ["derive", "wrap_help", "deprecated"] }

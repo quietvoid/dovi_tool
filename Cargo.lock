@@ -137,9 +137,9 @@ checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 
 [[package]]
 name = "bitstream-io"
-version = "1.10.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e445576659fd04a57b44cbd00aa37aaa815ebefa0aa3cb677a6b5e63d883074f"
+checksum = "06c9989a51171e2e81038ab168b6ae22886fe9ded214430dbb4f41c28cf176da"
 
 [[package]]
 name = "bitvec"
@@ -155,9 +155,9 @@ dependencies = [
 
 [[package]]
 name = "bitvec_helpers"
-version = "3.1.2"
+version = "3.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ef6883bd86b4112b56be19de3a1628de6c4063be7be6e641d484c83069efb4a"
+checksum = "2e2df6460583d623ccda7d1ae7c8ad2b740d8a268401e61bc986d7a1bb6a46f2"
 dependencies = [
  "bitstream-io",
 ]
@@ -672,9 +672,9 @@ checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
 name = "hdr10plus"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "557c7ac2fae5f10529b30f8da72c2ac9e845c15edac571ceec4d85e87cd98e09"
+checksum = "b5e718ae1e1005fbe2ddc52c77cbd7b0a732e644d5f3d0cf7fbda2d0dda6f935"
 dependencies = [
  "anyhow",
  "bitvec_helpers",
@@ -690,9 +690,9 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hevc_parser"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e447b63b4e80dac36e368a9d147d7ba212b4c4b10c516312137f39cea60ff617"
+checksum = "51ebf0f9f173b361f549b1bd6f6ad43e8c1dc7644918ea8acc527fd6afad486f"
 dependencies = [
  "anyhow",
  "bitvec_helpers",
@@ -849,9 +849,9 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "madvr_parse"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf8d154d9e890bf5b4cc5d50fece9f823c859cda9124f7589462357fc48731a"
+checksum = "bfd617bf0a5c2748e2e3226c74601a1279a77ada3308cdd7ae26c955b7c42ee6"
 dependencies = [
  "anyhow",
  "byteorder",
