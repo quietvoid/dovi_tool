@@ -81,13 +81,16 @@ pub struct GenerateConfig {
 }
 
 /// Supported profiles for generating RPU metadata
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum GenerateProfile {
     #[cfg_attr(feature = "serde", serde(alias = "5"))]
     Profile5,
+
+    #[default]
     #[cfg_attr(feature = "serde", serde(alias = "8.1"))]
     Profile81,
+
     #[cfg_attr(feature = "serde", serde(alias = "8.4"))]
     Profile84,
 }
@@ -616,12 +619,6 @@ mod tests {
         }
 
         Ok(())
-    }
-}
-
-impl Default for GenerateProfile {
-    fn default() -> Self {
-        GenerateProfile::Profile81
     }
 }
 

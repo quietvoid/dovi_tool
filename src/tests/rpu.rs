@@ -716,7 +716,7 @@ fn generate_full() -> Result<()> {
 #[cfg(target_os = "linux")]
 #[test]
 fn generate_full_hdr10plus() -> Result<()> {
-    use crate::commands::ArgHdr10PlusPeakBrightnessSource;
+    use crate::commands::generate::ArgHdr10PlusPeakBrightnessSource;
 
     let args = GenerateArgs {
         json_file: Some(PathBuf::from(

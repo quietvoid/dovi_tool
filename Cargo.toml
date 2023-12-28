@@ -18,23 +18,23 @@ hevc_parser = { version = "0.6.1", features = ["hevc_io"] }
 madvr_parse = "1.0.1"
 hdr10plus = { version = "2.1.0", features = ["json"] }
 
-anyhow = "1.0.75"
-clap = { version = "4.4.6", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.77"
+clap = { version = "4.4.11", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
 indicatif = "0.17.7"
 bitvec = "1.0.1"
-serde = { version = "1.0.189", features = ["derive"] }
-serde_json = { version = "1.0.107", features = ["preserve_order"] }
-itertools = "0.11.0"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = { version = "1.0.108", features = ["preserve_order"] }
+itertools = "0.12.0"
 plotters = { version = "0.3.5", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-assert_fs = "1.0.13"
+assert_fs = "1.1.0"
 predicates = "3.0.4"
 
 [build-dependencies]
-vergen = { version = "8.2.5", default-features = false, features = ["build", "git", "gitcl"] }
+vergen = { version = "8.2.6", default-features = false, features = ["build", "git", "gitcl"] }
 
 [features]
 default = ["system-font"]
