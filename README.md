@@ -195,7 +195,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     dovi_tool -m 2 convert --discard file.hevc
     ```
     ```console
-    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool -m 2 convert --discard -
+    ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool -m 2 convert --discard -
     ```
 
 &nbsp;
@@ -212,7 +212,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     dovi_tool demux file.hevc
     ```
     ```console
-    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool demux -
+    ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool demux -
     ```
 
     **Example to convert RPU to profile 8.1 while demuxing**:
@@ -242,7 +242,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     dovi_tool mux --bl BL.hevc --el EL.hevc
     ```
     ```console
-    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool mux --bl - --el EL.hevc
+    ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool mux --bl - --el EL.hevc
     ```
 
     **Example to convert RPU to profile 8.1 while muxing**:
@@ -262,7 +262,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     dovi_tool extract-rpu video.hevc
     ```
     ```console
-    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool extract-rpu - -o RPU.bin
+    ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool extract-rpu - -o RPU.bin
     ```
 
     **FEL to MEL example**:  
@@ -293,7 +293,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     dovi_tool remove file.hevc
     ```
     ```console
-    ffmpeg -i input.mkv -c:v copy -vbsf hevc_mp4toannexb -f hevc - | dovi_tool remove -
+    ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool remove -
     ```
 
 &nbsp;
