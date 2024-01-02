@@ -33,6 +33,13 @@ pub struct RpuDataHeader {
     // [8, 16]
     pub bl_bit_depth_minus8: u64,
     pub el_bit_depth_minus8: u64,
+
+    /// Extended base layer inverse mapping indicator
+    pub ext_mapping_idc_lsb: u8,
+    /// Reserved
+    pub ext_mapping_idc_msb: u8,
+
+    // [8, 16]
     pub vdr_bit_depth_minus8: u64,
 
     pub spatial_resampling_filter_flag: bool,
@@ -80,7 +87,17 @@ impl RpuDataHeader {
 
             if header.rpu_format & 0x700 == 0 {
                 header.bl_bit_depth_minus8 = reader.get_ue()?;
-                header.el_bit_depth_minus8 = reader.get_ue()?;
+
+                let el_bit_depth_minus8 = reader.get_ue()?;
+                // 8 lowest bits
+                header.el_bit_depth_minus8 = el_bit_depth_minus8 & 0xFF;
+
+                // Next 8 bits
+                let ext_mapping_idc = ((el_bit_depth_minus8 & 0xFF00) >> 8) as u8;
+                // Lowest 5 bits
+                header.ext_mapping_idc_lsb = ext_mapping_idc & 0x1F;
+                header.ext_mapping_idc_msb = (ext_mapping_idc & 0xE0) >> 5;
+
                 header.vdr_bit_depth_minus8 = reader.get_ue()?;
                 header.spatial_resampling_filter_flag = reader.get()?;
                 header.reserved_zero_3bits = reader.get_n(3)?;
@@ -205,7 +222,12 @@ impl RpuDataHeader {
 
             if self.rpu_format & 0x700 == 0 {
                 writer.write_ue(&self.bl_bit_depth_minus8)?;
-                writer.write_ue(&self.el_bit_depth_minus8)?;
+
+                let ext_mapping_idc =
+                    ((self.ext_mapping_idc_msb << 5) | self.ext_mapping_idc_lsb) as u64;
+                let el_bit_depth_minus8 = (ext_mapping_idc << 8) | self.el_bit_depth_minus8;
+                writer.write_ue(&el_bit_depth_minus8)?;
+
                 writer.write_ue(&self.vdr_bit_depth_minus8)?;
                 writer.write(self.spatial_resampling_filter_flag)?;
                 writer.write_n(&self.reserved_zero_3bits, 3)?;

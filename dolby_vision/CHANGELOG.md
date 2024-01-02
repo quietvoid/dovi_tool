@@ -1,5 +1,7 @@
 ## Unreleased
 - Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.
+- Added support for parsing `ext_mapping_idc` in `RpuDataHeader`.
+  - `ext_mapping_idc_lsb` represents the 5 lowest bits, and `ext_mapping_idc_msb` the 3 remaining bits.
 
 C API:
 - Added `dovi_write_av1_rpu_metadata_obu_t35_{payload,complete}` functions.

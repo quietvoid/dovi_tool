@@ -1122,3 +1122,15 @@ fn source_p5_to_p8_001_end_crc32() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn profile20_apple() -> Result<()> {
+    let (original_data, dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/profile20_apple.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
