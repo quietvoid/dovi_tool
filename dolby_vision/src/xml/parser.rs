@@ -158,13 +158,15 @@ impl CmXmlParser {
     fn parse_level6(&self, video: &Node) -> (u16, u16) {
         if let Some(node) = video.descendants().find(|e| e.has_tag_name("Level6")) {
             let maxfall = if let Some(fall) = node.children().find(|e| e.has_tag_name("MaxFALL")) {
-                fall.text().map_or(0, |e| e.parse::<u16>().unwrap())
+                fall.text()
+                    .map_or(0, |e| e.parse::<f32>().unwrap().round() as u16)
             } else {
                 0
             };
 
             let maxcll = if let Some(cll) = node.children().find(|e| e.has_tag_name("MaxCLL")) {
-                cll.text().map_or(0, |e| e.parse::<u16>().unwrap())
+                cll.text()
+                    .map_or(0, |e| e.parse::<f32>().unwrap().round() as u16)
             } else {
                 0
             };

@@ -1,5 +1,6 @@
 ## Unreleased
 - Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.
+- XML parser: support decimals when parsing Level6 MaxCLL/MaxFALL values.
 
 C API:
 - Added `dovi_write_av1_rpu_metadata_obu_t35_{payload,complete}` functions.

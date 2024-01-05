@@ -294,3 +294,31 @@ fn parse_cmv4_2_xml_510() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn parse_level6_decimals() -> Result<()> {
+    let lib_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let assets_path = lib_path.parent().unwrap();
+
+    let opts = XmlParserOpts::default();
+    let parser =
+        CmXmlParser::parse_file(assets_path.join("assets/tests/level6_decimals.xml"), opts)?;
+
+    let rpus = parser.config.generate_rpu_list()?;
+
+    let rpu = &rpus[0];
+    let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
+
+    // L6
+    let level6 = vdr_dm_data.get_block(6).unwrap();
+    if let ExtMetadataBlock::Level6(block) = level6 {
+        assert_eq!(block.max_display_mastering_luminance, 1000);
+        assert_eq!(block.min_display_mastering_luminance, 1);
+        assert_eq!(block.max_content_light_level, 788);
+        assert_eq!(block.max_frame_average_light_level, 60);
+    } else {
+        panic!("No L6 block");
+    }
+
+    Ok(())
+}
