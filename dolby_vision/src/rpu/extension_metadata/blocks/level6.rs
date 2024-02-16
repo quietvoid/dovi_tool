@@ -66,6 +66,7 @@ impl ExtMetadataBlockLevel6 {
 
         let source_max_pq = match mdl_max {
             1000 => 3079,
+            2000 => 3388,
             4000 => 3696,
             10000 => 4095,
             _ => 3079,

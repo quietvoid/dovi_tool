@@ -74,6 +74,14 @@ impl CmXmlParser {
                 let (min_display_mastering_luminance, max_display_mastering_luminance) =
                     parser.parse_mastering_display_metadata(&video);
 
+                let source_min_pq = (nits_to_pq(min_display_mastering_luminance as f64 / 10000.0)
+                    * 4095.0)
+                    .round() as u16;
+                let source_max_pq =
+                    (nits_to_pq(max_display_mastering_luminance as f64) * 4095.0).round() as u16;
+                parser.config.source_min_pq = Some(source_min_pq);
+                parser.config.source_max_pq = Some(source_max_pq);
+
                 parser.config.level6 = Some(ExtMetadataBlockLevel6 {
                     max_display_mastering_luminance,
                     min_display_mastering_luminance,

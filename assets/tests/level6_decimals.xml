@@ -51,7 +51,7 @@
                   <Blue>0.15 0.06</Blue>
                 </Primaries>
                 <WhitePoint>0.3127 0.329</WhitePoint>
-                <PeakBrightness>1000</PeakBrightness>
+                <PeakBrightness>2000</PeakBrightness>
                 <MinimumBrightness>0.0001</MinimumBrightness>
                 <DiagonalSize>42</DiagonalSize>
               </MasteringDisplay>

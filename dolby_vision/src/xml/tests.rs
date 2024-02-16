@@ -309,10 +309,14 @@ fn parse_level6_decimals() -> Result<()> {
     let rpu = &rpus[0];
     let vdr_dm_data = rpu.vdr_dm_data.as_ref().unwrap();
 
+    // Source mastering display
+    assert_eq!(vdr_dm_data.source_min_pq, 7);
+    assert_eq!(vdr_dm_data.source_max_pq, 3388);
+
     // L6
     let level6 = vdr_dm_data.get_block(6).unwrap();
     if let ExtMetadataBlock::Level6(block) = level6 {
-        assert_eq!(block.max_display_mastering_luminance, 1000);
+        assert_eq!(block.max_display_mastering_luminance, 2000);
         assert_eq!(block.min_display_mastering_luminance, 1);
         assert_eq!(block.max_content_light_level, 788);
         assert_eq!(block.max_frame_average_light_level, 60);
