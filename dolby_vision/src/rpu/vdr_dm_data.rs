@@ -243,6 +243,11 @@ impl VdrDmData {
         Ok(())
     }
 
+    pub fn with_cmv29_dm_data(mut self) -> Self {
+        self.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()));
+        self
+    }
+
     pub fn extension_metadata_for_level(&self, level: u8) -> Option<&DmData> {
         if CmV29DmData::ALLOWED_BLOCK_LEVELS.contains(&level) {
             return self.cmv29_metadata.as_ref();
@@ -442,11 +447,11 @@ impl VdrDmData {
         if let Some(ExtMetadataBlock::Level6(level6_block)) = self.get_block(6) {
             let (derived_min_pq, derived_max_pq) = level6_block.source_meta_from_l6();
 
-            if self.source_min_pq == 0 {
+            if min_pq.is_none() && self.source_min_pq == 0 {
                 self.source_min_pq = derived_min_pq;
             }
 
-            if self.source_max_pq == 0 {
+            if max_pq.is_none() && self.source_max_pq == 0 {
                 self.source_max_pq = derived_max_pq;
             }
         }
@@ -472,20 +477,14 @@ impl VdrDmData {
             GenerateProfile::Profile5 => Profile5::dm_data(),
             GenerateProfile::Profile81 => Profile81::dm_data(),
             GenerateProfile::Profile84 => Profile84::dm_data(),
-        };
+        }
+        .with_cmv29_dm_data();
 
-        match config.cm_version {
-            CmVersion::V29 => {
-                vdr_dm_data.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()))
-            }
-            CmVersion::V40 => {
-                vdr_dm_data.cmv29_metadata = Some(DmData::V29(CmV29DmData::default()));
-
-                vdr_dm_data.cmv40_metadata = if let Some(level254) = &config.level254 {
-                    Some(DmData::V40(CmV40DmData::new_with_custom_l254(level254)))
-                } else {
-                    Some(DmData::V40(CmV40DmData::new_with_l254_402()))
-                }
+        if config.cm_version == CmVersion::V40 {
+            vdr_dm_data.cmv40_metadata = if let Some(level254) = &config.level254 {
+                Some(DmData::V40(CmV40DmData::new_with_custom_l254(level254)))
+            } else {
+                Some(DmData::V40(CmV40DmData::new_with_l254_402()))
             }
         }
 
@@ -534,5 +533,30 @@ impl CmVersion {
 
     pub fn v40() -> Self {
         CmVersion::V40
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel6};
+
+    use super::VdrDmData;
+
+    #[test]
+    fn change_source_levels_with_zero() {
+        let mut vdr_dm_data = VdrDmData::default_pq().with_cmv29_dm_data();
+        vdr_dm_data
+            .add_metadata_block(ExtMetadataBlock::Level6(ExtMetadataBlockLevel6 {
+                max_display_mastering_luminance: 1000,
+                min_display_mastering_luminance: 1,
+                max_content_light_level: 1000,
+                max_frame_average_light_level: 400,
+            }))
+            .unwrap();
+
+        vdr_dm_data.change_source_levels(Some(0), Some(1000));
+
+        assert_eq!(vdr_dm_data.source_min_pq, 0);
+        assert_eq!(vdr_dm_data.source_max_pq, 1000);
     }
 }
