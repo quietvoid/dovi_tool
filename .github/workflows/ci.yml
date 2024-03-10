@@ -28,8 +28,9 @@ jobs:
       - name: Test
         run: |
           cargo test --all-features
+          cargo test --all-features --bins
 
-          cargo test --all-features \
+          cargo test --all-features --all-targets \
             --manifest-path dolby_vision/Cargo.toml
 
       - name: Rustfmt

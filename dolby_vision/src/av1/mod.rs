@@ -1,12 +1,29 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
+use bitvec_helpers::{
+    bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+};
 
-use crate::rpu::dovi_rpu::DoviRpu;
+use crate::{
+    av1::emdf::{parse_emdf_container, write_emdf_container_with_dovi_rpu_payload},
+    rpu::dovi_rpu::DoviRpu,
+};
+
+mod emdf;
 
 pub const ITU_T35_DOVI_RPU_PAYLOAD_HEADER: &[u8] =
     &[0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08];
 const ITU_T35_DOVI_RPU_PAYLOAD_HEADER_LEN: usize = ITU_T35_DOVI_RPU_PAYLOAD_HEADER.len();
 
-fn validated_trimmed_data(data: &mut [u8]) -> Result<&mut [u8]> {
+/// Parse AV1 ITU-T T.35 metadata OBU into a `DoviRpu`
+/// The payload is extracted out of the EMDF wrapper
+pub fn parse_itu_t35_dovi_metadata_obu(data: &[u8]) -> Result<DoviRpu> {
+    let data = validated_trimmed_data(data)?;
+    let converted_buf = convert_av1_rpu_payload_to_regular(data)?;
+
+    DoviRpu::parse_rpu(&converted_buf)
+}
+
+fn validated_trimmed_data(data: &[u8]) -> Result<&[u8]> {
     if data.len() < 34 {
         bail!("Invalid RPU length: {}", data.len());
     }
@@ -14,7 +31,7 @@ fn validated_trimmed_data(data: &mut [u8]) -> Result<&mut [u8]> {
     let data = if data[0] == 0xB5 {
         // itu_t_t35_country_code - United States
         // Remove from buffer
-        &mut data[1..]
+        &data[1..]
     } else {
         data
     };
@@ -32,132 +49,52 @@ fn validated_trimmed_data(data: &mut [u8]) -> Result<&mut [u8]> {
 
 /// Internal function, use `parse_itu_t35_dovi_metadata_obu`
 ///
-/// Expects the payload to have `ITU_T35_DOVI_RPU_PAYLOAD_HEADER` discarded
-/// The payload is converted in-place in input slice
-///
-/// Returns the converted slice truncated to final RPU size
-pub fn convert_av1_rpu_payload_to_regular(data: &mut [u8]) -> Result<&[u8]> {
-    let mut rpu_size;
+/// Returns the EMDF payload bytes representing the RPU buffer
+fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>> {
+    let mut reader = BsIoSliceReader::from_slice(data);
 
-    // 256+ bytes size
-    if data[1] & 0x10 > 0 {
-        if data[2] & 0x08 > 0 {
-            bail!("RPU exceeds 512 bytes");
-        }
+    let itu_t_t35_terminal_provider_code = reader.get_n::<u16>(16)?;
+    ensure!(itu_t_t35_terminal_provider_code == 0x3B);
 
-        rpu_size = 0x100;
-        rpu_size |= (data[1] as usize & 0x0F) << 4;
-        rpu_size |= (data[2] as usize >> 4) & 0x0F;
+    let itu_t_t35_terminal_provider_oriented_code = reader.get_n::<u32>(32)?;
+    ensure!(itu_t_t35_terminal_provider_oriented_code == 0x800);
 
-        ensure!(rpu_size + 2 < data.len());
+    let emdf_payload_size = parse_emdf_container(&mut reader)?;
+    let mut converted_buf = Vec::with_capacity(emdf_payload_size + 1);
+    converted_buf.push(0x19);
 
-        for i in 0..rpu_size {
-            let mut converted_byte = (data[2 + i] & 0x07) << 5;
-            converted_byte |= (data[3 + i] >> 3) & 0x1F;
-
-            data[1 + i] = converted_byte;
-        }
-    } else {
-        rpu_size = (data[0] as usize & 0x1F) << 3;
-        rpu_size |= (data[1] as usize >> 5) & 0x07;
-
-        ensure!(rpu_size + 1 < data.len());
-
-        for i in 0..rpu_size {
-            let mut converted_byte = (data[1 + i] & 0x0F) << 4;
-            converted_byte |= (data[2 + i] >> 4) & 0x0F;
-
-            data[1 + i] = converted_byte;
-        }
+    for _ in 0..emdf_payload_size {
+        converted_buf.push(reader.get_n(8)?);
     }
 
-    // Set prefix
-    data[0] = 0x19;
-
-    Ok(&data[..rpu_size + 1])
+    Ok(converted_buf)
 }
 
-/// Buffer must start with 0x19 prefix, the payload is converted in-place
+/// Wraps a regular RPU into EMDF container with ITU-T T.35 header
+/// Buffer must start with 0x19 prefix.
 ///
 /// Returns payload for AV1 ITU T-T.35 metadata OBU
-pub fn convert_regular_rpu_to_av1_payload(data: &mut Vec<u8>) -> Result<()> {
+pub fn convert_regular_rpu_to_av1_payload(data: &[u8]) -> Result<Vec<u8>> {
     ensure!(data[0] == 0x19);
 
     // Exclude 0x19 prefix
-    let rpu_size = data.len() - 1;
+    let data = &data[1..];
+    let rpu_size = data.len();
+    let capacity = 16 + rpu_size;
 
-    // Header + size bytes
-    data.reserve(16);
+    let mut writer = BitstreamIoWriter::with_capacity(capacity * 8);
 
-    // 256+ bytes size
-    if rpu_size > 0xFF {
-        // Unknown first byte
-        let size_byte1 = 32;
+    writer.write_n(&0x3B, 16)?; // itu_t_t35_terminal_provider_code
+    writer.write_n(&0x800, 32)?; // itu_t_t35_terminal_provider_oriented_code
 
-        data.splice(
-            0..1,
-            [
-                size_byte1,
-                (rpu_size >> 4) as u8,
-                ((rpu_size & 0x0F) as u8) << 4,
-            ],
-        );
-        let start_idx = 3;
-        let end_idx = rpu_size + 2;
+    write_emdf_container_with_dovi_rpu_payload(&mut writer, data)?;
 
-        for i in start_idx..end_idx {
-            let mut byte = (data[i] & 0x1F) << 3;
-            byte |= (data[1 + i] >> 5) & 0x07;
-
-            data[i] = byte;
-        }
-
-        // Last byte
-        data[end_idx] = (data[end_idx] & 0x1F) << 3;
-
-        // Unknown necessary bytes
-        data.extend(&[16, 0]);
-    } else {
-        // Unknown additional diff for first size byte
-        let size_byte1_diff = 32; // 2^5
-
-        data.splice(
-            0..1,
-            [
-                (rpu_size >> 3) as u8 + size_byte1_diff,
-                ((rpu_size & 0x07) as u8) << 5,
-            ],
-        );
-        let start_idx = 2;
-        let end_idx = rpu_size + 1;
-
-        for i in start_idx..end_idx {
-            let mut byte = (data[i] & 0x0F) << 4;
-            byte |= (data[1 + i] >> 4) & 0x0F;
-
-            data[i] = byte;
-        }
-
-        // Last byte
-        data[end_idx] = (data[end_idx] & 0x0F) << 4;
-
-        // Unknown necessary bytes
-        data.extend(&[size_byte1_diff, 0]);
+    while !writer.is_aligned() {
+        writer.write(true)?;
     }
 
-    // Prefix header
-    data.splice(0..0, ITU_T35_DOVI_RPU_PAYLOAD_HEADER.iter().copied());
-
-    Ok(())
-}
-
-/// Parse AV1 RPU metadata payload starting with `ITU_T35_DOVI_RPU_PAYLOAD_HEADER`
-///
-/// The payload is converted in-place in input slice, then parsed into a `DoviRpu` struct.
-pub fn parse_itu_t35_dovi_metadata_obu(data: &mut [u8]) -> Result<DoviRpu> {
-    let data = validated_trimmed_data(data)?;
-    let converted_buf =
-        convert_av1_rpu_payload_to_regular(&mut data[ITU_T35_DOVI_RPU_PAYLOAD_HEADER_LEN..])?;
-
-    DoviRpu::parse_rpu(converted_buf)
+    Ok(writer
+        .as_slice()
+        .ok_or_else(|| anyhow!("Unaligned bytes"))?
+        .to_owned())
 }

@@ -1,4 +1,5 @@
 ## Unreleased
+- Changed AV1 function signatures to take slices as input and return a `Vec`.
 - Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.
 - XML parser: support decimals when parsing Level6 MaxCLL/MaxFALL values.
 
