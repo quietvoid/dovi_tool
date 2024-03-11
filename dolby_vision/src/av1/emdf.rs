@@ -49,6 +49,19 @@ pub(crate) fn write_emdf_container_with_dovi_rpu_payload(
 
     Ok(())
 }
+
+fn write_dovi_rpu_emdf_header(writer: &mut BitstreamIoWriter) -> Result<()> {
+    writer.write_n(&0, 2)?; // emdf_version
+    writer.write_n(&6, 3)?; // key_id
+    writer.write_n(&31, 5)?; // emdf_payload_id
+    write_variable_bits(writer, 225, 5)?; // emdf_payload_id_ext
+
+    writer.write_n(&0, 4)?; // smploffste, duratione, groupide, codecdatae
+    writer.write(true)?; // discard_unknown_payload
+
+    Ok(())
+}
+
 fn parse_variable_bits(reader: &mut BsIoSliceReader, n: u32) -> Result<u32> {
     let mut value: u32 = 0;
 
@@ -95,18 +108,6 @@ fn write_variable_bits(writer: &mut BitstreamIoWriter, value: u32, n: u32) -> Re
     }
 
     writer.write(false)?;
-
-    Ok(())
-}
-
-fn write_dovi_rpu_emdf_header(writer: &mut BitstreamIoWriter) -> Result<()> {
-    writer.write_n(&0, 2)?; // emdf_version
-    writer.write_n(&6, 3)?; // key_id
-    writer.write_n(&31, 5)?; // emdf_payload_id
-    write_variable_bits(writer, 225, 5)?; // emdf_payload_id_ext
-
-    writer.write_n(&0, 4)?; // smploffste, duratione, groupide, codecdatae
-    writer.write(true)?; // discard_unknown_payload
 
     Ok(())
 }

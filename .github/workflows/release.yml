@@ -12,108 +12,133 @@ env:
   LINUX_TARGET: x86_64-unknown-linux-musl
 
 jobs:
-  build:
-    name: Build artifacts
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        build: [Linux, macOS, Windows]
-        include: 
-          - build: Linux
-            os: ubuntu-latest
-          - build: macOS
-            os: macos-latest
-          - build: Windows
-            os: windows-latest
-
+  linux-binary:
+    runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-release-env
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get the version
-        shell: bash
-        run: |
-          echo "RELEASE_PKG_VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)" >> $GITHUB_ENV
-          echo "LIBDOVI_PKG_VERSION=$(cargo pkgid --manifest-path dolby_vision/Cargo.toml | cut -d# -f2 | cut -d: -f2)" >> $GITHUB_ENV
-
-      - name: Install musl-tools (Linux)
-        if: matrix.build == 'Linux'
+      - name: Install musl-tools
         run: |
           sudo apt-get update -y
           sudo apt-get install musl-tools -y
 
-      - name: Build (Linux)
-        if: matrix.build == 'Linux'
+      - name: Build
         run: |
           rustup target add ${{ env.LINUX_TARGET }}
           cargo build --release --target ${{ env.LINUX_TARGET }} --no-default-features --features internal-font
 
-      - name: Build (macOS)
-        if: matrix.build == 'macOS'
+      - name: Create tarball and checksum
         run: |
-          rustup target add ${{ env.MACOS_ARM_TARGET }}
+          ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_TARGET }}.tar.gz
+          strip ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }}
 
-          cargo build --release
-          cargo build --release --target ${{ env.MACOS_ARM_TARGET }}
+          mv ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
+          tar -cvzf ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
-      - name: Build (Windows)
-        if: matrix.build == 'Windows'
-        run: cargo build --release
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
 
-      - name: Install cargo-c (Windows)
-        if: matrix.build == 'Windows'
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux artifacts
+          path: ./${{ env.RELEASE_DIR }}/*
+
+  windows-binary:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-release-env
+
+      - name: Install cargo-c
         run: |
           $LINK = "https://github.com/lu-zero/cargo-c/releases/latest/download"
           $CARGO_C_FILE = "cargo-c-windows-msvc"
           curl -LO "$LINK/$CARGO_C_FILE.zip"
           7z e -y "$CARGO_C_FILE.zip" -o"${env:USERPROFILE}\.cargo\bin"
 
-      - name: Build C lib (Windows)
-        if: matrix.build == 'Windows'
-        run: |
-          cargo cbuild --manifest-path dolby_vision/Cargo.toml --release
+      - name: Build
+        run: cargo build --release
 
-      - name: Create artifact directory
-        run: |
-          mkdir ${{ env.RELEASE_DIR }}
+      - name: Build C lib
+        run: cargo cbuild --manifest-path dolby_vision/Cargo.toml --release
 
-      - name: Create tarball (Linux)
-        if: matrix.build == 'Linux'
-        run: |
-          strip ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }}
-          mv ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
-          tar -cvzf ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.LINUX_TARGET }}.tar.gz ./${{ env.RELEASE_BIN }}
-
-      - name: Create zipfile (Windows)
-        if: matrix.build == 'Windows'
+      - name: Create zipfile
         shell: bash
         run: |
+          ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_TARGET }}.zip
           mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
-          7z a ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./${{ env.RELEASE_BIN }}.exe
+          7z a ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
 
           mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
           7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows artifacts
+          path: ./${{ env.RELEASE_DIR }}/*
+  
+  macos-binary:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-release-env
+
+      - name: Build
+        run: |
+          rustup target add ${{ env.MACOS_ARM_TARGET }}
+
+          cargo build --release
+          cargo build --release --target ${{ env.MACOS_ARM_TARGET }}
+
       - name: Create universal macOS binary
-        if: matrix.build == 'macOS'
         run: |
           strip ./target/release/${{ env.RELEASE_BIN }}
-          strip ./target/aarch64-apple-darwin/release/${{ env.RELEASE_BIN }}
+          strip ./target/${{ env.MACOS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}
 
           lipo -create \
-            ./target/aarch64-apple-darwin/release/${{ env.RELEASE_BIN }} \
+            ./target/${{ env.MACOS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }} \
             ./target/release/${{ env.RELEASE_BIN }} \
             -output ./${{ env.RELEASE_BIN }}
 
-      - name: Create zipfile (macOS)
-        if: matrix.build == 'macOS'
+      - name: Create zipfile
         run: |
-          zip -9 ./${{ env.RELEASE_DIR }}/${{ env.RELEASE_BIN }}-${{ env.RELEASE_PKG_VERSION }}-universal-macOS.zip ./${{ env.RELEASE_BIN }}
+          ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-universal-macOS.zip
+          zip -9 ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
-      - name: Upload Zip
-        uses: actions/upload-artifact@v1
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.build }}
-          path: ./${{ env.RELEASE_DIR }}
+          name: macOS artifacts
+          path: ./${{ env.RELEASE_DIR }}/*
+
+  create-release:
+    needs: [linux-binary, windows-binary, macos-binary]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Create a draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.RELEASE_PKG_VERSION }}
+          draft: true
+          files: |
+            Linux artifacts/*
+            Windows artifacts/*
+            macOS artifacts/*
