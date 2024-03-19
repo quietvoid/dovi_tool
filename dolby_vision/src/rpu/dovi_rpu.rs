@@ -22,7 +22,7 @@ use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
 
-const FINAL_BYTE: u8 = 0x80;
+pub(crate) const FINAL_BYTE: u8 = 0x80;
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -286,7 +286,7 @@ impl DoviRpu {
 
         // Write crc32
         writer.write_n(&computed_crc32, 32)?;
-        writer.write_n(&0x80_u8, 8)?;
+        writer.write_n(&FINAL_BYTE, 8)?;
 
         // Trailing bytes
         if self.trailing_zeroes > 0 {

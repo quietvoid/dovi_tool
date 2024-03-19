@@ -42,6 +42,7 @@ pub(crate) fn write_emdf_container_with_dovi_rpu_payload(
         writer.write_n(b, 8)?;
     }
 
+    // emdf_payload_id and emdf_protection
     writer.write_n(&0, 5)?;
     writer.write_n(&1, 2)?;
     writer.write_n(&0, 2)?;

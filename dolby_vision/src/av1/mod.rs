@@ -5,7 +5,7 @@ use bitvec_helpers::{
 
 use crate::{
     av1::emdf::{parse_emdf_container, write_emdf_container_with_dovi_rpu_payload},
-    rpu::dovi_rpu::DoviRpu,
+    rpu::dovi_rpu::{DoviRpu, FINAL_BYTE},
 };
 
 mod emdf;
@@ -77,8 +77,17 @@ fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>> {
 pub fn convert_regular_rpu_to_av1_payload(data: &[u8]) -> Result<Vec<u8>> {
     ensure!(data[0] == 0x19);
 
+    // The EMDF payload must not include any trailing bytes after 0x80 terminator
+    let trailing_zeroes = data.iter().rev().take_while(|b| **b == 0).count();
+    let rpu_end = data.len() - trailing_zeroes;
+    let last_byte = data[rpu_end - 1];
+
+    if last_byte != FINAL_BYTE {
+        bail!("Invalid RPU last byte: {}", last_byte);
+    }
+
     // Exclude 0x19 prefix
-    let data = &data[1..];
+    let data = &data[1..rpu_end];
     let rpu_size = data.len();
     let capacity = 16 + rpu_size;
 
