@@ -29,10 +29,7 @@ pub enum ConversionMode {
 
 #[inline(always)]
 fn compute_crc32(data: &[u8]) -> u32 {
-    let mut digest = CRC32_INSTANCE.digest();
-    digest.update(data);
-
-    digest.finalize()
+    CRC32_INSTANCE.checksum(data)
 }
 
 impl From<u8> for ConversionMode {

@@ -115,8 +115,7 @@ impl RpuDataMapping {
             curve.num_pivots_minus2 = reader.get_ue()?;
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
 
-            curve.pivots = Vec::with_capacity(num_pivots);
-            curve.pivots.resize(num_pivots, Default::default());
+            curve.pivots = vec![Default::default(); num_pivots];
 
             for i in 0..num_pivots {
                 curve.pivots[i] = reader.get_n(bl_bit_depth)?;

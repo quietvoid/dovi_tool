@@ -23,6 +23,7 @@ use crate::utils::{
 };
 
 pub(crate) const FINAL_BYTE: u8 = 0x80;
+const CRC32_TERMINATOR_BITS: u64 = 40;
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -97,6 +98,7 @@ impl DoviRpu {
 
     #[inline(always)]
     pub(crate) fn parse(data: &[u8]) -> Result<DoviRpu> {
+        let original_payload_size = data.len();
         let trailing_zeroes = data.iter().rev().take_while(|b| **b == 0).count();
 
         // Ignore trailing bytes
@@ -113,7 +115,7 @@ impl DoviRpu {
             bail!("Invalid RPU last byte: {}", last_byte);
         }
 
-        let dovi_rpu = DoviRpu::read_rpu_data(data, trailing_zeroes)?;
+        let mut dovi_rpu = DoviRpu::read_rpu_data(&data[..rpu_end])?;
 
         if received_crc32 != dovi_rpu.rpu_data_crc32 {
             bail!(
@@ -123,15 +125,18 @@ impl DoviRpu {
             );
         }
 
+        dovi_rpu.trailing_zeroes = trailing_zeroes;
+        dovi_rpu.original_payload_size = original_payload_size;
+
+        // Validate
+        dovi_rpu.validate()?;
+
         Ok(dovi_rpu)
     }
 
     #[inline(always)]
-    fn read_rpu_data(bytes: &[u8], trailing_zeroes: usize) -> Result<DoviRpu> {
+    fn read_rpu_data(bytes: &[u8]) -> Result<DoviRpu> {
         let mut reader = BsIoSliceReader::from_slice(bytes);
-
-        // CRC32 + 0x80 + trailing
-        let final_length = (32 + 8 + (trailing_zeroes * 8)) as u64;
 
         let rpu_prefix = reader.get_n(8)?;
         ensure!(rpu_prefix == 25, "rpu_nal_prefix should be 25");
@@ -160,7 +165,7 @@ impl DoviRpu {
             .unwrap_or(None);
 
         let vdr_dm_data = if header.vdr_dm_metadata_present_flag {
-            Some(vdr_dm_data_payload(&mut reader, &header, final_length)?)
+            Some(vdr_dm_data_payload(&mut reader, &header)?)
         } else {
             None
         };
@@ -171,11 +176,10 @@ impl DoviRpu {
         }
 
         // CRC32 is at the end, there can be more data in between
-
-        let remaining = if reader.available()? != final_length {
+        let remaining = if reader.available()? > CRC32_TERMINATOR_BITS {
             let mut remaining: BitVec<u8, Msb0> = BitVec::new();
 
-            while reader.available()? != final_length {
+            while reader.available()? != CRC32_TERMINATOR_BITS {
                 remaining.push(reader.get()?);
             }
 
@@ -188,7 +192,7 @@ impl DoviRpu {
         let last_byte: u8 = reader.get_n(8)?;
         ensure!(last_byte == FINAL_BYTE, "last byte should be 0x80");
 
-        let dovi_rpu = DoviRpu {
+        Ok(DoviRpu {
             dovi_profile: header.get_dovi_profile(),
             el_type,
             header,
@@ -196,15 +200,8 @@ impl DoviRpu {
             vdr_dm_data,
             remaining,
             rpu_data_crc32,
-            modified: false,
-            trailing_zeroes,
-            original_payload_size: bytes.len(),
-        };
-
-        // Validate
-        dovi_rpu.validate()?;
-
-        Ok(dovi_rpu)
+            ..Default::default()
+        })
     }
 
     pub fn write_hevc_unspec62_nalu(&self) -> Result<Vec<u8>> {

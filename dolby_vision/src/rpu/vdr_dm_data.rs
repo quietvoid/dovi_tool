@@ -19,6 +19,9 @@ use super::profiles::DoviProfile;
 use super::extension_metadata::WithExtMetadataBlocks;
 use super::rpu_data_header::RpuDataHeader;
 
+// 16 bits min for required level 254 + CRC32 + 0x80
+const DM_DATA_PAYLOAD2_MIN_BITS: u64 = 56;
+
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct VdrDmData {
@@ -77,7 +80,6 @@ pub enum CmVersion {
 pub(crate) fn vdr_dm_data_payload(
     reader: &mut BsIoSliceReader,
     header: &RpuDataHeader,
-    final_length: u64,
 ) -> Result<VdrDmData> {
     let compressed_dm_data = header.reserved_zero_3bits == 1;
 
@@ -98,8 +100,7 @@ pub(crate) fn vdr_dm_data_payload(
         vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
     }
 
-    // 16 bits min for required level 254
-    if reader.available()? >= final_length + 16 {
+    if reader.available()? >= DM_DATA_PAYLOAD2_MIN_BITS {
         if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
             vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));
         }
