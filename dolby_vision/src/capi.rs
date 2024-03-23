@@ -196,7 +196,7 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
         let mut header = RpuDataHeader::from(&rpu.header);
 
         if let Some(el_type) = rpu.el_type.as_ref() {
-            header.el_type = CString::new(el_type.as_str()).unwrap().into_raw();
+            header.el_type = el_type.as_cstr().as_ptr();
         }
 
         Box::into_raw(Box::new(header))
@@ -212,8 +212,7 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
 #[no_mangle]
 pub unsafe extern "C" fn dovi_rpu_free_header(ptr: *const RpuDataHeader) {
     if !ptr.is_null() {
-        let header = Box::from_raw(ptr as *mut RpuDataHeader);
-        header.free();
+        drop(Box::from_raw(ptr as *mut RpuDataHeader));
     }
 }
 
