@@ -1,8 +1,9 @@
-## Unreleased
+## 3.3.0
 - Changed AV1 function signatures to take slices as input and return a `Vec`.
 - Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.
 - XML parser: support decimals when parsing Level6 MaxCLL/MaxFALL values.
 - Added `DoviRpu::parse_itu_t35_dovi_metadata_obu` and deprecated `av1::parse_itu_t35_dovi_metadata_obu`.
+- Fixed encoding AV1 payloads with trailing bytes. They are now discarded.
 
 C API:
 - Added `dovi_write_av1_rpu_metadata_obu_t35_{payload,complete}` functions.
