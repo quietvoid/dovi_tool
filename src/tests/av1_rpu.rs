@@ -3,7 +3,6 @@ use std::{io::Read, path::PathBuf};
 
 use anyhow::Result;
 
-use dolby_vision::av1::parse_itu_t35_dovi_metadata_obu;
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
 pub fn _parse_file(input: PathBuf, hevc: bool) -> Result<(Vec<u8>, DoviRpu)> {
@@ -17,7 +16,7 @@ pub fn _parse_file(input: PathBuf, hevc: bool) -> Result<(Vec<u8>, DoviRpu)> {
     let dovi_rpu = if hevc {
         DoviRpu::parse_unspec62_nalu(&original_data)?
     } else {
-        parse_itu_t35_dovi_metadata_obu(cloned_data.as_mut_slice())?
+        DoviRpu::parse_itu_t35_dovi_metadata_obu(cloned_data.as_mut_slice())?
     };
 
     Ok((original_data, dovi_rpu))
@@ -96,7 +95,7 @@ fn trailing_bytes_rpu() -> Result<()> {
     assert_eq!(original_without_trailing.last().copied().unwrap(), 0x80);
 
     let av1_payload = dovi_rpu.write_av1_rpu_metadata_obu_t35_payload()?;
-    let parsed_rpu = parse_itu_t35_dovi_metadata_obu(&av1_payload)?;
+    let parsed_rpu = DoviRpu::parse_itu_t35_dovi_metadata_obu(&av1_payload)?;
 
     let rewritten_data = parsed_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&original_without_trailing[4..], &rewritten_data[2..]);

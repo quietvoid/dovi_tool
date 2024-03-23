@@ -17,7 +17,10 @@ use super::rpu_data_nlq::{DoviELType, RpuDataNlq};
 use super::vdr_dm_data::{vdr_dm_data_payload, VdrDmData};
 use super::{compute_crc32, ConversionMode};
 
-use crate::av1::convert_regular_rpu_to_av1_payload;
+use crate::av1::{
+    av1_validated_trimmed_data, convert_av1_rpu_payload_to_regular,
+    convert_regular_rpu_to_av1_payload,
+};
 use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
@@ -88,6 +91,15 @@ impl DoviRpu {
         let bytes: Vec<u8> = clear_start_code_emulation_prevention_3_byte(trimmed_data);
 
         DoviRpu::parse(&bytes)
+    }
+
+    /// Parse AV1 ITU-T T.35 metadata OBU into a `DoviRpu`
+    /// The payload is extracted out of the EMDF wrapper
+    pub fn parse_itu_t35_dovi_metadata_obu(data: &[u8]) -> Result<Self> {
+        let data = av1_validated_trimmed_data(data)?;
+        let converted_buf = convert_av1_rpu_payload_to_regular(data)?;
+
+        DoviRpu::parse(&converted_buf)
     }
 
     pub fn parse_rpu(data: &[u8]) -> Result<DoviRpu> {

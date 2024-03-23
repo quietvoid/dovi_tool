@@ -16,14 +16,15 @@ const ITU_T35_DOVI_RPU_PAYLOAD_HEADER_LEN: usize = ITU_T35_DOVI_RPU_PAYLOAD_HEAD
 
 /// Parse AV1 ITU-T T.35 metadata OBU into a `DoviRpu`
 /// The payload is extracted out of the EMDF wrapper
+#[deprecated(
+    since = "3.3.0",
+    note = "Replaced by DoviRpu::parse_itu_t35_dovi_metadata_obu"
+)]
 pub fn parse_itu_t35_dovi_metadata_obu(data: &[u8]) -> Result<DoviRpu> {
-    let data = validated_trimmed_data(data)?;
-    let converted_buf = convert_av1_rpu_payload_to_regular(data)?;
-
-    DoviRpu::parse_rpu(&converted_buf)
+    DoviRpu::parse_itu_t35_dovi_metadata_obu(data)
 }
 
-fn validated_trimmed_data(data: &[u8]) -> Result<&[u8]> {
+pub(crate) fn av1_validated_trimmed_data(data: &[u8]) -> Result<&[u8]> {
     if data.len() < 34 {
         bail!("Invalid RPU length: {}", data.len());
     }
@@ -47,10 +48,8 @@ fn validated_trimmed_data(data: &[u8]) -> Result<&[u8]> {
     Ok(trimmed_data)
 }
 
-/// Internal function, use `parse_itu_t35_dovi_metadata_obu`
-///
 /// Returns the EMDF payload bytes representing the RPU buffer
-fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>> {
+pub(crate) fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>> {
     let mut reader = BsIoSliceReader::from_slice(data);
 
     let itu_t_t35_terminal_provider_code = reader.get_n::<u16>(16)?;
