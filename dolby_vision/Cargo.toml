@@ -48,7 +48,6 @@ name = "dovi"
 [lib]
 doctest = false
 
-
 [[bench]]
 name = "bench_main"
 harness = false

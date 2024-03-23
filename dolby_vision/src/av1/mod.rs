@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -101,8 +101,5 @@ pub fn convert_regular_rpu_to_av1_payload(data: &[u8]) -> Result<Vec<u8>> {
         writer.write(true)?;
     }
 
-    Ok(writer
-        .as_slice()
-        .ok_or_else(|| anyhow!("Unaligned bytes"))?
-        .to_owned())
+    Ok(writer.into_inner())
 }

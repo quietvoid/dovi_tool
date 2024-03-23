@@ -280,9 +280,10 @@ impl DoviRpu {
         writer.byte_align()?;
 
         let computed_crc32 = compute_crc32(
-            &writer
+            writer
                 .as_slice()
-                .ok_or_else(|| anyhow!("Unaligned bytes"))?[1..],
+                .map(|s| &s[1..])
+                .ok_or_else(|| anyhow!("Unaligned bytes"))?,
         );
 
         if !self.modified {
@@ -304,10 +305,7 @@ impl DoviRpu {
             }
         }
 
-        Ok(writer
-            .as_slice()
-            .ok_or_else(|| anyhow!("Unaligned bytes"))?
-            .to_owned())
+        Ok(writer.into_inner())
     }
 
     fn validate(&self) -> Result<()> {
