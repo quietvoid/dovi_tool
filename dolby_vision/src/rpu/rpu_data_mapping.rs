@@ -5,6 +5,7 @@ use bitvec_helpers::{
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
+use tinyvec::{array_vec, ArrayVec};
 
 use crate::rpu::MMR_MAX_COEFFS;
 
@@ -81,8 +82,8 @@ pub struct DoviReshapingCurve {
 pub struct DoviPolynomialCurve {
     pub poly_order_minus1: Vec<u64>,
     pub linear_interp_flag: Vec<bool>,
-    pub poly_coef_int: Vec<Vec<i64>>,
-    pub poly_coef: Vec<Vec<u64>>,
+    pub poly_coef_int: Vec<ArrayVec<[i64; 3]>>,
+    pub poly_coef: Vec<ArrayVec<[u64; 3]>>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -91,8 +92,8 @@ pub struct DoviMMRCurve {
     pub mmr_order_minus1: Vec<u8>,
     pub mmr_constant_int: Vec<i64>,
     pub mmr_constant: Vec<u64>,
-    pub mmr_coef_int: Vec<Vec<Vec<i64>>>,
-    pub mmr_coef: Vec<Vec<Vec<u64>>>,
+    pub mmr_coef_int: Vec<ArrayVec<[ArrayVec<[i64; MMR_MAX_COEFFS]>; 3]>>,
+    pub mmr_coef: Vec<ArrayVec<[ArrayVec<[u64; MMR_MAX_COEFFS]>; 3]>>,
 }
 
 impl RpuDataMapping {
@@ -115,7 +116,7 @@ impl RpuDataMapping {
             curve.num_pivots_minus2 = reader.get_ue()?;
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
 
-            curve.pivots = vec![Default::default(); num_pivots];
+            curve.pivots = vec![0; num_pivots];
 
             for i in 0..num_pivots {
                 curve.pivots[i] = reader.get_n(bl_bit_depth)?;
@@ -364,7 +365,8 @@ impl RpuDataMapping {
         self.curves.iter_mut().for_each(|curve| {
             curve.num_pivots_minus2 = 0;
             curve.pivots.clear();
-            curve.pivots.extend([0, 1023]);
+            curve.pivots.push(0);
+            curve.pivots.push(1023);
 
             curve.mapping_idc = DoviMappingMethod::Polynomial;
             curve.mmr = None;
@@ -429,8 +431,8 @@ impl DoviPolynomialCurve {
             }*/
         } else {
             let poly_coef_count = poly_order_minus1 as usize + 2;
-            let mut poly_coef_int = Vec::with_capacity(poly_coef_count);
-            let mut poly_coef = Vec::with_capacity(poly_coef_count);
+            let mut poly_coef_int = array_vec!();
+            let mut poly_coef = array_vec!();
 
             for _j in 0..poly_coef_count {
                 if header.coefficient_data_type == 0 {
@@ -462,10 +464,10 @@ impl DoviPolynomialCurve {
         self.linear_interp_flag.push(false);
 
         self.poly_coef_int.clear();
-        self.poly_coef_int.push(vec![0, 1]);
+        self.poly_coef_int.push(array_vec!(0, 1));
 
         self.poly_coef.clear();
-        self.poly_coef.push(vec![0, 0]);
+        self.poly_coef.push(array_vec!(0, 0));
     }
 }
 
@@ -496,12 +498,12 @@ impl DoviMMRCurve {
         self.mmr_constant
             .push(reader.get_n(coefficient_log2_denom_length)?);
 
-        let mut mmr_coef_int = Vec::with_capacity(mmr_orders_count);
-        let mut mmr_coef = Vec::with_capacity(mmr_orders_count);
+        let mut mmr_coef_int = array_vec!();
+        let mut mmr_coef = array_vec!();
 
         for _j in 0..mmr_orders_count {
-            let mut mmr_coef_int2 = Vec::with_capacity(MMR_MAX_COEFFS);
-            let mut mmr_coef2 = Vec::with_capacity(MMR_MAX_COEFFS);
+            let mut mmr_coef_int2 = array_vec!();
+            let mut mmr_coef2 = array_vec!();
 
             for _k in 0..MMR_MAX_COEFFS {
                 if header.coefficient_data_type == 0 {

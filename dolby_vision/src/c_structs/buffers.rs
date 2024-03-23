@@ -1,6 +1,7 @@
 use std::ptr::null;
 
 use libc::size_t;
+use tinyvec::ArrayVec;
 
 pub trait Freeable {
     /// # Safety
@@ -138,11 +139,29 @@ impl From<Vec<u64>> for U64Data {
     }
 }
 
+impl<const N: usize> From<ArrayVec<[u64; N]>> for U64Data {
+    fn from(buf: ArrayVec<[u64; N]>) -> Self {
+        U64Data {
+            len: buf.len(),
+            data: Box::into_raw(buf.to_vec().into_boxed_slice()) as *const u64,
+        }
+    }
+}
+
 impl From<Vec<i64>> for I64Data {
     fn from(buf: Vec<i64>) -> Self {
         I64Data {
             len: buf.len(),
             data: Box::into_raw(buf.into_boxed_slice()) as *const i64,
+        }
+    }
+}
+
+impl<const N: usize> From<ArrayVec<[i64; N]>> for I64Data {
+    fn from(buf: ArrayVec<[i64; N]>) -> Self {
+        I64Data {
+            len: buf.len(),
+            data: Box::into_raw(buf.to_vec().into_boxed_slice()) as *const i64,
         }
     }
 }
@@ -165,8 +184,8 @@ impl<const N: usize> From<[u64; N]> for U64Data {
     }
 }
 
-impl From<Vec<Vec<u64>>> for U64Data2D {
-    fn from(buf_2d: Vec<Vec<u64>>) -> Self {
+impl<const N: usize> From<Vec<ArrayVec<[u64; N]>>> for U64Data2D {
+    fn from(buf_2d: Vec<ArrayVec<[u64; N]>>) -> Self {
         let list: Vec<*const U64Data> = buf_2d
             .into_iter()
             .map(|buf| Box::into_raw(Box::new(U64Data::from(buf))) as *const U64Data)
@@ -179,8 +198,22 @@ impl From<Vec<Vec<u64>>> for U64Data2D {
     }
 }
 
-impl From<Vec<Vec<i64>>> for I64Data2D {
-    fn from(buf_2d: Vec<Vec<i64>>) -> Self {
+impl<const N: usize, const N2: usize> From<ArrayVec<[ArrayVec<[u64; N2]>; N]>> for U64Data2D {
+    fn from(buf_2d: ArrayVec<[ArrayVec<[u64; N2]>; N]>) -> Self {
+        let list: Vec<*const U64Data> = buf_2d
+            .into_iter()
+            .map(|buf| Box::into_raw(Box::new(U64Data::from(buf))) as *const U64Data)
+            .collect();
+
+        U64Data2D {
+            len: list.len(),
+            list: Box::into_raw(list.into_boxed_slice()) as *const *const U64Data,
+        }
+    }
+}
+
+impl<const N: usize> From<Vec<ArrayVec<[i64; N]>>> for I64Data2D {
+    fn from(buf_2d: Vec<ArrayVec<[i64; N]>>) -> Self {
         let list: Vec<*const I64Data> = buf_2d
             .into_iter()
             .map(|buf| Box::into_raw(Box::new(I64Data::from(buf))) as *const I64Data)
@@ -193,8 +226,22 @@ impl From<Vec<Vec<i64>>> for I64Data2D {
     }
 }
 
-impl From<Vec<Vec<Vec<u64>>>> for U64Data3D {
-    fn from(buf_3d: Vec<Vec<Vec<u64>>>) -> Self {
+impl<const N: usize, const N2: usize> From<ArrayVec<[ArrayVec<[i64; N2]>; N]>> for I64Data2D {
+    fn from(buf_2d: ArrayVec<[ArrayVec<[i64; N2]>; N]>) -> Self {
+        let list: Vec<*const I64Data> = buf_2d
+            .into_iter()
+            .map(|buf| Box::into_raw(Box::new(I64Data::from(buf))) as *const I64Data)
+            .collect();
+
+        I64Data2D {
+            len: list.len(),
+            list: Box::into_raw(list.into_boxed_slice()) as *const *const I64Data,
+        }
+    }
+}
+
+impl<const N: usize, const N2: usize> From<Vec<ArrayVec<[ArrayVec<[u64; N2]>; N]>>> for U64Data3D {
+    fn from(buf_3d: Vec<ArrayVec<[ArrayVec<[u64; N2]>; N]>>) -> Self {
         let list: Vec<*const U64Data2D> = buf_3d
             .into_iter()
             .map(|buf| Box::into_raw(Box::new(U64Data2D::from(buf))) as *const U64Data2D)
@@ -207,8 +254,8 @@ impl From<Vec<Vec<Vec<u64>>>> for U64Data3D {
     }
 }
 
-impl From<Vec<Vec<Vec<i64>>>> for I64Data3D {
-    fn from(buf_3d: Vec<Vec<Vec<i64>>>) -> Self {
+impl<const N: usize, const N2: usize> From<Vec<ArrayVec<[ArrayVec<[i64; N2]>; N]>>> for I64Data3D {
+    fn from(buf_3d: Vec<ArrayVec<[ArrayVec<[i64; N2]>; N]>>) -> Self {
         let list: Vec<*const I64Data2D> = buf_3d
             .into_iter()
             .map(|buf| Box::into_raw(Box::new(I64Data2D::from(buf))) as *const I64Data2D)
