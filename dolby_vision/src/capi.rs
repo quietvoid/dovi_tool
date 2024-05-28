@@ -30,6 +30,21 @@ pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut Rpu
 /// # Safety
 /// The pointer to the data must be valid.
 ///
+/// Parse a Dolby Vision from a AV1 ITU-T T.35 metadata OBU byte buffer.
+/// Adds an error if the parsing fails.
+#[no_mangle]
+pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
+    assert!(!buf.is_null());
+
+    let data = slice::from_raw_parts(buf, len);
+    let res = DoviRpu::parse_itu_t35_dovi_metadata_obu(data);
+
+    Box::into_raw(Box::new(RpuOpaque::from(res)))
+}
+
+/// # Safety
+/// The pointer to the data must be valid.
+///
 /// Parse a Dolby Vision from a (possibly) escaped HEVC UNSPEC 62 NAL unit byte buffer.
 /// Adds an error if the parsing fails.
 #[no_mangle]
