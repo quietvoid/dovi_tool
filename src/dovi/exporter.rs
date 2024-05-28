@@ -114,7 +114,7 @@ impl Exporter {
 
         let default_l5 = ExtMetadataBlockLevel5::default();
 
-        let l5_groups = rpus.iter().enumerate().group_by(|(_, rpu)| {
+        let l5_groups = rpus.iter().enumerate().chunk_by(|(_, rpu)| {
             rpu.vdr_dm_data
                 .as_ref()
                 .and_then(|vdr| {

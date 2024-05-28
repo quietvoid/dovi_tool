@@ -338,8 +338,8 @@ impl IoProcessor for RpuInjector {
     fn finalize(&mut self, parser: &HevcParser) -> Result<()> {
         // First pass
         if self.frames.is_empty() && self.nals.is_empty() {
-            self.frames = parser.ordered_frames().clone();
-            self.nals = parser.get_nals().clone();
+            self.frames.clone_from(parser.ordered_frames());
+            self.nals.clone_from(parser.get_nals());
         } else {
             let ordered_frames = parser.ordered_frames();
             let total_frames = ordered_frames.len();

@@ -1,3 +1,7 @@
+## Unreleased
+C API:
+- Added `dovi_parse_itu_t35_dovi_metadata_obu` function.
+
 ## 3.3.0
 - Changed AV1 function signatures to take slices as input and return a `Vec`.
 - Added `write_av1_rpu_metadata_obu_t35_complete` function to encode RPUs in complete metadata OBU payloads.

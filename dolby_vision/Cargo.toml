@@ -10,12 +10,12 @@ repository = "https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision"
 
 [dependencies]
 bitvec_helpers = { version = "3.1.4", default-features = false, features = ["bitstream-io"] }
-anyhow = "1.0.81"
+anyhow = "1.0.86"
 bitvec = "1.0.1"
 crc = "3.0.1"
-roxmltree = { version = "0.19.0", optional = true }
-serde = { version = "1.0.197", features = ["derive"], "optional" = true }
-serde_json = { version = "1.0.114", features = ["preserve_order"], "optional" = true }
+roxmltree = { version = "0.20.0", optional = true }
+serde = { version = "1.0.203", features = ["derive"], "optional" = true }
+serde_json = { version = "1.0.117", features = ["preserve_order"], "optional" = true }
 tinyvec = { version = "1.6.0", features = ["rustc_1_55"] }
 
 libc = { version = "0.2", optional = true }

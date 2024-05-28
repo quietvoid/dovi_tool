@@ -328,7 +328,7 @@ impl IoProcessor for ElHandler {
     fn update_progress(&mut self, _delta: u64) {}
 
     fn process_nals(&mut self, _parser: &HevcParser, nals: &[NALUnit], chunk: &[u8]) -> Result<()> {
-        let by_frame = nals.iter().group_by(|nal| nal.decoded_frame_index);
+        let by_frame = nals.iter().chunk_by(|nal| nal.decoded_frame_index);
         for (frame_number, frame_nals) in &by_frame {
             let nal_buffers = frame_nals
                 .filter(|nal| !self.options.discard_el || matches!(nal.nal_type, NAL_UNSPEC62)) // discard everything but RPU
