@@ -3,7 +3,7 @@ name = "dovi_tool"
 version = "2.1.1"
 authors = ["quietvoid"]
 edition = "2021"
-rust-version = "1.74.0"
+rust-version = "1.79.0"
 license = "MIT"
 repository = "https://github.com/quietvoid/dovi_tool"
 build = "build.rs"
@@ -14,13 +14,13 @@ path = "src/main.rs"
 
 [dependencies]
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
-bitvec_helpers = { version = "3.1.4", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.6.2", features = ["hevc_io"] }
+bitvec_helpers = { version = "3.1.5", default-features = false, features = ["bitstream-io"] }
+hevc_parser = { version = "0.6.3", features = ["hevc_io"] }
 madvr_parse = "1.0.2"
 hdr10plus = { version = "2.1.1", features = ["json"] }
 
 anyhow = "1.0.86"
-clap = { version = "4.5.4", features = ["derive", "wrap_help", "deprecated"] }
+clap = { version = "4.5.7", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
 indicatif = "0.17.8"
 bitvec = "1.0.1"
