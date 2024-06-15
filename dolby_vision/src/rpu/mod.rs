@@ -1,4 +1,4 @@
-use crc::{Crc, CRC_32_MPEG_2};
+use crc::{Crc, Table, CRC_32_MPEG_2};
 
 pub mod dovi_rpu;
 pub mod extension_metadata;
@@ -11,7 +11,7 @@ pub mod vdr_dm_data;
 
 pub mod utils;
 
-static CRC32_INSTANCE: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
+static CRC32_INSTANCE: Crc<u32, Table<16>> = Crc::<u32, Table<16>>::new(&CRC_32_MPEG_2);
 
 pub const NUM_COMPONENTS: usize = 3;
 
