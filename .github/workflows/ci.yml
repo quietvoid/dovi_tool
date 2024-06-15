@@ -43,8 +43,8 @@ jobs:
       - name: Clippy
         run: |
           cargo clippy --all-features \
-            --all-targets --tests -- --deny warnings --verbose
+            --all-targets --tests -- --deny warnings
 
           cargo clippy --all-features \
             --manifest-path dolby_vision/Cargo.toml \
-            --all-targets --tests -- --deny warnings --verbose
+            --all-targets --tests -- --deny warnings
