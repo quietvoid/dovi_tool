@@ -11,8 +11,6 @@ use dolby_vision::rpu::rpu_data_nlq::DoviELType;
 use dolby_vision::rpu::ConversionMode;
 use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
 
-use crate::commands::GenerateArgs;
-use crate::dovi::generator::Generator;
 use crate::dovi::WriteStartCodePreset;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
