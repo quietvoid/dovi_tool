@@ -51,3 +51,6 @@ doctest = false
 [[bench]]
 name = "bench_main"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(cargo_c)'] }
