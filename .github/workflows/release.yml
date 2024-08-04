@@ -125,6 +125,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Download artifacts
@@ -132,6 +134,14 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            Linux artifacts/*
+            Windows artifacts/*
+            macOS artifacts/*
 
       - name: Create a draft release
         uses: softprops/action-gh-release@v1
