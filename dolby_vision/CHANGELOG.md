@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.1
 - Added support for parsing `ext_mapping_idc` in `RpuDataHeader`.
   - `ext_mapping_idc_0_4` represents the 5 lowest bits, and `ext_mapping_idc_5_7` the 3 remaining bits.
 
