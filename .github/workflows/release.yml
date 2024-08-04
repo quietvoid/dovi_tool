@@ -8,7 +8,6 @@ env:
   RELEASE_DIR: artifacts
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   MACOS_X86_TARGET: x86_64-apple-darwin
-  MACOS_ARM_TARGET: aarch64-apple-darwin
   LINUX_TARGET: x86_64-unknown-linux-musl
 
 jobs:
@@ -92,19 +91,19 @@ jobs:
 
       - name: Build
         run: |
-          rustup target add ${{ env.MACOS_ARM_TARGET }}
+          rustup target add ${{ env.MACOS_X86_TARGET }}
 
           cargo build --release
-          cargo build --release --target ${{ env.MACOS_ARM_TARGET }}
+          cargo build --release --target ${{ env.MACOS_X86_TARGET }}
 
       - name: Create universal macOS binary
         run: |
           strip ./target/release/${{ env.RELEASE_BIN }}
-          strip ./target/${{ env.MACOS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}
+          strip ./target/${{ env.MACOS_X86_TARGET }}/release/${{ env.RELEASE_BIN }}
 
           lipo -create \
-            ./target/${{ env.MACOS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }} \
             ./target/release/${{ env.RELEASE_BIN }} \
+            ./target/${{ env.MACOS_X86_TARGET }}/release/${{ env.RELEASE_BIN }} \
             -output ./${{ env.RELEASE_BIN }}
 
       - name: Create zipfile
