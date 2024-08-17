@@ -1,4 +1,12 @@
-use crate::rpu::{rpu_data_nlq::RpuDataNlq as RuRpuDataNlq, NUM_COMPONENTS};
+use std::ffi::CStr;
+
+use crate::rpu::{
+    rpu_data_nlq::{DoviELType, RpuDataNlq as RuRpuDataNlq},
+    NUM_COMPONENTS,
+};
+
+const FEL_CSTR: &CStr = c"FEL";
+const MEL_CSTR: &CStr = c"MEL";
 
 /// C struct for rpu_data_nlq()
 #[repr(C)]
@@ -10,6 +18,15 @@ pub struct RpuDataNlq {
     linear_deadzone_slope: [u64; NUM_COMPONENTS],
     linear_deadzone_threshold_int: [u64; NUM_COMPONENTS],
     linear_deadzone_threshold: [u64; NUM_COMPONENTS],
+}
+
+impl DoviELType {
+    pub const fn as_cstr(&self) -> &'static CStr {
+        match self {
+            DoviELType::MEL => MEL_CSTR,
+            DoviELType::FEL => FEL_CSTR,
+        }
+    }
 }
 
 impl From<&RuRpuDataNlq> for RpuDataNlq {

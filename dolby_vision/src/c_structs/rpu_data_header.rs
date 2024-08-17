@@ -1,5 +1,5 @@
 use libc::c_char;
-use std::{ffi::CString, ptr::null};
+use std::ptr::null;
 
 use crate::rpu::rpu_data_header::RpuDataHeader as RuRpuDataHeader;
 
@@ -41,16 +41,6 @@ pub struct RpuDataHeader {
     vdr_dm_metadata_present_flag: bool,
     use_prev_vdr_rpu_flag: bool,
     prev_vdr_rpu_id: u64,
-}
-
-impl RpuDataHeader {
-    /// # Safety
-    /// The buffer pointers should be valid.
-    pub unsafe fn free(&self) {
-        if !self.el_type.is_null() {
-            drop(CString::from_raw(self.el_type as *mut c_char));
-        }
-    }
 }
 
 impl From<&RuRpuDataHeader> for RpuDataHeader {
