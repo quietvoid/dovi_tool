@@ -7,6 +7,7 @@ env:
   RELEASE_BIN: dovi_tool
   RELEASE_DIR: artifacts
   WINDOWS_TARGET: x86_64-pc-windows-msvc
+  WINDOWS_ARM_TARGET: aarch64-pc-windows-msvc
   MACOS_X86_TARGET: x86_64-apple-darwin
   LINUX_TARGET: x86_64-unknown-linux-musl
   LINUX_ARM_TARGET: aarch64-unknown-linux-musl
@@ -58,7 +59,7 @@ jobs:
 
   windows-binary:
     runs-on: windows-latest
-    
+
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-release-env
@@ -71,7 +72,11 @@ jobs:
           7z e -y "$CARGO_C_FILE.zip" -o"${env:USERPROFILE}\.cargo\bin"
 
       - name: Build
-        run: cargo build --release
+        run: |
+          rustup target add ${{ env.WINDOWS_ARM_TARGET }}
+
+          cargo build --release
+          cargo build --release --target ${{ env.WINDOWS_ARM_TARGET }}
 
       - name: Build C lib
         run: cargo cbuild --manifest-path dolby_vision/Cargo.toml --release
@@ -79,24 +84,30 @@ jobs:
       - name: Create zipfile
         shell: bash
         run: |
-          ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_TARGET }}.zip
+          X86_64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_TARGET }}.zip
+          AARCH64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_ARM_TARGET }}.zip
+
           mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
-          7z a ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
+          7z a ./${X86_64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
+
+          mv ./target/${{ env.WINDOWS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
+          7z a ./${AARCH64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
 
           mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
           7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${AARCH64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${AARCH64_ARCHIVE_FILE}.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Windows artifacts
           path: ./${{ env.RELEASE_DIR }}/*
-  
+
   macos-binary:
     runs-on: macos-latest
-    
+
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-release-env
