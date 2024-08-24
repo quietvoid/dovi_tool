@@ -9,6 +9,7 @@ env:
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   MACOS_X86_TARGET: x86_64-apple-darwin
   LINUX_TARGET: x86_64-unknown-linux-musl
+  LINUX_ARM_TARGET: aarch64-unknown-linux-musl
 
 jobs:
   linux-binary:
@@ -21,22 +22,33 @@ jobs:
       - name: Install musl-tools
         run: |
           sudo apt-get update -y
-          sudo apt-get install musl-tools -y
+          sudo apt-get install musl-tools gcc-aarch64-linux-gnu -y
 
       - name: Build
         run: |
           rustup target add ${{ env.LINUX_TARGET }}
+          rustup target add ${{ env.LINUX_ARM_TARGET }}
+
           cargo build --release --target ${{ env.LINUX_TARGET }} --no-default-features --features internal-font
+          cargo build --config "target.${{ env.LINUX_ARM_TARGET }}.linker = 'aarch64-linux-gnu-gcc'" \
+            --release --target ${{ env.LINUX_ARM_TARGET }} --no-default-features --features internal-font
 
       - name: Create tarball and checksum
         run: |
-          ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_TARGET }}.tar.gz
+          X86_64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_TARGET }}.tar.gz
+          AARCH64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_ARM_TARGET }}.tar.gz
+
           strip ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }}
+          aarch64-linux-gnu-strip ./target/${{ env.LINUX_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}
 
           mv ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
-          tar -cvzf ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
+          tar -cvzf ./${X86_64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
+          mv ./target/${{ env.LINUX_ARM_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
+          tar -cvzf ./${AARCH64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
+
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
+          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${AARCH64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${AARCH64_ARCHIVE_FILE}.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
