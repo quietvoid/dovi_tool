@@ -70,7 +70,13 @@ impl Demuxer {
         };
 
         let dovi_writer = DoviWriter::new(bl_out, Some(self.el_out.as_path()), None, None);
-        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
+        let mut dovi_processor = DoviProcessor::new(
+            options,
+            self.input.clone(),
+            dovi_writer,
+            pb,
+            Default::default(),
+        );
 
         dovi_processor.read_write_from_io(&self.format)
     }

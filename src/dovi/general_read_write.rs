@@ -24,6 +24,8 @@ pub struct DoviProcessor {
 
     progress_bar: ProgressBar,
     dovi_writer: DoviWriter,
+
+    processor_opts: DoviProcessorOptions,
 }
 
 pub struct DoviWriter {
@@ -38,6 +40,11 @@ pub struct RpuNal {
     decoded_index: usize,
     presentation_number: usize,
     data: Vec<u8>,
+}
+
+#[derive(Default)]
+pub struct DoviProcessorOptions {
+    pub limit: Option<u64>,
 }
 
 impl DoviWriter {
@@ -91,6 +98,7 @@ impl DoviProcessor {
         input: PathBuf,
         dovi_writer: DoviWriter,
         progress_bar: ProgressBar,
+        processor_opts: DoviProcessorOptions,
     ) -> DoviProcessor {
         DoviProcessor {
             input,
@@ -101,6 +109,7 @@ impl DoviProcessor {
             previous_rpu_index: 0,
             progress_bar,
             dovi_writer,
+            processor_opts,
         }
     }
 
@@ -109,6 +118,7 @@ impl DoviProcessor {
 
         let processor_opts = HevcProcessorOpts {
             parse_nals: true,
+            limit: self.processor_opts.limit,
             ..Default::default()
         };
         let mut processor = HevcProcessor::new(format.clone(), processor_opts, chunk_size);

@@ -257,6 +257,9 @@ For working with an HEVC source file, there are multiple options that apply to m
  
     **Supports profiles 4, 5, 7, and 8**.
 
+    **Flags**:
+    - `-l`, `--limit` Number of frames to process from the input. Processing stops after N frames.
+
     **Examples**:
     ```console
     dovi_tool extract-rpu video.hevc

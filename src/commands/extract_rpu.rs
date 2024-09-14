@@ -30,4 +30,12 @@ pub struct ExtractRpuArgs {
         value_hint = ValueHint::FilePath
     )]
     pub rpu_out: Option<PathBuf>,
+
+    #[arg(
+        id = "limit",
+        long,
+        short = 'l',
+        help = "Stop processing input after N frames"
+    )]
+    pub limit: Option<u64>,
 }

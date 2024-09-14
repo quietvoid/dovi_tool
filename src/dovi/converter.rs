@@ -59,7 +59,13 @@ impl Converter {
 
     fn convert_raw_hevc(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
         let dovi_writer = DoviWriter::new(None, None, None, Some(&self.output));
-        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
+        let mut dovi_processor = DoviProcessor::new(
+            options,
+            self.input.clone(),
+            dovi_writer,
+            pb,
+            Default::default(),
+        );
 
         dovi_processor.read_write_from_io(&self.format)
     }

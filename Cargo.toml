@@ -14,20 +14,20 @@ path = "src/main.rs"
 
 [dependencies]
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
-bitvec_helpers = { version = "3.1.5", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.6.3", features = ["hevc_io"] }
+bitvec_helpers = { version = "3.1.6", default-features = false, features = ["bitstream-io"] }
+hevc_parser = { version = "0.6.4", features = ["hevc_io"] }
 madvr_parse = "1.0.2"
 hdr10plus = { version = "2.1.1", features = ["json"] }
 
-anyhow = "1.0.86"
-clap = { version = "4.5.16", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.88"
+clap = { version = "4.5.17", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
 indicatif = "0.17.8"
 bitvec = "1.0.1"
-serde = { version = "1.0.208", features = ["derive"] }
-serde_json = { version = "1.0.125", features = ["preserve_order"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = { version = "1.0.128", features = ["preserve_order"] }
 itertools = "0.13.0"
-plotters = { version = "0.3.6", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
+plotters = { version = "0.3.7", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.16"
@@ -35,7 +35,7 @@ assert_fs = "1.1.2"
 predicates = "3.1.2"
 
 [build-dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.88"
 vergen-gitcl = { version = "1.0.0", default-features = false, features = ["build"] }
 
 [features]

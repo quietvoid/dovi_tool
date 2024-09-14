@@ -38,7 +38,7 @@ pub struct Muxer {
 pub struct ElHandler {
     input: PathBuf,
     writer: BufWriter<File>,
-    buffers: VecDeque<FrameBuffer>,
+    buffered_frames: VecDeque<FrameBuffer>,
 
     options: CliOptions,
 }
@@ -92,7 +92,7 @@ impl Muxer {
         let el_handler = ElHandler {
             input: el,
             writer,
-            buffers: VecDeque::new(),
+            buffered_frames: VecDeque::new(),
             options: cli_options.clone(),
         };
 
@@ -207,13 +207,13 @@ impl IoProcessor for Muxer {
                 self.write_bl_frame()?;
 
                 // Process EL, read if possibly incomplete frame
-                if self.el_handler.buffers.len() < 2 {
+                if self.el_handler.buffered_frames.len() < 2 {
                     self.el_processor
                         .parse_nalus(&mut self.el_reader, &mut self.el_handler)?;
                 }
 
                 // Write EL frame if complete
-                if self.el_handler.buffers.len() > 1 {
+                if self.el_handler.buffered_frames.len() > 1 {
                     self.el_handler.write_next_frame()?;
                 }
 
@@ -283,14 +283,14 @@ impl IoProcessor for Muxer {
             // Write last BL frame
             self.write_bl_frame()?;
 
-            if self.el_handler.buffers.len() == 1 {
+            if self.el_handler.buffered_frames.len() == 1 {
                 // Maybe incomplete last frame
                 self.el_processor
                     .parse_nalus(&mut self.el_reader, &mut self.el_handler)?;
 
                 // Write last EL frame
                 self.el_handler.write_next_frame()?;
-            } else if let Some(last_frame) = self.el_handler.buffers.back() {
+            } else if let Some(last_frame) = self.el_handler.buffered_frames.back() {
                 // Zero indexed
                 bail!(
                     "Mismatched BL/EL frame count. Expected {} frames, got {} (or more) frames in EL",
@@ -354,7 +354,7 @@ impl IoProcessor for ElHandler {
 
             // Existing incomplete frame
             let existing_frame = self
-                .buffers
+                .buffered_frames
                 .iter_mut()
                 .find(|fb| fb.frame_number == frame_number);
 
@@ -366,7 +366,7 @@ impl IoProcessor for ElHandler {
                     nals: nal_buffers.collect(),
                 };
 
-                self.buffers.push_back(frame_buffer);
+                self.buffered_frames.push_back(frame_buffer);
             }
         }
 
@@ -439,7 +439,7 @@ impl Muxer {
 
 impl ElHandler {
     fn write_next_frame(&mut self) -> Result<()> {
-        if let Some(frame_buffer) = self.buffers.pop_front() {
+        if let Some(frame_buffer) = self.buffered_frames.pop_front() {
             for nal_buf in frame_buffer.nals {
                 let nal_type = if nal_buf.nal_type != NAL_UNSPEC62 {
                     NAL_UNSPEC63

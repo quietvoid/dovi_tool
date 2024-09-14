@@ -4,13 +4,17 @@ use std::path::PathBuf;
 
 use crate::commands::ExtractRpuArgs;
 
-use super::{general_read_write, input_from_either, CliOptions, IoFormat};
+use super::{
+    general_read_write::{self, DoviProcessorOptions},
+    input_from_either, CliOptions, IoFormat,
+};
 use general_read_write::{DoviProcessor, DoviWriter};
 
 pub struct RpuExtractor {
     format: IoFormat,
     input: PathBuf,
     rpu_out: PathBuf,
+    limit: Option<u64>,
 }
 
 impl RpuExtractor {
@@ -19,6 +23,7 @@ impl RpuExtractor {
             input,
             input_pos,
             rpu_out,
+            limit,
         } = args;
 
         let input = input_from_either("extract-rpu", input, input_pos)?;
@@ -33,6 +38,7 @@ impl RpuExtractor {
             format,
             input,
             rpu_out,
+            limit,
         })
     }
 
@@ -52,7 +58,13 @@ impl RpuExtractor {
 
     fn extract_rpu_from_el(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
         let dovi_writer = DoviWriter::new(None, None, Some(&self.rpu_out), None);
-        let mut dovi_processor = DoviProcessor::new(options, self.input.clone(), dovi_writer, pb);
+        let mut dovi_processor = DoviProcessor::new(
+            options,
+            self.input.clone(),
+            dovi_writer,
+            pb,
+            DoviProcessorOptions { limit: self.limit },
+        );
 
         dovi_processor.read_write_from_io(&self.format)
     }
