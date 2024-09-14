@@ -746,9 +746,9 @@ checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hdr10plus"
-version = "2.1.1"
+version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5e718ae1e1005fbe2ddc52c77cbd7b0a732e644d5f3d0cf7fbda2d0dda6f935"
+checksum = "309e1e59f7c103e4fcae85bf15ebc59923d4a4f1a2e68ebee525e44c9ff4f4e4"
 dependencies = [
  "anyhow",
  "bitvec_helpers",
