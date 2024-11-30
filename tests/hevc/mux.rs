@@ -199,3 +199,36 @@ fn edit_config() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn el_with_more_frames() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4_shorter.hevc");
+    let input_el = Path::new("assets/hevc_tests/regular.hevc");
+
+    let output_file = temp.child("BL_EL_RPU.hevc");
+    let expected_bl_el_rpu =
+        Path::new("assets/hevc_tests/regular_start_code_4_shorter_trimmed_el.hevc");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg("--bl")
+        .arg(input_bl)
+        .arg("--el")
+        .arg(input_el)
+        .arg("--output")
+        .arg(output_file.as_ref())
+        .assert();
+
+    assert.failure().stderr(predicate::str::contains(
+        "Error: Mismatched BL/EL frame count. Expected 258 frames, got 259 (or more) frames in EL",
+    ));
+
+    output_file
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_bl_el_rpu));
+
+    Ok(())
+}

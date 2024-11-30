@@ -257,6 +257,8 @@ impl IoProcessor for Muxer {
     }
 
     fn finalize(&mut self, parser: &HevcParser) -> Result<()> {
+        let mut error = None;
+
         let ordered_frames = parser.ordered_frames();
         let total_frames = ordered_frames.len();
 
@@ -283,20 +285,21 @@ impl IoProcessor for Muxer {
             // Write last BL frame
             self.write_bl_frame()?;
 
-            if self.el_handler.buffered_frames.len() == 1 {
-                // Maybe incomplete last frame
-                self.el_processor
-                    .parse_nalus(&mut self.el_reader, &mut self.el_handler)?;
+            // Finalize EL, maybe incomplete last frame
+            self.el_processor
+                .parse_nalus(&mut self.el_reader, &mut self.el_handler)?;
 
-                // Write last EL frame
-                self.el_handler.write_next_frame()?;
-            } else if let Some(last_frame) = self.el_handler.buffered_frames.back() {
-                // Zero indexed
-                bail!(
-                    "Mismatched BL/EL frame count. Expected {} frames, got {} (or more) frames in EL",
+            // Write last EL frame
+            self.el_handler.write_next_frame()?;
+
+            // There should be no more frames if the BL/EL have the same number
+            if let Some(last_frame) = self.el_handler.buffered_frames.back() {
+                // Do not bail here to avoid incomplete processing
+                error = Some(format!(
+                    "Mismatched BL/EL frame count. Expected {} frames, got {} (or more) frames in EL.\nThe EL will be trimmed to the BL length.",
                     total_frames,
                     last_frame.frame_number + 1
-                );
+                ));
             }
 
             // Write remaining EOS/EOB
@@ -316,7 +319,12 @@ impl IoProcessor for Muxer {
 
         self.progress_bar.finish_and_clear();
 
-        Ok(())
+        if let Some(err) = error {
+            // Should still error to have correct status code
+            bail!(err);
+        } else {
+            Ok(())
+        }
     }
 }
 
