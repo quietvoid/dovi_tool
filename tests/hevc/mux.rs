@@ -210,7 +210,7 @@ fn el_with_more_frames() -> Result<()> {
 
     let output_file = temp.child("BL_EL_RPU.hevc");
     let expected_bl_el_rpu =
-        Path::new("assets/hevc_tests/regular_start_code_4_shorter_trimmed_el.hevc");
+        Path::new("assets/hevc_tests/regular_start_code_4_shorter_muxed_el.hevc");
 
     let assert = cmd
         .arg(SUBCOMMAND)
