@@ -335,7 +335,7 @@ impl EditConfig {
 
         for meta in to_duplicate {
             ensure!(
-                meta.source < data.len() && meta.offset < data.len(),
+                meta.source < data.len() && meta.offset <= data.len(),
                 "invalid duplicate: {:?}",
                 meta
             );

@@ -299,3 +299,48 @@ fn source_rpu() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn duplicate() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_rpu = Path::new("assets/tests/cmv4_2_510_xml_rpu.bin");
+
+    let edit_config = temp.child("duplicate.json");
+    let cfg_file = std::fs::File::create(&edit_config)?;
+    serde_json::to_writer(
+        cfg_file,
+        &serde_json::json!({
+            "duplicate": [
+                {
+                    "source": 0,
+                    "offset": 24,
+                    "length": 1
+                }
+            ]
+        }),
+    )?;
+
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_rpu)
+        .arg("--json")
+        .arg(edit_config.as_ref())
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+    output_rpu.assert(predicate::path::is_file());
+
+    let rpus = dolby_vision::rpu::utils::parse_rpu_file(output_rpu)?;
+    assert_eq!(rpus.len(), 25);
+
+    // Duplicated and appended
+    assert_eq!(rpus[0].rpu_data_crc32, rpus[24].rpu_data_crc32);
+
+    Ok(())
+}
