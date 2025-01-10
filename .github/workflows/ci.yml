@@ -15,8 +15,8 @@ jobs:
 
       - name: Install fontconfig
         run: |
-          apt-get update
-          apt-get install libfontconfig-dev
+          sudo apt-get update
+          sudo apt-get install libfontconfig-dev
 
       - name: Install Rust, clippy and rustfmt
         uses: dtolnay/rust-toolchain@stable
