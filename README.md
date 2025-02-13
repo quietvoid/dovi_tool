@@ -253,7 +253,9 @@ For working with an HEVC source file, there are multiple options that apply to m
 &nbsp;
 * ### **extract-rpu**
     Extracts Dolby Vision RPU from an HEVC file.  
-    This can be either a single track (BL + RPU), single track dual layer (BL+EL+RPU) or an enhancement layer (EL+RPU) video file.  
+    Input file:
+    - HEVC bitstream: single track (BL + RPU), single track dual layer (BL+EL+RPU) or an enhancement layer (EL+RPU) video file.
+    - Matroska (experimental): MKV file containing a HEVC video track.
  
     **Supports profiles 4, 5, 7, and 8**.
 
@@ -263,6 +265,9 @@ For working with an HEVC source file, there are multiple options that apply to m
     **Examples**:
     ```console
     dovi_tool extract-rpu video.hevc
+
+    # Experimental
+    dovi_tool extract-rpu video.mkv
     ```
     ```console
     ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool extract-rpu - -o RPU.bin
