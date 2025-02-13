@@ -134,15 +134,13 @@ impl Muxer {
             chunk_size,
         );
 
-        let stdin = std::io::stdin();
-        let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
+        let file_path = if let IoFormat::RawStdin = self.format {
+            None
+        } else {
+            Some(self.input.clone())
+        };
 
-        if let IoFormat::Raw = self.format {
-            let file = File::open(&self.input)?;
-            reader = Box::new(BufReader::with_capacity(100_000, file));
-        }
-
-        processor.process_io(&mut reader, self)
+        processor.process_file(self, file_path)
     }
 }
 

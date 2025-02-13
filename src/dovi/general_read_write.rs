@@ -1,4 +1,4 @@
-use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
+use std::io::{stdout, BufWriter, Write};
 use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
@@ -123,15 +123,13 @@ impl DoviProcessor {
         };
         let mut processor = HevcProcessor::new(format.clone(), processor_opts, chunk_size);
 
-        let stdin = std::io::stdin();
-        let mut reader = Box::new(stdin.lock()) as Box<dyn BufRead>;
+        let file_path = if let IoFormat::RawStdin = format {
+            None
+        } else {
+            Some(self.input.clone())
+        };
 
-        if let IoFormat::Raw = format {
-            let file = File::open(&self.input)?;
-            reader = Box::new(BufReader::with_capacity(100_000, file));
-        }
-
-        processor.process_io(&mut reader, self)
+        processor.process_file(self, file_path)
     }
 
     pub fn write_nals(&mut self, chunk: &[u8], nals: &[NALUnit]) -> Result<()> {

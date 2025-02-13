@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
@@ -50,10 +50,11 @@ impl RpuExtractor {
     fn process_input(&self, options: CliOptions) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
-        match self.format {
-            IoFormat::Matroska => bail!("Extractor: Matroska input is unsupported"),
-            _ => self.extract_rpu_from_el(pb, options),
+        if self.format == IoFormat::Matroska {
+            println!("Extractor: Matroska input is experimental!");
         }
+
+        self.extract_rpu_from_el(pb, options)
     }
 
     fn extract_rpu_from_el(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {

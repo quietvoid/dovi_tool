@@ -113,3 +113,29 @@ fn edit_config() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn extract_rpu_mkv() -> Result<()> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    let input_file = Path::new("assets/hevc_tests/regular.mkv");
+    let expected_rpu = Path::new("assets/hevc_tests/regular_rpu.bin");
+
+    let output_rpu = temp.child("RPU.bin");
+
+    let assert = cmd
+        .arg(SUBCOMMAND)
+        .arg(input_file)
+        .arg("--rpu-out")
+        .arg(output_rpu.as_ref())
+        .assert();
+
+    assert.success().stderr(predicate::str::is_empty());
+
+    output_rpu
+        .assert(predicate::path::is_file())
+        .assert(predicate::path::eq_file(expected_rpu));
+
+    Ok(())
+}
