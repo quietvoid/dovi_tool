@@ -28,6 +28,10 @@ use crate::utils::{
 pub(crate) const FINAL_BYTE: u8 = 0x80;
 const CRC32_TERMINATOR_BITS: u64 = 40;
 
+/// based on empiric  data
+/// RPU is usually between 150-400 bytes (including emulation prevention bytes)
+pub(crate) const RPU_WRITE_ALLOC_CAPACITY: usize = 512;
+
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct DoviRpu {
@@ -59,9 +63,6 @@ pub struct DoviRpu {
 
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
     trailing_zeroes: usize,
-
-    #[cfg_attr(feature = "serde", serde(skip_serializing))]
-    original_payload_size: usize,
 }
 
 impl DoviRpu {
@@ -110,7 +111,6 @@ impl DoviRpu {
 
     #[inline(always)]
     pub(crate) fn parse(data: &[u8]) -> Result<DoviRpu> {
-        let original_payload_size = data.len();
         let trailing_zeroes = data.iter().rev().take_while(|b| **b == 0).count();
 
         // Ignore trailing bytes
@@ -138,7 +138,6 @@ impl DoviRpu {
         }
 
         dovi_rpu.trailing_zeroes = trailing_zeroes;
-        dovi_rpu.original_payload_size = original_payload_size;
 
         // Validate
         dovi_rpu.validate()?;
@@ -246,8 +245,7 @@ impl DoviRpu {
 
     #[inline(always)]
     fn write_rpu_data(&self) -> Result<Vec<u8>> {
-        // Capacity is in bits
-        let mut writer = BitstreamIoWriter::with_capacity(self.original_payload_size * 8);
+        let mut writer = BitstreamIoWriter::with_capacity(RPU_WRITE_ALLOC_CAPACITY);
 
         self.validate()?;
 

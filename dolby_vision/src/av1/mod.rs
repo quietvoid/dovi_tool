@@ -90,7 +90,7 @@ pub fn convert_regular_rpu_to_av1_payload(data: &[u8]) -> Result<Vec<u8>> {
     let rpu_size = data.len();
     let capacity = 16 + rpu_size;
 
-    let mut writer = BitstreamIoWriter::with_capacity(capacity * 8);
+    let mut writer = BitstreamIoWriter::with_capacity(capacity * 2);
 
     writer.write_n(&0x3B, 16)?; // itu_t_t35_terminal_provider_code
     writer.write_n(&0x800, 32)?; // itu_t_t35_terminal_provider_oriented_code
