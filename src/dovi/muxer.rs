@@ -15,7 +15,7 @@ use processor::{HevcProcessor, HevcProcessorOpts};
 use crate::commands::MuxArgs;
 
 use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
-use super::{convert_encoded_from_opts, CliOptions, IoFormat, WriteStartCodePreset};
+use super::{convert_encoded_from_opts, CliOptions, IoFormat, StartCodePreset};
 
 const EL_NALU_PREFIX: &[u8] = &[0x7E, 0x01];
 
@@ -423,20 +423,14 @@ impl Muxer {
     fn write_buffers<'a>(
         writer: &mut dyn Write,
         nal_buffers: impl Iterator<Item = (usize, &'a NalBuffer)>,
-        preset: WriteStartCodePreset,
+        preset: StartCodePreset,
         frame_start: bool,
     ) -> Result<()> {
         for (i, nal_buf) in nal_buffers {
             // First if we didn't write an AUD
             let first_nal = i == 0 && frame_start && nal_buf.nal_type != NAL_AUD;
 
-            NALUnit::write_with_preset(
-                writer,
-                &nal_buf.data,
-                preset.into(),
-                nal_buf.nal_type,
-                first_nal,
-            )?;
+            NALUnit::write_with_preset(writer, &nal_buf.data, preset, nal_buf.nal_type, first_nal)?;
         }
 
         Ok(())
@@ -458,7 +452,7 @@ impl ElHandler {
                 NALUnit::write_with_preset(
                     &mut self.writer,
                     &nal_buf.data,
-                    self.options.start_code.into(),
+                    self.options.start_code,
                     nal_type,
                     false,
                 )?;

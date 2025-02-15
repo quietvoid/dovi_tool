@@ -35,7 +35,7 @@ pub struct CliOptions {
     pub discard_el: bool,
     pub drop_hdr10plus: bool,
     pub edit_config: Option<EditConfig>,
-    pub start_code: WriteStartCodePreset,
+    pub start_code: StartCodePreset,
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,7 +79,7 @@ pub fn write_rpu_file<P: AsRef<Path>>(output_path: P, data: Vec<Vec<u8>>) -> Res
         NALUnit::write_with_preset(
             &mut writer,
             &encoded_rpu[2..],
-            WriteStartCodePreset::Four.into(),
+            StartCodePreset::Four,
             NAL_UNSPEC62,
             true,
         )?;

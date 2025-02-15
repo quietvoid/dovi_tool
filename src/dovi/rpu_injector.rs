@@ -296,7 +296,7 @@ impl IoProcessor for RpuInjector {
                         NALUnit::write_with_preset(
                             &mut self.writer,
                             &nal_buf.data,
-                            self.options.start_code.into(),
+                            self.options.start_code,
                             nal_buf.nal_type,
                             first_nal,
                         )?;
@@ -384,7 +384,7 @@ impl IoProcessor for RpuInjector {
                     NALUnit::write_with_preset(
                         &mut self.writer,
                         &nal_buf.data,
-                        self.options.start_code.into(),
+                        self.options.start_code,
                         nal_buf.nal_type,
                         first_nal,
                     )?;

@@ -93,7 +93,7 @@ fn main() -> Result<()> {
         discard_el: false,
         drop_hdr10plus: opt.drop_hdr10plus,
         edit_config,
-        start_code: opt.start_code,
+        start_code: opt.start_code.into(),
     };
 
     // Set mode 0 by default if cropping, otherwise it has no effect

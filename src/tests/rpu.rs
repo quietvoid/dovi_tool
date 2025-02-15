@@ -10,10 +10,10 @@ use dolby_vision::rpu::generate::GenerateConfig;
 use dolby_vision::rpu::rpu_data_nlq::DoviELType;
 use dolby_vision::rpu::ConversionMode;
 use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
+use hevc_parser::io::StartCodePreset;
 
 use crate::commands::GenerateArgs;
 use crate::dovi::generator::Generator;
-use crate::dovi::WriteStartCodePreset;
 
 pub fn _parse_file(input: PathBuf) -> Result<(Vec<u8>, DoviRpu)> {
     let mut f = File::open(input)?;
@@ -40,7 +40,7 @@ fn _debug(data: &[u8]) -> Result<()> {
     NALUnit::write_with_preset(
         &mut file,
         &data[2..],
-        WriteStartCodePreset::Four.into(),
+        StartCodePreset::Four,
         NAL_UNSPEC62,
         true,
     )?;
