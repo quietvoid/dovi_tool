@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 use crate::utils::clear_start_code_emulation_prevention_3_byte;

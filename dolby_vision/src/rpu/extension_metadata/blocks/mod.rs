@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -21,17 +21,17 @@ pub mod level9;
 pub mod reserved;
 
 pub use level1::ExtMetadataBlockLevel1;
-pub use level10::ExtMetadataBlockLevel10;
-pub use level11::ExtMetadataBlockLevel11;
 pub use level2::ExtMetadataBlockLevel2;
-pub use level254::ExtMetadataBlockLevel254;
-pub use level255::ExtMetadataBlockLevel255;
 pub use level3::ExtMetadataBlockLevel3;
 pub use level4::ExtMetadataBlockLevel4;
 pub use level5::ExtMetadataBlockLevel5;
 pub use level6::ExtMetadataBlockLevel6;
 pub use level8::ExtMetadataBlockLevel8;
 pub use level9::ExtMetadataBlockLevel9;
+pub use level10::ExtMetadataBlockLevel10;
+pub use level11::ExtMetadataBlockLevel11;
+pub use level254::ExtMetadataBlockLevel254;
+pub use level255::ExtMetadataBlockLevel255;
 pub use reserved::ReservedExtMetadataBlock;
 
 use super::{ColorPrimaries, WithExtMetadataBlocks};

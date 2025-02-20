@@ -12,7 +12,7 @@ use plotters::prelude::{
     AreaSeries, BitMapBackend, Cartesian2d, ChartBuilder, ChartContext, IntoDrawingArea,
     PathElement, SeriesLabelPosition, WHITE,
 };
-use plotters::style::{Color, IntoTextStyle, RGBColor, ShapeStyle, BLACK};
+use plotters::style::{BLACK, Color, IntoTextStyle, RGBColor, ShapeStyle};
 
 use dolby_vision::rpu::utils::parse_rpu_file;
 use dolby_vision::utils::{nits_to_pq, pq_to_nits};

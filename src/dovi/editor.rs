@@ -1,21 +1,21 @@
 use std::fs::File;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 
-use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel255, ExtMetadataBlockLevel5,
-    ExtMetadataBlockLevel6, ExtMetadataBlockLevel9,
-};
 use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
+use dolby_vision::rpu::extension_metadata::blocks::{
+    ExtMetadataBlock, ExtMetadataBlockLevel5, ExtMetadataBlockLevel6, ExtMetadataBlockLevel9,
+    ExtMetadataBlockLevel11, ExtMetadataBlockLevel255,
+};
 use dolby_vision::rpu::generate::GenerateConfig;
 
 use dolby_vision::rpu::utils::parse_rpu_file;
 
-use super::{input_from_either, write_rpu_file, DoviRpu};
+use super::{DoviRpu, input_from_either, write_rpu_file};
 use crate::commands::EditorArgs;
 
 pub struct Editor {

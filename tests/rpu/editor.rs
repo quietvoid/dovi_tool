@@ -5,7 +5,7 @@ use assert_cmd::Command;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
-use dolby_vision::rpu::extension_metadata::{blocks::ExtMetadataBlock, MasteringDisplayPrimaries};
+use dolby_vision::rpu::extension_metadata::{MasteringDisplayPrimaries, blocks::ExtMetadataBlock};
 
 const SUBCOMMAND: &str = "editor";
 

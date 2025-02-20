@@ -5,8 +5,9 @@ use std::path::PathBuf;
 use crate::commands::ExtractRpuArgs;
 
 use super::{
+    CliOptions, IoFormat,
     general_read_write::{self, DoviProcessorOptions},
-    input_from_either, CliOptions, IoFormat,
+    input_from_either,
 };
 use general_read_write::{DoviProcessor, DoviWriter};
 

@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::dovi_rpu::DoviRpu;
 

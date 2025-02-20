@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use clap::{
-    builder::{EnumValueParser, PossibleValue, TypedValueParser},
     Args, ValueEnum, ValueHint,
+    builder::{EnumValueParser, PossibleValue, TypedValueParser},
 };
 use clap_lex::OsStrExt as _;
 

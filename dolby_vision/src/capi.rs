@@ -8,7 +8,7 @@ use std::{
     slice,
 };
 
-use crate::rpu::{dovi_rpu::DoviRpu, utils::parse_rpu_file, ConversionMode};
+use crate::rpu::{ConversionMode, dovi_rpu::DoviRpu, utils::parse_rpu_file};
 
 use super::c_structs::*;
 
@@ -17,11 +17,11 @@ use super::c_structs::*;
 ///
 /// Parse a Dolby Vision RPU from unescaped byte buffer.
 /// Adds an error if the parsing fails.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     assert!(!buf.is_null());
 
-    let data = slice::from_raw_parts(buf, len);
+    let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_rpu(data);
 
     Box::into_raw(Box::new(RpuOpaque::from(res)))
@@ -32,14 +32,14 @@ pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut Rpu
 ///
 /// Parse a Dolby Vision from a AV1 ITU-T T.35 metadata OBU byte buffer.
 /// Adds an error if the parsing fails.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
     buf: *const u8,
     len: size_t,
 ) -> *mut RpuOpaque {
     assert!(!buf.is_null());
 
-    let data = slice::from_raw_parts(buf, len);
+    let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_itu_t35_dovi_metadata_obu(data);
 
     Box::into_raw(Box::new(RpuOpaque::from(res)))
@@ -50,11 +50,11 @@ pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
 ///
 /// Parse a Dolby Vision from a (possibly) escaped HEVC UNSPEC 62 NAL unit byte buffer.
 /// Adds an error if the parsing fails.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     assert!(!buf.is_null());
 
-    let data = slice::from_raw_parts(buf, len);
+    let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_unspec62_nalu(data);
 
     Box::into_raw(Box::new(RpuOpaque::from(res)))
@@ -65,10 +65,10 @@ pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -
 /// Avoid using on opaque pointers obtained through `dovi_parse_rpu_bin_file`.
 ///
 /// Free the RpuOpaque
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_free(ptr: *mut RpuOpaque) {
     if !ptr.is_null() {
-        drop(Box::from_raw(ptr));
+        drop(unsafe { Box::from_raw(ptr) });
     }
 }
 
@@ -79,13 +79,13 @@ pub unsafe extern "C" fn dovi_rpu_free(ptr: *mut RpuOpaque) {
 ///
 /// On invalid parsing, an error is added.
 /// The user should manually verify if there is an error, as the parsing does not return an error code.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_get_error(ptr: *const RpuOpaque) -> *const c_char {
     if ptr.is_null() {
         return null();
     }
 
-    let opaque = &*ptr;
+    let opaque = unsafe { &*ptr };
 
     match &opaque.error {
         Some(s) => s.as_ptr(),
@@ -97,11 +97,13 @@ pub unsafe extern "C" fn dovi_rpu_get_error(ptr: *const RpuOpaque) -> *const c_c
 /// The data pointer should exist, and be allocated by Rust.
 ///
 /// Free a Data buffer
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_data_free(data: *const Data) {
     if !data.is_null() {
-        let data = Box::from_raw(data as *mut Data);
-        data.free();
+        unsafe {
+            let data = Box::from_raw(data as *mut Data);
+            data.free();
+        }
     }
 }
 
@@ -110,13 +112,13 @@ pub unsafe extern "C" fn dovi_data_free(data: *const Data) {
 ///
 /// Writes the encoded RPU as a byte buffer.
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
     if ptr.is_null() {
         return null_mut();
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &opaque.rpu {
         match rpu.write_rpu() {
@@ -137,13 +139,13 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
 ///
 /// Writes the encoded RPU, escapes the bytes for HEVC and prepends the buffer with 0x7C01.
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const Data {
     if ptr.is_null() {
         return null_mut();
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &opaque.rpu {
         match rpu.write_hevc_unspec62_nalu() {
@@ -174,13 +176,13 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
 ///
 /// If an error occurs, it is logged to RpuOpaque.error.
 /// Returns 0 if successful, -1 otherwise.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u8) -> i32 {
     if ptr.is_null() {
         return -1;
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &mut opaque.rpu {
         let mode = ConversionMode::from(mode);
@@ -202,13 +204,13 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
 /// The pointer to the opaque struct must be valid.
 ///
 /// Get the DoVi RPU header struct.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const RpuDataHeader {
     if ptr.is_null() {
         return null_mut();
     }
 
-    let opaque = &*ptr;
+    let opaque = unsafe { &*ptr };
 
     if let Some(rpu) = &opaque.rpu {
         let mut header = RpuDataHeader::from(&rpu.header);
@@ -227,10 +229,10 @@ pub unsafe extern "C" fn dovi_rpu_get_header(ptr: *const RpuOpaque) -> *const Rp
 /// The pointer to the struct must be valid.
 ///
 /// Frees the memory used by the RPU header.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_free_header(ptr: *const RpuDataHeader) {
     if !ptr.is_null() {
-        drop(Box::from_raw(ptr as *mut RpuDataHeader));
+        drop(unsafe { Box::from_raw(ptr as *mut RpuDataHeader) });
     }
 }
 
@@ -238,13 +240,13 @@ pub unsafe extern "C" fn dovi_rpu_free_header(ptr: *const RpuDataHeader) {
 /// The pointer to the opaque struct must be valid.
 ///
 /// Get the DoVi RpuDataMapping struct.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_get_data_mapping(ptr: *const RpuOpaque) -> *const RpuDataMapping {
     if ptr.is_null() {
         return null_mut();
     }
 
-    let opaque = &*ptr;
+    let opaque = unsafe { &*ptr };
 
     if let Some(rpu) = &opaque.rpu {
         if let Some(rpu_data_mapping) = &rpu.rpu_data_mapping {
@@ -261,11 +263,13 @@ pub unsafe extern "C" fn dovi_rpu_get_data_mapping(ptr: *const RpuOpaque) -> *co
 /// The pointer to the struct must be valid.
 ///
 /// Frees the memory used by the RpuDataMapping.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_free_data_mapping(ptr: *const RpuDataMapping) {
     if !ptr.is_null() {
-        let rpu_data_mapping = Box::from_raw(ptr as *mut RpuDataMapping);
-        rpu_data_mapping.free();
+        unsafe {
+            let rpu_data_mapping = Box::from_raw(ptr as *mut RpuDataMapping);
+            rpu_data_mapping.free();
+        }
     }
 }
 
@@ -273,13 +277,13 @@ pub unsafe extern "C" fn dovi_rpu_free_data_mapping(ptr: *const RpuDataMapping) 
 /// The pointer to the opaque struct must be valid.
 ///
 /// Get the DoVi VdrDmData struct.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_get_vdr_dm_data(ptr: *const RpuOpaque) -> *const VdrDmData {
     if ptr.is_null() {
         return null_mut();
     }
 
-    let opaque = &*ptr;
+    let opaque = unsafe { &*ptr };
 
     if let Some(rpu) = &opaque.rpu {
         if let Some(vdr_dm_data) = &rpu.vdr_dm_data {
@@ -296,11 +300,13 @@ pub unsafe extern "C" fn dovi_rpu_get_vdr_dm_data(ptr: *const RpuOpaque) -> *con
 /// The pointer to the struct must be valid.
 ///
 /// Frees the memory used by the VdrDmData struct.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_free_vdr_dm_data(ptr: *const VdrDmData) {
     if !ptr.is_null() {
-        let vdr_dm_data = Box::from_raw(ptr as *mut VdrDmData);
-        vdr_dm_data.free();
+        unsafe {
+            let vdr_dm_data = Box::from_raw(ptr as *mut VdrDmData);
+            vdr_dm_data.free();
+        }
     }
 }
 
@@ -311,7 +317,7 @@ pub unsafe extern "C" fn dovi_rpu_free_vdr_dm_data(ptr: *const VdrDmData) {
 ///
 /// Returns the heap allocated `DoviRpuList` as a pointer.
 /// The returned pointer may be null, or the list could be empty if an error occurred.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const RpuOpaqueList {
     if !path.is_null() {
         let mut rpu_list = RpuOpaqueList {
@@ -321,7 +327,7 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
         };
         let mut error = None;
 
-        if let Ok(str) = CStr::from_ptr(path).to_str() {
+        if let Ok(str) = unsafe { CStr::from_ptr(path) }.to_str() {
             let path = PathBuf::from(str);
 
             if path.is_file() {
@@ -363,11 +369,13 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
 /// The pointer to the struct must be valid.
 ///
 /// Frees the memory used by the DoviRpuOpaqueList struct.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_list_free(ptr: *const RpuOpaqueList) {
     if !ptr.is_null() {
-        let rpu_opaque_list = Box::from_raw(ptr as *mut RpuOpaqueList);
-        rpu_opaque_list.free();
+        unsafe {
+            let rpu_opaque_list = Box::from_raw(ptr as *mut RpuOpaqueList);
+            rpu_opaque_list.free();
+        }
     }
 }
 
@@ -376,7 +384,7 @@ pub unsafe extern "C" fn dovi_rpu_list_free(ptr: *const RpuOpaqueList) {
 ///
 /// Sets the L5 metadata active area offsets.
 /// If there is no L5 block present, it is created with the offsets.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
     ptr: *mut RpuOpaque,
     left: u16,
@@ -388,7 +396,7 @@ pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
         return -1;
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &mut opaque.rpu {
         match rpu.set_active_area_offsets(left, right, top, bottom) {
@@ -408,13 +416,13 @@ pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
 /// The struct pointer must be valid.
 ///
 /// Converts the existing reshaping/mapping to become no-op.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_rpu_remove_mapping(ptr: *mut RpuOpaque) -> i32 {
     if ptr.is_null() {
         return -1;
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &mut opaque.rpu {
         rpu.remove_mapping();
@@ -430,7 +438,7 @@ pub unsafe extern "C" fn dovi_rpu_remove_mapping(ptr: *mut RpuOpaque) -> i32 {
 ///
 /// Writes the encoded RPU as `itu_t_t35_payload_bytes` for AV1 ITU-T T.35 metadata OBU
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_payload(
     ptr: *mut RpuOpaque,
 ) -> *const Data {
@@ -438,7 +446,7 @@ pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_payload(
         return null_mut();
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &opaque.rpu {
         match rpu.write_av1_rpu_metadata_obu_t35_payload() {
@@ -459,7 +467,7 @@ pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_payload(
 ///
 /// Writes the encoded RPU a complete AV1 `metadata_itut_t35()` OBU
 /// If an error occurs in the writing, it is logged to RpuOpaque.error
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_complete(
     ptr: *mut RpuOpaque,
 ) -> *const Data {
@@ -467,7 +475,7 @@ pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_complete(
         return null_mut();
     }
 
-    let opaque = &mut *ptr;
+    let opaque = unsafe { &mut *ptr };
 
     if let Some(rpu) = &opaque.rpu {
         match rpu.write_av1_rpu_metadata_obu_t35_complete() {

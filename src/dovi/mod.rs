@@ -2,12 +2,12 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::{fs::File, io::BufWriter, path::Path};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use indicatif::{ProgressBar, ProgressStyle};
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
-use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
+use hevc_parser::hevc::{NAL_UNSPEC62, NALUnit};
 use hevc_parser::io::{IoFormat, StartCodePreset};
 
 use self::editor::EditConfig;

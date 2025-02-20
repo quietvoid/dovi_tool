@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 #[cfg(feature = "serde")]
@@ -60,7 +60,12 @@ impl WithExtMetadataBlocks for CmV40DmData {
             _ => {
                 ensure!(
                     false,
-                    format!("{} - Unknown metadata block found: Level {}, length {}, please open an issue.", Self::VERSION, ext_block_level, ext_block_length)
+                    format!(
+                        "{} - Unknown metadata block found: Level {}, length {}, please open an issue.",
+                        Self::VERSION,
+                        ext_block_level,
+                        ext_block_length
+                    )
                 );
 
                 reserved::ReservedExtMetadataBlock::parse(

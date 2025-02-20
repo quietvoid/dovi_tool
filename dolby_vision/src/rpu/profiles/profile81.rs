@@ -1,8 +1,8 @@
 use crate::rpu::{
+    NUM_COMPONENTS,
     rpu_data_mapping::{
         DoviMappingMethod, DoviPolynomialCurve, DoviReshapingCurve, RpuDataMapping,
     },
-    NUM_COMPONENTS,
 };
 
 use super::{DoviProfile, VdrDmData};

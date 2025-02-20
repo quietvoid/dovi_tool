@@ -1,10 +1,10 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use indicatif::ProgressBar;
 use std::path::PathBuf;
 
 use crate::commands::ConvertArgs;
 
-use super::{general_read_write, input_from_either, CliOptions, IoFormat};
+use super::{CliOptions, IoFormat, general_read_write, input_from_either};
 
 use general_read_write::{DoviProcessor, DoviWriter};
 

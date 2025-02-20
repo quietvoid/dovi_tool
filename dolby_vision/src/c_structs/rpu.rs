@@ -46,13 +46,15 @@ impl From<Result<DoviRpu, anyhow::Error>> for RpuOpaque {
 
 impl Freeable for RpuOpaqueList {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *mut RpuOpaque, self.len, self.len);
-        for ptr in list {
-            drop(Box::from_raw(ptr));
-        }
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *mut RpuOpaque, self.len, self.len);
+            for ptr in list {
+                drop(Box::from_raw(ptr));
+            }
 
-        if !self.error.is_null() {
-            drop(CString::from_raw(self.error as *mut c_char));
+            if !self.error.is_null() {
+                drop(CString::from_raw(self.error as *mut c_char));
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
@@ -144,8 +144,10 @@ impl CmXmlParser {
             if rev >= 0x402 {
                 match rev {
                     0x402 | 0x500 | 0x510 => {}
-                    0x510.. => println!("Possibly unhandled new XML version {version_text} found! Please open an issue if you get anything wrong."),
-                    _ => bail!("invalid XML version {version_text} found!")
+                    0x510.. => println!(
+                        "Possibly unhandled new XML version {version_text} found! Please open an issue if you get anything wrong."
+                    ),
+                    _ => bail!("invalid XML version {version_text} found!"),
                 };
             } else {
                 match rev {

@@ -7,7 +7,7 @@ See [changelog](CHANGELOG.md) for API changes.
 
 ### Toolchain
 
-The minimum Rust version to use `dolby_vision` is 1.79.0.
+The minimum Rust version to use `dolby_vision` is 1.85.0.
 
 &nbsp;
 

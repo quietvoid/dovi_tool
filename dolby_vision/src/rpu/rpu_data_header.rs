@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -179,20 +179,12 @@ impl RpuDataHeader {
         match self.vdr_rpu_profile {
             0 => {
                 // Profile 5 is full range
-                if self.bl_video_full_range_flag {
-                    5
-                } else {
-                    0
-                }
+                if self.bl_video_full_range_flag { 5 } else { 0 }
             }
             1 => {
                 // 4, 7 or 8
                 if self.el_spatial_resampling_filter_flag && !self.disable_residual_flag {
-                    if self.vdr_bit_depth_minus8 == 4 {
-                        7
-                    } else {
-                        4
-                    }
+                    if self.vdr_bit_depth_minus8 == 4 { 7 } else { 4 }
                 } else {
                     8
                 }

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{Result, anyhow, bail, ensure};
 use bitvec::prelude::{BitVec, Msb0};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
@@ -14,8 +14,8 @@ use super::profiles::profile84::Profile84;
 use super::rpu_data_header::RpuDataHeader;
 use super::rpu_data_mapping::{DoviNlqMethod, RpuDataMapping};
 use super::rpu_data_nlq::{DoviELType, RpuDataNlq};
-use super::vdr_dm_data::{vdr_dm_data_payload, VdrDmData};
-use super::{compute_crc32, ConversionMode};
+use super::vdr_dm_data::{VdrDmData, vdr_dm_data_payload};
+use super::{ConversionMode, compute_crc32};
 
 use crate::av1::{
     av1_validated_trimmed_data, convert_av1_rpu_payload_to_regular,

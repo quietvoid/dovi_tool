@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use criterion::{criterion_group, Criterion};
+use criterion::{Criterion, criterion_group};
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 
 const RPU_FILES: &[&str] = &[

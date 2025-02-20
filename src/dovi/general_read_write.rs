@@ -1,17 +1,17 @@
-use std::io::{stdout, BufWriter, Write};
+use std::io::{BufWriter, Write, stdout};
 use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use indicatif::ProgressBar;
 
-use hevc_parser::hevc::{NALUnit, NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63};
-use hevc_parser::io::{processor, IoFormat, IoProcessor, StartCodePreset};
 use hevc_parser::HevcParser;
+use hevc_parser::hevc::{NAL_SEI_PREFIX, NAL_UNSPEC62, NAL_UNSPEC63, NALUnit};
+use hevc_parser::io::{IoFormat, IoProcessor, StartCodePreset, processor};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
 use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
-use super::{convert_encoded_from_opts, CliOptions};
+use super::{CliOptions, convert_encoded_from_opts};
 
 pub struct DoviProcessor {
     input: PathBuf,

@@ -1,11 +1,11 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
-use tinyvec::{array_vec, ArrayVec};
+use tinyvec::{ArrayVec, array_vec};
 
 use crate::rpu::MMR_MAX_COEFFS;
 

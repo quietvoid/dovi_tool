@@ -1,4 +1,4 @@
-use crc::{Crc, Table, CRC_32_MPEG_2};
+use crc::{CRC_32_MPEG_2, Crc, Table};
 
 pub mod dovi_rpu;
 pub mod extension_metadata;

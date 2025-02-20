@@ -3,13 +3,13 @@ use std::{io::Read, path::PathBuf};
 
 use anyhow::Result;
 
+use dolby_vision::rpu::ConversionMode;
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel6};
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
 use dolby_vision::rpu::generate::GenerateConfig;
 use dolby_vision::rpu::rpu_data_nlq::DoviELType;
-use dolby_vision::rpu::ConversionMode;
-use hevc_parser::hevc::{NALUnit, NAL_UNSPEC62};
+use hevc_parser::hevc::{NAL_UNSPEC62, NALUnit};
 use hevc_parser::io::StartCodePreset;
 
 use crate::commands::GenerateArgs;

@@ -1,7 +1,7 @@
 #[cfg(feature = "serde")]
 use {
     bitvec::prelude::*,
-    serde::{ser::Serializer, Serialize},
+    serde::{Serialize, ser::Serializer},
 };
 
 pub const ST2084_Y_MAX: f64 = 10000.0;

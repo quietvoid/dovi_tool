@@ -1,12 +1,12 @@
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 #[cfg(feature = "serde")]
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 
-use super::{level6::MAX_PQ_LUMINANCE, ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo};
+use super::{ColorPrimaries, ExtMetadataBlock, ExtMetadataBlockInfo, level6::MAX_PQ_LUMINANCE};
 
 pub const PRESET_TARGET_DISPLAYS: &[u8] = &[1, 16, 18, 21, 27, 28, 37, 38, 42, 48, 49];
 

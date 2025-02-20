@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
-use hevc_parser::hevc::{NALUnit, SeiMessage, NAL_SEI_PREFIX, USER_DATA_REGISTERED_ITU_T_35};
+use hevc_parser::hevc::{NAL_SEI_PREFIX, NALUnit, SeiMessage, USER_DATA_REGISTERED_ITU_T_35};
 use hevc_parser::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };

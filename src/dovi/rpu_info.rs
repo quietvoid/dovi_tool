@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use dolby_vision::rpu::vdr_dm_data::CmVersion;
 use itertools::Itertools;
 

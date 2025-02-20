@@ -11,6 +11,7 @@ use commands::{Commands, ConversionModeCli};
 
 mod dovi;
 use dovi::{
+    CliOptions, WriteStartCodePreset,
     converter::Converter,
     demuxer::Demuxer,
     editor::{EditConfig, Editor},
@@ -22,7 +23,6 @@ use dovi::{
     rpu_extractor::RpuExtractor,
     rpu_info::RpuInfo,
     rpu_injector::RpuInjector,
-    CliOptions, WriteStartCodePreset,
 };
 
 #[derive(Parser, Debug)]

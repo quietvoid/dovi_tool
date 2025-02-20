@@ -48,7 +48,9 @@ pub struct VdrDmData {
 impl VdrDmData {
     /// # Safety
     pub unsafe fn free(&self) {
-        self.dm_data.free();
+        unsafe {
+            self.dm_data.free();
+        }
     }
 }
 

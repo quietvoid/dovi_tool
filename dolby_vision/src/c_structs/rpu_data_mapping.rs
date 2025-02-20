@@ -4,7 +4,7 @@ use crate::rpu::rpu_data_mapping::{
     DoviMMRCurve, DoviPolynomialCurve, DoviReshapingCurve, RpuDataMapping as RuRpuDataMapping,
 };
 
-use super::{buffers::*, RpuDataNlq, NUM_COMPONENTS};
+use super::{NUM_COMPONENTS, RpuDataNlq, buffers::*};
 
 /// C struct for rpu_data_mapping()
 #[repr(C)]
@@ -66,11 +66,13 @@ impl RpuDataMapping {
     /// # Safety
     /// The buffer pointers should be valid.
     pub unsafe fn free(&self) {
-        self.curves.iter().for_each(|curve| curve.free());
-        self.nlq_pred_pivot_value.free();
+        unsafe {
+            self.curves.iter().for_each(|curve| curve.free());
+            self.nlq_pred_pivot_value.free();
 
-        if !self.nlq.is_null() {
-            drop(Box::from_raw(self.nlq as *mut RpuDataNlq))
+            if !self.nlq.is_null() {
+                drop(Box::from_raw(self.nlq as *mut RpuDataNlq))
+            }
         }
     }
 }
@@ -107,14 +109,16 @@ impl ReshapingCurve {
     /// # Safety
     /// The buffer pointers should be valid.
     pub unsafe fn free(&self) {
-        self.pivots.free();
+        unsafe {
+            self.pivots.free();
 
-        if !self.polynomial.is_null() {
-            let poly_curve = Box::from_raw(self.polynomial as *mut PolynomialCurve);
-            poly_curve.free();
-        } else if !self.mmr.is_null() {
-            let mmr_curve = Box::from_raw(self.mmr as *mut MMRCurve);
-            mmr_curve.free();
+            if !self.polynomial.is_null() {
+                let poly_curve = Box::from_raw(self.polynomial as *mut PolynomialCurve);
+                poly_curve.free();
+            } else if !self.mmr.is_null() {
+                let mmr_curve = Box::from_raw(self.mmr as *mut MMRCurve);
+                mmr_curve.free();
+            }
         }
     }
 }
@@ -123,10 +127,12 @@ impl PolynomialCurve {
     /// # Safety
     /// The buffer pointers should be valid.
     pub unsafe fn free(&self) {
-        self.poly_order_minus1.free();
-        self.linear_interp_flag.free();
-        self.poly_coef_int.free();
-        self.poly_coef.free();
+        unsafe {
+            self.poly_order_minus1.free();
+            self.linear_interp_flag.free();
+            self.poly_coef_int.free();
+            self.poly_coef.free();
+        }
     }
 }
 
@@ -134,11 +140,13 @@ impl MMRCurve {
     /// # Safety
     /// The buffer pointers should be valid.
     pub unsafe fn free(&self) {
-        self.mmr_order_minus1.free();
-        self.mmr_constant_int.free();
-        self.mmr_constant.free();
-        self.mmr_coef_int.free();
-        self.mmr_coef.free();
+        unsafe {
+            self.mmr_order_minus1.free();
+            self.mmr_constant_int.free();
+            self.mmr_constant.free();
+            self.mmr_coef_int.free();
+            self.mmr_coef.free();
+        }
     }
 }
 

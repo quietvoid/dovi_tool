@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };

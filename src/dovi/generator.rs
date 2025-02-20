@@ -1,8 +1,8 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use hdr10plus::metadata::{PeakBrightnessSource, VariablePeakBrightness};
 use hdr10plus::metadata_json::MetadataJsonRoot;
 use std::fs::File;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
 
 use crate::commands::GenerateArgs;

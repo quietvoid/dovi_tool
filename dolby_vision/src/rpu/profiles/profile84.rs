@@ -1,13 +1,13 @@
 use tinyvec::array_vec;
 
 use crate::rpu::{
+    NUM_COMPONENTS,
     rpu_data_mapping::{
         DoviMMRCurve, DoviMappingMethod, DoviPolynomialCurve, DoviReshapingCurve, RpuDataMapping,
     },
-    NUM_COMPONENTS,
 };
 
-use super::{profile81::Profile81, DoviProfile, VdrDmData};
+use super::{DoviProfile, VdrDmData, profile81::Profile81};
 
 pub struct Profile84 {}
 
@@ -69,7 +69,9 @@ impl Profile84 {
         )];
         let mmr_coef_cmp1 = vec![array_vec!(
             array_vec!(87355, 6228986, 642500, 1023296, 6569512, 5128216, 4317296),
-            array_vec!(8299905, 5819931, 2324124, 7273546, 1562484, 3679480, 6357360),
+            array_vec!(
+                8299905, 5819931, 2324124, 7273546, 1562484, 3679480, 6357360
+            ),
             array_vec!(8172981, 3261951, 5970055, 927142, 3525840, 5110348, 6236848)
         )];
         let mmr_curve1 = DoviMMRCurve {

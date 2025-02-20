@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{

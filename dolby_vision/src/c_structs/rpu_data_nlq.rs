@@ -1,8 +1,8 @@
 use std::ffi::CStr;
 
 use crate::rpu::{
-    rpu_data_nlq::{DoviELType, RpuDataNlq as RuRpuDataNlq},
     NUM_COMPONENTS,
+    rpu_data_nlq::{DoviELType, RpuDataNlq as RuRpuDataNlq},
 };
 
 const FEL_CSTR: &CStr = c"FEL";

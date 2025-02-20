@@ -1,21 +1,21 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::{stdout, BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Write, stdout};
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use indicatif::ProgressBar;
 use itertools::Itertools;
 
-use hevc_parser::io::{processor, FrameBuffer, IoProcessor, NalBuffer};
 use hevc_parser::HevcParser;
-use hevc_parser::{hevc::*, NALUStartCode};
+use hevc_parser::io::{FrameBuffer, IoProcessor, NalBuffer, processor};
+use hevc_parser::{NALUStartCode, hevc::*};
 use processor::{HevcProcessor, HevcProcessorOpts};
 
 use crate::commands::MuxArgs;
 
 use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
-use super::{convert_encoded_from_opts, CliOptions, IoFormat, StartCodePreset};
+use super::{CliOptions, IoFormat, StartCodePreset, convert_encoded_from_opts};
 
 const EL_NALU_PREFIX: &[u8] = &[0x7E, 0x01];
 

@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -7,14 +7,14 @@ use bitvec_helpers::{
 use serde::{Deserialize, Serialize};
 
 use super::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel11, ExtMetadataBlockLevel9,
+    ExtMetadataBlock, ExtMetadataBlockLevel9, ExtMetadataBlockLevel11,
 };
 use super::extension_metadata::*;
 use super::generate::{GenerateConfig, GenerateProfile};
+use super::profiles::DoviProfile;
 use super::profiles::profile5::Profile5;
 use super::profiles::profile81::Profile81;
 use super::profiles::profile84::Profile84;
-use super::profiles::DoviProfile;
 
 use super::extension_metadata::WithExtMetadataBlocks;
 use super::rpu_data_header::RpuDataHeader;

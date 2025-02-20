@@ -1,14 +1,14 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::{stdout, BufWriter, Write};
+use std::io::{BufWriter, Write, stdout};
 use std::ops::Range;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use dolby_vision::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel5};
 use itertools::Itertools;
-use serde::ser::SerializeSeq;
 use serde::Serializer;
+use serde::ser::SerializeSeq;
 
 use dolby_vision::rpu::utils::parse_rpu_file;
 use serde_json::json;

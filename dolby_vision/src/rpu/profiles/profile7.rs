@@ -1,4 +1,4 @@
-use super::{profile81::Profile81, DoviProfile, VdrDmData};
+use super::{DoviProfile, VdrDmData, profile81::Profile81};
 
 pub struct Profile7 {}
 

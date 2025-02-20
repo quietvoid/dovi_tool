@@ -276,14 +276,18 @@ impl<const N: usize> From<Option<[u16; N]>> for U16Data {
 
 impl Freeable for Data {
     unsafe fn free(&self) {
-        Vec::from_raw_parts(self.data as *mut u8, self.len, self.len);
+        unsafe {
+            Vec::from_raw_parts(self.data as *mut u8, self.len, self.len);
+        }
     }
 }
 
 impl Freeable for U16Data {
     unsafe fn free(&self) {
         if !self.data.is_null() {
-            Vec::from_raw_parts(self.data as *mut u16, self.len, self.len);
+            unsafe {
+                Vec::from_raw_parts(self.data as *mut u16, self.len, self.len);
+            }
         }
     }
 }
@@ -291,68 +295,82 @@ impl Freeable for U16Data {
 impl Freeable for U64Data {
     unsafe fn free(&self) {
         if !self.data.is_null() {
-            Vec::from_raw_parts(self.data as *mut u64, self.len, self.len);
+            unsafe {
+                Vec::from_raw_parts(self.data as *mut u64, self.len, self.len);
+            }
         }
     }
 }
 
 impl Freeable for I64Data {
     unsafe fn free(&self) {
-        Vec::from_raw_parts(self.data as *mut i64, self.len, self.len);
+        unsafe {
+            Vec::from_raw_parts(self.data as *mut i64, self.len, self.len);
+        }
     }
 }
 
 impl Freeable for Data2D {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *const Data, self.len, self.len);
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *const Data, self.len, self.len);
 
-        for data_ptr in list {
-            let data = Box::from_raw(data_ptr as *mut Data);
-            data.free();
+            for data_ptr in list {
+                let data = Box::from_raw(data_ptr as *mut Data);
+                data.free();
+            }
         }
     }
 }
 
 impl Freeable for U64Data2D {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *const U64Data, self.len, self.len);
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *const U64Data, self.len, self.len);
 
-        for data_ptr in list {
-            let data = Box::from_raw(data_ptr as *mut U64Data);
-            data.free();
+            for data_ptr in list {
+                let data = Box::from_raw(data_ptr as *mut U64Data);
+                data.free();
+            }
         }
     }
 }
 
 impl Freeable for I64Data2D {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *const I64Data, self.len, self.len);
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *const I64Data, self.len, self.len);
 
-        for data_ptr in list {
-            let data = Box::from_raw(data_ptr as *mut I64Data);
-            data.free();
+            for data_ptr in list {
+                let data = Box::from_raw(data_ptr as *mut I64Data);
+                data.free();
+            }
         }
     }
 }
 
 impl Freeable for U64Data3D {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *const U64Data2D, self.len, self.len);
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *const U64Data2D, self.len, self.len);
 
-        for data2d_ptr in list {
-            let data2d = Box::from_raw(data2d_ptr as *mut U64Data2D);
-            data2d.free();
+            for data2d_ptr in list {
+                let data2d = Box::from_raw(data2d_ptr as *mut U64Data2D);
+                data2d.free();
+            }
         }
     }
 }
 
 impl Freeable for I64Data3D {
     unsafe fn free(&self) {
-        let list = Vec::from_raw_parts(self.list as *mut *const I64Data2D, self.len, self.len);
+        unsafe {
+            let list = Vec::from_raw_parts(self.list as *mut *const I64Data2D, self.len, self.len);
 
-        for data2d_ptr in list {
-            let data2d = Box::from_raw(data2d_ptr as *mut I64Data2D);
-            data2d.free();
+            for data2d_ptr in list {
+                let data2d = Box::from_raw(data2d_ptr as *mut I64Data2D);
+                data2d.free();
+            }
         }
     }
 }
