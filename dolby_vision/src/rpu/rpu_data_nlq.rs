@@ -137,7 +137,7 @@ impl RpuDataNlq {
                     )?;
 
                     if header.coefficient_data_type == 0 {
-                        writer.write_ue(&self.linear_deadzone_slope_int[cmp])?;
+                        writer.write_ue(&self.linear_deadzone_threshold_int[cmp])?;
                     }
 
                     writer.write_n(
@@ -205,5 +205,35 @@ impl DoviELType {
 impl Display for DoviELType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use crate::rpu::{dovi_rpu::DoviRpu, generate::GenerateConfig};
+
+    #[test]
+    fn write_linear_dz_threshold() -> Result<()> {
+        let mut rpu = DoviRpu::profile81_config(&GenerateConfig::default())?;
+        rpu.convert_with_mode(1)?;
+
+        {
+            let nlq = rpu
+                .rpu_data_mapping
+                .as_mut()
+                .and_then(|rpu_data_mapping| rpu_data_mapping.nlq.as_mut())
+                .unwrap();
+            nlq.linear_deadzone_threshold_int = [1, 2, 3];
+        }
+
+        let out = rpu.write_rpu()?;
+        let rpu = DoviRpu::parse(&out)?;
+
+        let nlq = rpu.rpu_data_mapping.and_then(|e| e.nlq).unwrap();
+        assert_eq!(nlq.linear_deadzone_threshold_int, [1, 2, 3]);
+
+        Ok(())
     }
 }
