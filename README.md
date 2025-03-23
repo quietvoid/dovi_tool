@@ -152,6 +152,8 @@ dovi_tool <SUBCOMMAND> --help
 
     **Flags**:
     - `-t`, `--title` The title to set at the top of the plot
+    - `-s`, `--start` Set frame range start
+    - `-e`, `--end` Set frame range end (inclusive)
 
     **Example**:
     ```console

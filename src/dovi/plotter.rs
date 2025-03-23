@@ -54,6 +54,8 @@ impl Plotter {
             input_pos,
             output,
             title,
+            start: start_arg,
+            end: end_arg,
         } = args;
 
         let output = output.unwrap_or(PathBuf::from("L1_plot.png"));
@@ -63,7 +65,12 @@ impl Plotter {
         let plotter = Plotter { input };
 
         println!("Parsing RPU file...");
-        let rpus = parse_rpu_file(plotter.input)?;
+        let orig_rpus = parse_rpu_file(plotter.input)?;
+
+        // inclusive range, end must be last RPU index
+        let start = start_arg.unwrap_or(0);
+        let end = end_arg.unwrap_or(orig_rpus.len() - 1);
+        let rpus = &orig_rpus[start..=end];
 
         let x_spec = 0..rpus.len();
 
@@ -74,7 +81,7 @@ impl Plotter {
             .titled(&title, ("sans-serif", 40))?;
 
         println!("Plotting...");
-        let summary = RpusListSummary::new(&rpus)?;
+        let summary = RpusListSummary::new(rpus)?;
 
         let mut chart = ChartBuilder::on(&root)
             .x_label_area_size(60)

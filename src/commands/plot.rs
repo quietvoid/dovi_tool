@@ -33,4 +33,10 @@ pub struct PlotArgs {
 
     #[arg(long, short = 't', help = "Title to use at the top")]
     pub title: Option<String>,
+
+    #[arg(long, short = 's', help = "Set frame range start")]
+    pub start: Option<usize>,
+
+    #[arg(long, short = 'e', help = "Set frame range end (inclusive)")]
+    pub end: Option<usize>,
 }
