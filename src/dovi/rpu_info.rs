@@ -1,4 +1,6 @@
 use std::fmt::Write;
+use std::fs::File;
+use std::io::Write as WriteFile;
 use std::path::PathBuf;
 
 use anyhow::{Result, bail, ensure};
@@ -50,9 +52,10 @@ impl RpuInfo {
             input_pos,
             frame,
             summary,
+            qpfile,
         } = args;
 
-        if !summary && frame.is_none() {
+        if !summary && !qpfile.is_some() && frame.is_none() {
             bail!("No frame number to look up");
         }
 
@@ -130,6 +133,22 @@ impl RpuInfo {
             }
 
             println!("\n{summary_str}");
+        }
+
+        if qpfile.is_some() {
+            let mut qpfile_file =
+                File::create(qpfile.unwrap()).expect("Error opening qpfile for writing!");
+
+            let scene_cuts = rpus.iter().positions(|rpu| {
+                rpu.vdr_dm_data
+                    .as_ref()
+                    .and_then(|vdr| (vdr.scene_refresh_flag == 1).then_some(1))
+                    .is_some()
+            });
+
+            for scene in scene_cuts {
+                qpfile_file.write(format!("{} K\n", scene).as_bytes())?;
+            }
         }
 
         Ok(())

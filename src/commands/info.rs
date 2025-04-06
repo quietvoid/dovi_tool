@@ -33,4 +33,14 @@ pub struct InfoArgs {
 
     #[arg(id = "summary", long, short = 's', help = "Show the RPU summary")]
     pub summary: bool,
+
+    #[arg(
+        id = "qpfile",
+        help = "set the path of the qpfile to create",
+        long,
+        short = 'q',
+        conflicts_with = "frame",
+        value_hint = ValueHint::FilePath,
+    )]
+    pub qpfile: Option<PathBuf>,
 }
