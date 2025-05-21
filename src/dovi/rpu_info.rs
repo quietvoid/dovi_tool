@@ -1,16 +1,18 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::PathBuf;
 
 use anyhow::{Result, bail, ensure};
-use dolby_vision::rpu::vdr_dm_data::CmVersion;
-use itertools::Itertools;
-
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
+use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel2, ExtMetadataBlockLevel6,
+    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel2, ExtMetadataBlockLevel5,
+    ExtMetadataBlockLevel6,
 };
 use dolby_vision::rpu::utils::parse_rpu_file;
+use dolby_vision::rpu::vdr_dm_data::CmVersion;
 use dolby_vision::utils::pq_to_nits;
+use itertools::Itertools;
 
 use super::input_from_either;
 use crate::commands::InfoArgs;
@@ -29,6 +31,9 @@ pub struct RpusListSummary {
     pub dm_version_str: &'static str,
     pub dm_version_counts: Option<(usize, usize)>,
     pub l6_meta: Option<Vec<String>>,
+    pub l5_str: String,
+    pub l8_trims: Option<Vec<String>>,
+    pub l9_mdp: Option<Vec<String>>,
 
     pub l1_data: Vec<(f64, f64, f64)>,
     pub l1_stats: SummaryL1Stats,
@@ -102,6 +107,9 @@ impl RpuInfo {
                 dm_version_str,
                 dm_version_counts,
                 l6_meta,
+                l5_str,
+                l8_trims,
+                l9_mdp,
                 l1_stats,
                 l2_trims,
                 ..
@@ -138,8 +146,18 @@ impl RpuInfo {
                 write!(summary_str, "\n  {final_str}")?;
             }
 
+            write!(summary_str, "\n  L5 offsets: {}", l5_str)?;
+
             if !l2_trims.is_empty() {
                 write!(summary_str, "\n  L2 trims: {}", l2_trims.join(", "))?;
+            }
+
+            if let Some(l8_trims) = l8_trims.filter(|v| !v.is_empty()) {
+                write!(summary_str, "\n  L8 trims: {}", l8_trims.join(", "))?;
+            }
+
+            if let Some(l9_mdp) = l9_mdp.filter(|v| !v.is_empty()) {
+                write!(summary_str, "\n  L9 MDP: {}", l9_mdp.join(", "))?;
             }
 
             println!("\n{summary_str}");
@@ -346,6 +364,101 @@ impl RpusListSummary {
             .map(|target_nits| format!("{target_nits} nits"))
             .collect();
 
+        let l5_blocks: Vec<_> = rpus
+            .iter()
+            .filter_map(|rpu| {
+                rpu.vdr_dm_data.as_ref()?.get_block(5).and_then(|block| {
+                    if let ExtMetadataBlock::Level5(l5) = block {
+                        Some(l5)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .unique()
+            .collect();
+
+        type L5Mapping = (&'static str, fn(&ExtMetadataBlockLevel5) -> u16);
+        let l5_mappings: [L5Mapping; 4] = [
+            ("TOP", |l5| l5.active_area_top_offset),
+            ("BOTTOM", |l5| l5.active_area_bottom_offset),
+            ("LEFT", |l5| l5.active_area_left_offset),
+            ("RIGHT", |l5| l5.active_area_right_offset),
+        ];
+        let l5_str = l5_mappings
+            .iter()
+            .map(|(area, offset_extractor)| {
+                l5_blocks
+                    .iter()
+                    .map(|l5| offset_extractor(l5))
+                    .minmax()
+                    .into_option()
+                    .map_or(format!("{area}: N/A"), |(min, max)| {
+                        if min == max {
+                            format!("{area}: {min}")
+                        } else {
+                            format!("{area}: ({min} - {max})")
+                        }
+                    })
+            })
+            .join(", ");
+
+        let l8_trims = if dmv2_count > 0 {
+            let l8_trims_str: Vec<String> = rpus
+                .iter()
+                .filter_map(|rpu| {
+                    rpu.vdr_dm_data.as_ref()?.get_block(8).and_then(|block| {
+                        if let ExtMetadataBlock::Level8(l8) = block {
+                            Some(l8.trim_target_nits())
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .unique()
+                .sorted()
+                .map(|target_nits| format!("{target_nits} nits"))
+                .collect();
+
+            Some(l8_trims_str)
+        } else {
+            None
+        };
+
+        let l9_mdp = if dmv2_count > 0 {
+            let l9_mdp_str: Vec<String> = rpus
+                .iter()
+                .filter_map(|rpu| {
+                    rpu.vdr_dm_data.as_ref()?.get_block(9).and_then(|block| {
+                        if let ExtMetadataBlock::Level9(l9) = block {
+                            Some(l9.source_primary_index)
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .fold(HashMap::new(), |mut frames, idx| {
+                    *frames.entry(idx).or_insert(0) += 1;
+                    frames
+                })
+                .into_iter()
+                .sorted_by_key(|e| e.0)
+                .filter_map(|(idx, frames)| {
+                    MasteringDisplayPrimaries::u8_to_alias(idx).map(|alias| {
+                        if frames < dmv2_count {
+                            format!("{alias} ({frames})")
+                        } else {
+                            alias.to_string()
+                        }
+                    })
+                })
+                .collect();
+
+            Some(l9_mdp_str)
+        } else {
+            None
+        };
+
         Ok(Self {
             count: rpus.len(),
             scene_count,
@@ -354,6 +467,9 @@ impl RpusListSummary {
             dm_version_str,
             dm_version_counts,
             l6_meta,
+            l5_str,
+            l8_trims,
+            l9_mdp,
             l1_data,
             l1_stats,
             l2_trims,

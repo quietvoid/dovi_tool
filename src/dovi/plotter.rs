@@ -157,14 +157,25 @@ impl Plotter {
             (60, 60),
         )?;
 
+        let mut right_captions = vec![format!("L5 offsets: {}", summary.l5_str)];
         if !summary.l2_trims.is_empty() {
-            let caption = format!("L2 trims: {}", summary.l2_trims.join(", "));
-            let pos = (
-                (root.dim_in_pixel().0 - root.estimate_text_size(&caption, &caption_style)?.0)
-                    as i32,
-                60,
-            );
-            root.draw_text(&caption, &caption_style, pos)?;
+            right_captions.push(format!("L2 trims: {}", summary.l2_trims.join(", ")));
+        }
+        if let Some(l8_trims) = summary.l8_trims.filter(|v| !v.is_empty()) {
+            right_captions.push(format!("L8 trims: {}", l8_trims.join(", ")));
+        }
+
+        let pos_x = right_captions
+            .iter()
+            .filter_map(|c| root.estimate_text_size(c, &caption_style).ok())
+            .map(|(size, _)| size)
+            .max()
+            .map_or(0, |max_size| (root.dim_in_pixel().0 - max_size) as i32);
+        let mut pos_y = 60;
+
+        for caption in right_captions.iter().rev() {
+            root.draw_text(caption, &caption_style, (pos_x, pos_y))?;
+            pos_y -= 25;
         }
 
         root.present()?;

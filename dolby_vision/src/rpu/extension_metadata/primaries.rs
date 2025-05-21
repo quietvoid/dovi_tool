@@ -50,6 +50,23 @@ pub enum MasteringDisplayPrimaries {
     SGamut3Cine,
 }
 
+impl MasteringDisplayPrimaries {
+    pub fn u8_to_alias(value: u8) -> Option<&'static str> {
+        match value {
+            0 => Some("DCI-P3 D65"),
+            1 => Some("BT.709"),
+            2 => Some("BT.2020"),
+            3 => Some("SMPTE-C"),
+            4 => Some("BT.601"),
+            5 => Some("DCI-P3"),
+            6 => Some("ACES"),
+            7 => Some("S-Gamut"),
+            8 => Some("S-Gamut-3.Cine"),
+            _ => None,
+        }
+    }
+}
+
 impl ColorPrimaries {
     pub fn from_array_int(primaries: &[u16; 8]) -> ColorPrimaries {
         Self {
