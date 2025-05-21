@@ -134,7 +134,7 @@ impl Exporter {
         let mut l5_edits = Vec::<(Range<usize>, usize)>::new();
 
         for (k, start_index) in l5_indices {
-            if !l5_presets.iter().any(|l5| *l5 == k) {
+            if !l5_presets.contains(&k) {
                 l5_presets.push(k);
             }
 

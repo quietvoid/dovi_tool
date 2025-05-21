@@ -343,7 +343,7 @@ impl EditConfig {
             let source = data[meta.source].clone();
             data.splice(
                 meta.offset..meta.offset,
-                std::iter::repeat(source).take(meta.length),
+                std::iter::repeat_n(source, meta.length),
             );
         }
 

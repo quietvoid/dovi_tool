@@ -384,7 +384,7 @@ impl CmXmlParser {
     }
 
     fn parse_shots(&self, video: &Node) -> Result<Vec<VideoShot>> {
-        let shots = video
+        video
             .descendants()
             .filter(|e| e.has_tag_name("Shot"))
             .map(|n| {
@@ -440,9 +440,7 @@ impl CmXmlParser {
 
                 Ok(shot)
             })
-            .collect();
-
-        shots
+            .collect()
     }
 
     fn parse_shot_trims(&self, node: &Node) -> Result<Vec<ExtMetadataBlock>> {

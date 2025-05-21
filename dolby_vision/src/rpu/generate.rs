@@ -186,24 +186,18 @@ impl GenerateConfig {
     }
 
     pub fn encode_option_rpus(rpus: &mut [Option<DoviRpu>]) -> Vec<Vec<u8>> {
-        let encoded_rpus = rpus
-            .iter_mut()
+        rpus.iter_mut()
             .filter_map(|e| e.as_mut())
             .map(|e| e.write_hevc_unspec62_nalu())
             .filter_map(Result::ok)
-            .collect();
-
-        encoded_rpus
+            .collect()
     }
 
     pub fn encode_rpus(rpus: &mut [DoviRpu]) -> Vec<Vec<u8>> {
-        let encoded_rpus = rpus
-            .iter_mut()
+        rpus.iter_mut()
             .map(|e| e.write_hevc_unspec62_nalu())
             .filter_map(Result::ok)
-            .collect();
-
-        encoded_rpus
+            .collect()
     }
 
     pub fn write_rpus<P: AsRef<Path>>(&self, path: P) -> Result<()> {
