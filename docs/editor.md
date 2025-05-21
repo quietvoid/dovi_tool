@@ -132,5 +132,14 @@ The editor expects a JSON config like the example below:
     // Levels to replace using metadata from `source_rpu`
     // List of integers representing block levels
     "rpu_levels": int[],
+
+    // EXPERIMENTAL: Allows transferring CM v4.0 levels (L3, L8, L9, L10, L11, L254) to CM v2.9 RPU.
+    // This implicitly converts the input RPU to CM v4.0 format, with default L254.
+    //
+    // WARNING: This is not normally allowed and may lead to playback issues (e.g., if L8 is not transferred).
+    // Intended for advanced/experimental workflows only. Use at your own risk.
+    //
+    // Default: false
+    "allow_cmv4_transfer": boolean,
 }
 ```

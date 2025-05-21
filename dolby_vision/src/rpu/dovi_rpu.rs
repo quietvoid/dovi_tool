@@ -21,6 +21,7 @@ use crate::av1::{
     av1_validated_trimmed_data, convert_av1_rpu_payload_to_regular,
     convert_regular_rpu_to_av1_payload,
 };
+use crate::rpu::extension_metadata::{CmV40DmData, DmData};
 use crate::utils::{
     add_start_code_emulation_prevention_3_byte, clear_start_code_emulation_prevention_3_byte,
 };
@@ -574,13 +575,26 @@ impl DoviRpu {
         Ok(())
     }
 
-    pub fn replace_levels_from_rpu(&mut self, src_rpu: &Self, levels: &Vec<u8>) -> Result<()> {
+    pub fn replace_levels_from_rpu(
+        &mut self,
+        src_rpu: &Self,
+        levels: &Vec<u8>,
+        allow_cmv4_transfer: bool,
+    ) -> Result<()> {
         ensure!(!levels.is_empty(), "Must have levels to replace");
 
         if let (Some(dst_vdr_dm_data), Some(src_vdr_dm_data)) =
             (self.vdr_dm_data.as_mut(), src_rpu.vdr_dm_data.as_ref())
         {
             self.modified = true;
+
+            if allow_cmv4_transfer
+                && src_vdr_dm_data.cmv40_metadata.is_some()
+                && dst_vdr_dm_data.cmv40_metadata.is_none()
+            {
+                dst_vdr_dm_data.cmv40_metadata =
+                    Some(DmData::V40(CmV40DmData::new_with_l254_402()));
+            }
 
             for level in levels {
                 dst_vdr_dm_data
