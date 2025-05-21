@@ -7,13 +7,15 @@ use itertools::Itertools;
 
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel6,
+    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel2, ExtMetadataBlockLevel6,
 };
 use dolby_vision::rpu::utils::parse_rpu_file;
 use dolby_vision::utils::pq_to_nits;
 
 use super::input_from_either;
 use crate::commands::InfoArgs;
+
+pub type L2Data = (u16, u16, u16, u16, u16, i16);
 
 pub struct RpuInfo {
     input: PathBuf,
@@ -31,6 +33,8 @@ pub struct RpusListSummary {
     pub l1_data: Vec<(f64, f64, f64)>,
     pub l1_stats: SummaryL1Stats,
     pub l2_trims: Vec<String>,
+    pub l2_data: Option<Vec<L2Data>>,
+    pub l2_stats: Option<SummaryL2Stats>,
 }
 
 pub struct SummaryL1Stats {
@@ -41,6 +45,15 @@ pub struct SummaryL1Stats {
     pub maxfall_avg: f64,
 
     pub max_min_nits: f64,
+}
+
+pub struct SummaryL2Stats {
+    pub slope: (f64, f64, f64),
+    pub offset: (f64, f64, f64),
+    pub power: (f64, f64, f64),
+    pub chroma: (f64, f64, f64),
+    pub saturation: (f64, f64, f64),
+    pub ms_weight: (f64, f64, f64),
 }
 
 impl RpuInfo {
@@ -344,6 +357,71 @@ impl RpusListSummary {
             l1_data,
             l1_stats,
             l2_trims,
+            l2_data: None,
+            l2_stats: None,
         })
+    }
+
+    pub fn with_l2_data(rpus: &[DoviRpu]) -> Result<Self> {
+        let mut summary = Self::new(rpus)?;
+
+        let default_l2_for_missing = ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::default());
+
+        let l2_data: Vec<_> = rpus
+            .iter()
+            .map(|rpu| {
+                let block = rpu
+                    .vdr_dm_data
+                    .as_ref()
+                    .and_then(|dm| dm.get_block(2))
+                    .unwrap_or(&default_l2_for_missing);
+
+                if let ExtMetadataBlock::Level2(l2) = block {
+                    (
+                        l2.trim_slope,
+                        l2.trim_offset,
+                        l2.trim_power,
+                        l2.trim_chroma_weight,
+                        l2.trim_saturation_gain,
+                        l2.ms_weight,
+                    )
+                } else {
+                    unreachable!();
+                }
+            })
+            .collect();
+
+        fn min_max_avg<F>(data: &[L2Data], field_extractor: F) -> (f64, f64, f64)
+        where
+            F: Fn(&L2Data) -> f64,
+        {
+            let mut iter = data.iter().map(field_extractor);
+            let first = iter.next().unwrap();
+            let (mut min, mut max, mut sum) = (first, first, first);
+
+            for v in iter {
+                if v < min {
+                    min = v;
+                }
+                if v > max {
+                    max = v;
+                }
+                sum += v;
+            }
+
+            (min, max, sum / data.len() as f64)
+        }
+
+        summary.l2_stats = Some(SummaryL2Stats {
+            slope: min_max_avg(&l2_data, |e| e.0 as f64),
+            offset: min_max_avg(&l2_data, |e| e.1 as f64),
+            power: min_max_avg(&l2_data, |e| e.2 as f64),
+            chroma: min_max_avg(&l2_data, |e| e.3 as f64),
+            saturation: min_max_avg(&l2_data, |e| e.4 as f64),
+            ms_weight: min_max_avg(&l2_data, |e| e.5 as f64),
+        });
+        summary.l2_data = Some(l2_data);
+
+        Ok(summary)
     }
 }

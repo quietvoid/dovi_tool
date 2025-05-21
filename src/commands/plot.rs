@@ -39,4 +39,7 @@ pub struct PlotArgs {
 
     #[arg(long, short = 'e', help = "Set frame range end (inclusive)")]
     pub end: Option<usize>,
+
+    #[arg(long, help = "Plot L2 trims metadata instead of L1 dynamic brightness")]
+    pub l2: bool,
 }
