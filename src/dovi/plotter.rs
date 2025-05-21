@@ -6,6 +6,9 @@ use std::path::PathBuf;
 use anyhow::bail;
 
 use anyhow::Result;
+use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlockLevel2;
+use dolby_vision::rpu::utils::parse_rpu_file;
+use dolby_vision::utils::{nits_to_pq, pq_to_nits};
 use plotters::coord::ranged1d::{KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter};
 use plotters::coord::types::RangedCoordusize;
 use plotters::prelude::{
@@ -14,11 +17,8 @@ use plotters::prelude::{
 };
 use plotters::style::{BLACK, Color, IntoTextStyle, RGBColor, ShapeStyle};
 
-use dolby_vision::rpu::utils::parse_rpu_file;
-use dolby_vision::utils::{nits_to_pq, pq_to_nits};
-
 use super::input_from_either;
-use super::rpu_info::{L2Data, RpusListSummary};
+use super::rpu_info::RpusListSummary;
 use crate::commands::PlotArgs;
 
 #[cfg(not(feature = "system-font"))]
@@ -270,41 +270,46 @@ impl Plotter {
         let data = summary.l2_data.as_ref().unwrap();
         let l2_stats = summary.l2_stats.as_ref().unwrap();
 
-        type Series = (&'static str, fn(&L2Data) -> f64, (f64, f64, f64), RGBColor);
+        type Series = (
+            &'static str,
+            fn(&ExtMetadataBlockLevel2) -> f64,
+            (f64, f64, f64),
+            RGBColor,
+        );
         let series: [Series; 6] = [
             (
                 "slope (gain)",
-                |e| e.0 as f64,
+                |e| e.trim_slope as f64,
                 l2_stats.slope,
                 RGBColor(96, 158, 232), // blue
             ),
             (
                 "offset (lift)",
-                |e| e.1 as f64,
+                |e| e.trim_offset as f64,
                 l2_stats.offset,
                 RGBColor(230, 110, 132), // pink
             ),
             (
                 "power (gamma)",
-                |e| e.2 as f64,
+                |e| e.trim_power as f64,
                 l2_stats.power,
                 RGBColor(236, 162, 75), // orange
             ),
             (
                 "chroma (weight)",
-                |e| e.3 as f64,
+                |e| e.trim_chroma_weight as f64,
                 l2_stats.chroma,
                 RGBColor(115, 187, 190), // cyan
             ),
             (
                 "saturation (gain)",
-                |e| e.4 as f64,
+                |e| e.trim_saturation_gain as f64,
                 l2_stats.saturation,
                 RGBColor(144, 106, 252), // purple
             ),
             (
                 "ms (weight)",
-                |e| e.5 as f64,
+                |e| e.ms_weight as f64,
                 l2_stats.ms_weight,
                 RGBColor(243, 205, 95), // yellow
             ),

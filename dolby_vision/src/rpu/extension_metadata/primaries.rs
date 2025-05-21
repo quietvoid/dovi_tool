@@ -50,20 +50,37 @@ pub enum MasteringDisplayPrimaries {
     SGamut3Cine,
 }
 
-impl MasteringDisplayPrimaries {
-    pub fn u8_to_alias(value: u8) -> Option<&'static str> {
+impl From<u8> for MasteringDisplayPrimaries {
+    fn from(value: u8) -> Self {
         match value {
-            0 => Some("DCI-P3 D65"),
-            1 => Some("BT.709"),
-            2 => Some("BT.2020"),
-            3 => Some("SMPTE-C"),
-            4 => Some("BT.601"),
-            5 => Some("DCI-P3"),
-            6 => Some("ACES"),
-            7 => Some("S-Gamut"),
-            8 => Some("S-Gamut-3.Cine"),
-            _ => None,
+            0 => Self::DCIP3D65,
+            1 => Self::BT709,
+            2 => Self::BT2020,
+            3 => Self::SMPTEC,
+            4 => Self::BT601,
+            5 => Self::DCIP3,
+            6 => Self::ACES,
+            7 => Self::SGamut,
+            8 => Self::SGamut3Cine,
+            _ => Self::DCIP3D65,
         }
+    }
+}
+
+impl std::fmt::Display for MasteringDisplayPrimaries {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let alias = match self {
+            Self::DCIP3D65 => "DCI-P3 D65",
+            Self::BT709 => "BT.709",
+            Self::BT2020 => "BT.2020",
+            Self::SMPTEC => "SMPTE-C",
+            Self::BT601 => "BT.601",
+            Self::DCIP3 => "DCI-P3",
+            Self::ACES => "ACES",
+            Self::SGamut => "S-Gamut",
+            Self::SGamut3Cine => "S-Gamut-3.Cine",
+        };
+        write!(f, "{}", alias)
     }
 }
 

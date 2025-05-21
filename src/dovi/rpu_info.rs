@@ -17,8 +17,6 @@ use itertools::Itertools;
 use super::input_from_either;
 use crate::commands::InfoArgs;
 
-pub type L2Data = (u16, u16, u16, u16, u16, i16);
-
 pub struct RpuInfo {
     input: PathBuf,
 }
@@ -38,7 +36,7 @@ pub struct RpusListSummary {
     pub l1_data: Vec<(f64, f64, f64)>,
     pub l1_stats: SummaryL1Stats,
     pub l2_trims: Vec<String>,
-    pub l2_data: Option<Vec<L2Data>>,
+    pub l2_data: Option<Vec<ExtMetadataBlockLevel2>>,
     pub l2_stats: Option<SummaryL2Stats>,
 }
 
@@ -443,14 +441,13 @@ impl RpusListSummary {
                 })
                 .into_iter()
                 .sorted_by_key(|e| e.0)
-                .filter_map(|(idx, frames)| {
-                    MasteringDisplayPrimaries::u8_to_alias(idx).map(|alias| {
-                        if frames < dmv2_count {
-                            format!("{alias} ({frames})")
-                        } else {
-                            alias.to_string()
-                        }
-                    })
+                .map(|(idx, frames)| {
+                    let alias = MasteringDisplayPrimaries::from(idx).to_string();
+                    if frames < dmv2_count {
+                        format!("{alias} ({frames})")
+                    } else {
+                        alias
+                    }
                 })
                 .collect();
 
@@ -481,35 +478,22 @@ impl RpusListSummary {
     pub fn with_l2_data(rpus: &[DoviRpu]) -> Result<Self> {
         let mut summary = Self::new(rpus)?;
 
-        let default_l2_for_missing = ExtMetadataBlock::Level2(ExtMetadataBlockLevel2::default());
-
         let l2_data: Vec<_> = rpus
             .iter()
             .map(|rpu| {
-                let block = rpu
-                    .vdr_dm_data
-                    .as_ref()
-                    .and_then(|dm| dm.get_block(2))
-                    .unwrap_or(&default_l2_for_missing);
-
-                if let ExtMetadataBlock::Level2(l2) = block {
-                    (
-                        l2.trim_slope,
-                        l2.trim_offset,
-                        l2.trim_power,
-                        l2.trim_chroma_weight,
-                        l2.trim_saturation_gain,
-                        l2.ms_weight,
-                    )
+                if let Some(ExtMetadataBlock::Level2(l2)) =
+                    rpu.vdr_dm_data.as_ref().and_then(|dm| dm.get_block(2))
+                {
+                    l2.clone()
                 } else {
-                    unreachable!();
+                    ExtMetadataBlockLevel2::default()
                 }
             })
             .collect();
 
-        fn min_max_avg<F>(data: &[L2Data], field_extractor: F) -> (f64, f64, f64)
+        fn min_max_avg<F>(data: &[ExtMetadataBlockLevel2], field_extractor: F) -> (f64, f64, f64)
         where
-            F: Fn(&L2Data) -> f64,
+            F: Fn(&ExtMetadataBlockLevel2) -> f64,
         {
             let mut iter = data.iter().map(field_extractor);
             let first = iter.next().unwrap();
@@ -529,12 +513,12 @@ impl RpusListSummary {
         }
 
         summary.l2_stats = Some(SummaryL2Stats {
-            slope: min_max_avg(&l2_data, |e| e.0 as f64),
-            offset: min_max_avg(&l2_data, |e| e.1 as f64),
-            power: min_max_avg(&l2_data, |e| e.2 as f64),
-            chroma: min_max_avg(&l2_data, |e| e.3 as f64),
-            saturation: min_max_avg(&l2_data, |e| e.4 as f64),
-            ms_weight: min_max_avg(&l2_data, |e| e.5 as f64),
+            slope: min_max_avg(&l2_data, |e| e.trim_slope as f64),
+            offset: min_max_avg(&l2_data, |e| e.trim_offset as f64),
+            power: min_max_avg(&l2_data, |e| e.trim_power as f64),
+            chroma: min_max_avg(&l2_data, |e| e.trim_chroma_weight as f64),
+            saturation: min_max_avg(&l2_data, |e| e.trim_saturation_gain as f64),
+            ms_weight: min_max_avg(&l2_data, |e| e.ms_weight as f64),
         });
         summary.l2_data = Some(l2_data);
 
