@@ -28,13 +28,15 @@ const NOTO_SANS_REGULAR: &[u8] = include_bytes!(concat!(
 
 const MAX_COLOR: RGBColor = RGBColor(65, 105, 225);
 const AVERAGE_COLOR: RGBColor = RGBColor(75, 0, 130);
-const COLORS: [RGBColor; 6] = [
+const COLORS: [RGBColor; 8] = [
     RGBColor(220, 38, 38),  // red
     RGBColor(234, 179, 8),  // yellow
     RGBColor(34, 197, 94),  // green
     RGBColor(34, 211, 238), // cyan
     RGBColor(59, 130, 246), // blue
     RGBColor(236, 72, 153), // magenta
+    RGBColor(249, 115, 22), // orange
+    RGBColor(139, 92, 246), // purple
 ];
 
 type Series<T> = (&'static str, fn(&T) -> f64, (f64, f64, f64));
@@ -229,9 +231,15 @@ impl Plotter {
             )?;
         }
 
+        let caption_md = if let Some(l9_mdp) = &summary.l9_mdp {
+            format!("{} - {}", summary.rpu_mastering_meta_str, l9_mdp.join(", "))
+        } else {
+            summary.rpu_mastering_meta_str
+        };
+
         let caption_style = ("sans-serif", 24).into_text_style(&root);
         root.draw_text(&chart_caption, &caption_style, (60, 10))?;
-        root.draw_text(&summary.rpu_mastering_meta_str, &caption_style, (60, 35))?;
+        root.draw_text(&caption_md, &caption_style, (60, 35))?;
         root.draw_text(
             &format!("L6 metadata: {l6_meta_str}"),
             &caption_style,
@@ -378,7 +386,7 @@ impl Plotter {
         let data = summary.l8_data.as_ref().unwrap();
         let stats = summary.l8_stats_trims.as_ref().unwrap();
 
-        let series: [Series<ExtMetadataBlockLevel8>; 6] = [
+        let series: [Series<ExtMetadataBlockLevel8>; 8] = [
             ("slope (gain)", |e| e.trim_slope as f64, stats.slope),
             ("offset (lift)", |e| e.trim_offset as f64, stats.offset),
             ("power (gamma)", |e| e.trim_power as f64, stats.power),
@@ -393,6 +401,16 @@ impl Plotter {
                 stats.saturation,
             ),
             ("ms (weight)", |e| e.ms_weight as f64, stats.ms_weight),
+            (
+                "mid (contrast)",
+                |e| e.target_mid_contrast as f64,
+                stats.target_mid_contrast.unwrap(),
+            ),
+            (
+                "clip (trim)",
+                |e| e.clip_trim as f64,
+                stats.clip_trim.unwrap(),
+            ),
         ];
 
         Self::draw_line_series(chart, data, &series)

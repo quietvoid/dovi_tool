@@ -41,8 +41,8 @@ pub struct RpusListSummary {
     pub l2_stats: Option<SummaryTrimsStats>,
     pub l8_data: Option<Vec<ExtMetadataBlockLevel8>>,
     pub l8_stats_trims: Option<SummaryTrimsStats>,
-    pub l8_stats_saturation: Option<SummaryL8Stats>,
-    pub l8_stats_hue: Option<SummaryL8Stats>,
+    pub l8_stats_saturation: Option<SummaryL8VectorStats>,
+    pub l8_stats_hue: Option<SummaryL8VectorStats>,
 }
 
 pub struct SummaryL1Stats {
@@ -62,9 +62,11 @@ pub struct SummaryTrimsStats {
     pub chroma: (f64, f64, f64),
     pub saturation: (f64, f64, f64),
     pub ms_weight: (f64, f64, f64),
+    pub target_mid_contrast: Option<(f64, f64, f64)>,
+    pub clip_trim: Option<(f64, f64, f64)>,
 }
 
-pub struct SummaryL8Stats {
+pub struct SummaryL8VectorStats {
     pub red: (f64, f64, f64),
     pub yellow: (f64, f64, f64),
     pub green: (f64, f64, f64),
@@ -521,6 +523,8 @@ impl RpusListSummary {
             chroma: Self::min_max_avg(&l2_data, |e| e.trim_chroma_weight as f64),
             saturation: Self::min_max_avg(&l2_data, |e| e.trim_saturation_gain as f64),
             ms_weight: Self::min_max_avg(&l2_data, |e| e.ms_weight as f64),
+            target_mid_contrast: None,
+            clip_trim: None,
         });
         summary.l2_data = Some(l2_data);
 
@@ -558,6 +562,10 @@ impl RpusListSummary {
                 chroma: Self::min_max_avg(l8_data, |e| e.trim_chroma_weight as f64),
                 saturation: Self::min_max_avg(l8_data, |e| e.trim_saturation_gain as f64),
                 ms_weight: Self::min_max_avg(l8_data, |e| e.ms_weight as f64),
+                target_mid_contrast: Some(Self::min_max_avg(l8_data, |e| {
+                    e.target_mid_contrast as f64
+                })),
+                clip_trim: Some(Self::min_max_avg(l8_data, |e| e.clip_trim as f64)),
             });
         }
 
@@ -568,7 +576,7 @@ impl RpusListSummary {
         let mut summary = Self::with_l8_data(rpus)?;
 
         if let Some(l8_data) = summary.l8_data.as_ref() {
-            summary.l8_stats_saturation = Some(SummaryL8Stats {
+            summary.l8_stats_saturation = Some(SummaryL8VectorStats {
                 red: Self::min_max_avg(l8_data, |e| e.saturation_vector_field0 as f64),
                 yellow: Self::min_max_avg(l8_data, |e| e.saturation_vector_field1 as f64),
                 green: Self::min_max_avg(l8_data, |e| e.saturation_vector_field2 as f64),
@@ -585,7 +593,7 @@ impl RpusListSummary {
         let mut summary = Self::with_l8_data(rpus)?;
 
         if let Some(l8_data) = summary.l8_data.as_ref() {
-            summary.l8_stats_hue = Some(SummaryL8Stats {
+            summary.l8_stats_hue = Some(SummaryL8VectorStats {
                 red: Self::min_max_avg(l8_data, |e| e.hue_vector_field0 as f64),
                 yellow: Self::min_max_avg(l8_data, |e| e.hue_vector_field1 as f64),
                 green: Self::min_max_avg(l8_data, |e| e.hue_vector_field2 as f64),
