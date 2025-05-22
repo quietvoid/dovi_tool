@@ -7,7 +7,7 @@ use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::extension_metadata::blocks::{
     ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel2, ExtMetadataBlockLevel5,
-    ExtMetadataBlockLevel6,
+    ExtMetadataBlockLevel6, ExtMetadataBlockLevel8,
 };
 use dolby_vision::rpu::utils::parse_rpu_file;
 use dolby_vision::rpu::vdr_dm_data::CmVersion;
@@ -28,6 +28,7 @@ pub struct RpusListSummary {
     pub profiles_str: String,
     pub dm_version_str: &'static str,
     pub dm_version_counts: Option<(usize, usize)>,
+    pub dmv2: bool,
     pub l6_meta: Option<Vec<String>>,
     pub l5_str: String,
     pub l8_trims: Option<Vec<String>>,
@@ -37,7 +38,11 @@ pub struct RpusListSummary {
     pub l1_stats: SummaryL1Stats,
     pub l2_trims: Vec<String>,
     pub l2_data: Option<Vec<ExtMetadataBlockLevel2>>,
-    pub l2_stats: Option<SummaryL2Stats>,
+    pub l2_stats: Option<SummaryTrimsStats>,
+    pub l8_data: Option<Vec<ExtMetadataBlockLevel8>>,
+    pub l8_stats_trims: Option<SummaryTrimsStats>,
+    pub l8_stats_saturation: Option<SummaryL8Stats>,
+    pub l8_stats_hue: Option<SummaryL8Stats>,
 }
 
 pub struct SummaryL1Stats {
@@ -50,13 +55,22 @@ pub struct SummaryL1Stats {
     pub max_min_nits: f64,
 }
 
-pub struct SummaryL2Stats {
+pub struct SummaryTrimsStats {
     pub slope: (f64, f64, f64),
     pub offset: (f64, f64, f64),
     pub power: (f64, f64, f64),
     pub chroma: (f64, f64, f64),
     pub saturation: (f64, f64, f64),
     pub ms_weight: (f64, f64, f64),
+}
+
+pub struct SummaryL8Stats {
+    pub red: (f64, f64, f64),
+    pub yellow: (f64, f64, f64),
+    pub green: (f64, f64, f64),
+    pub cyan: (f64, f64, f64),
+    pub blue: (f64, f64, f64),
+    pub magenta: (f64, f64, f64),
 }
 
 impl RpuInfo {
@@ -193,12 +207,16 @@ impl RpusListSummary {
             })
             .count();
 
-        let (dm_version_counts, dm_version_str) = if dmv2_count == dmv1_count {
-            (None, "2 (CM v4.0)")
+        let (dm_version_counts, dm_version_str, dmv2) = if dmv2_count == dmv1_count {
+            (None, "2 (CM v4.0)", true)
         } else if dmv2_count == 0 {
-            (None, "1 (CM v2.9)")
+            (None, "1 (CM v2.9)", false)
         } else {
-            (Some((dmv1_count, dmv2_count)), "1 + 2 (CM 2.9 and 4.0)")
+            (
+                Some((dmv1_count, dmv2_count)),
+                "1 + 2 (CM 2.9 and 4.0)",
+                false,
+            )
         };
 
         let scene_count = rpus
@@ -463,6 +481,7 @@ impl RpusListSummary {
             profiles_str,
             dm_version_str,
             dm_version_counts,
+            dmv2,
             l6_meta,
             l5_str,
             l8_trims,
@@ -472,6 +491,10 @@ impl RpusListSummary {
             l2_trims,
             l2_data: None,
             l2_stats: None,
+            l8_data: None,
+            l8_stats_trims: None,
+            l8_stats_saturation: None,
+            l8_stats_hue: None,
         })
     }
 
@@ -491,37 +514,108 @@ impl RpusListSummary {
             })
             .collect();
 
-        fn min_max_avg<F>(data: &[ExtMetadataBlockLevel2], field_extractor: F) -> (f64, f64, f64)
-        where
-            F: Fn(&ExtMetadataBlockLevel2) -> f64,
-        {
-            let mut iter = data.iter().map(field_extractor);
-            let first = iter.next().unwrap();
-            let (mut min, mut max, mut sum) = (first, first, first);
-
-            for v in iter {
-                if v < min {
-                    min = v;
-                }
-                if v > max {
-                    max = v;
-                }
-                sum += v;
-            }
-
-            (min, max, sum / data.len() as f64)
-        }
-
-        summary.l2_stats = Some(SummaryL2Stats {
-            slope: min_max_avg(&l2_data, |e| e.trim_slope as f64),
-            offset: min_max_avg(&l2_data, |e| e.trim_offset as f64),
-            power: min_max_avg(&l2_data, |e| e.trim_power as f64),
-            chroma: min_max_avg(&l2_data, |e| e.trim_chroma_weight as f64),
-            saturation: min_max_avg(&l2_data, |e| e.trim_saturation_gain as f64),
-            ms_weight: min_max_avg(&l2_data, |e| e.ms_weight as f64),
+        summary.l2_stats = Some(SummaryTrimsStats {
+            slope: Self::min_max_avg(&l2_data, |e| e.trim_slope as f64),
+            offset: Self::min_max_avg(&l2_data, |e| e.trim_offset as f64),
+            power: Self::min_max_avg(&l2_data, |e| e.trim_power as f64),
+            chroma: Self::min_max_avg(&l2_data, |e| e.trim_chroma_weight as f64),
+            saturation: Self::min_max_avg(&l2_data, |e| e.trim_saturation_gain as f64),
+            ms_weight: Self::min_max_avg(&l2_data, |e| e.ms_weight as f64),
         });
         summary.l2_data = Some(l2_data);
 
         Ok(summary)
+    }
+
+    fn with_l8_data(rpus: &[DoviRpu]) -> Result<Self> {
+        let mut summary = Self::new(rpus)?;
+
+        let l8_data: Vec<_> = rpus
+            .iter()
+            .map(|rpu| {
+                if let Some(ExtMetadataBlock::Level8(l8)) =
+                    rpu.vdr_dm_data.as_ref().and_then(|dm| dm.get_block(8))
+                {
+                    l8.clone()
+                } else {
+                    ExtMetadataBlockLevel8::default()
+                }
+            })
+            .collect();
+
+        summary.l8_data = Some(l8_data);
+        Ok(summary)
+    }
+
+    pub fn with_l8_trims_data(rpus: &[DoviRpu]) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_trims = Some(SummaryTrimsStats {
+                slope: Self::min_max_avg(l8_data, |e| e.trim_slope as f64),
+                offset: Self::min_max_avg(l8_data, |e| e.trim_offset as f64),
+                power: Self::min_max_avg(l8_data, |e| e.trim_power as f64),
+                chroma: Self::min_max_avg(l8_data, |e| e.trim_chroma_weight as f64),
+                saturation: Self::min_max_avg(l8_data, |e| e.trim_saturation_gain as f64),
+                ms_weight: Self::min_max_avg(l8_data, |e| e.ms_weight as f64),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    pub fn with_l8_saturation_data(rpus: &[DoviRpu]) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_saturation = Some(SummaryL8Stats {
+                red: Self::min_max_avg(l8_data, |e| e.saturation_vector_field0 as f64),
+                yellow: Self::min_max_avg(l8_data, |e| e.saturation_vector_field1 as f64),
+                green: Self::min_max_avg(l8_data, |e| e.saturation_vector_field2 as f64),
+                cyan: Self::min_max_avg(l8_data, |e| e.saturation_vector_field3 as f64),
+                blue: Self::min_max_avg(l8_data, |e| e.saturation_vector_field4 as f64),
+                magenta: Self::min_max_avg(l8_data, |e| e.saturation_vector_field5 as f64),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    pub fn with_l8_hue_data(rpus: &[DoviRpu]) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_hue = Some(SummaryL8Stats {
+                red: Self::min_max_avg(l8_data, |e| e.hue_vector_field0 as f64),
+                yellow: Self::min_max_avg(l8_data, |e| e.hue_vector_field1 as f64),
+                green: Self::min_max_avg(l8_data, |e| e.hue_vector_field2 as f64),
+                cyan: Self::min_max_avg(l8_data, |e| e.hue_vector_field3 as f64),
+                blue: Self::min_max_avg(l8_data, |e| e.hue_vector_field4 as f64),
+                magenta: Self::min_max_avg(l8_data, |e| e.hue_vector_field5 as f64),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    fn min_max_avg<T, F>(data: &[T], field_extractor: F) -> (f64, f64, f64)
+    where
+        F: Fn(&T) -> f64,
+    {
+        let mut iter = data.iter().map(field_extractor);
+        let first = iter.next().unwrap();
+        let (mut min, mut max, mut sum) = (first, first, first);
+
+        for v in iter {
+            if v < min {
+                min = v;
+            }
+            if v > max {
+                max = v;
+            }
+            sum += v;
+        }
+
+        (min, max, sum / data.len() as f64)
     }
 }

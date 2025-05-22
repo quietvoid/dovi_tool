@@ -1,3 +1,4 @@
+use crate::dovi::plotter::PlotType;
 use clap::{Args, ValueHint};
 use std::path::PathBuf;
 
@@ -40,6 +41,12 @@ pub struct PlotArgs {
     #[arg(long, short = 'e', help = "Set frame range end (inclusive)")]
     pub end: Option<usize>,
 
-    #[arg(long, help = "Plot L2 trims metadata instead of L1 dynamic brightness")]
-    pub l2: bool,
+    #[arg(
+        long,
+        short = 'p',
+        help = "Sets the DV metadata level to plot",
+        value_enum,
+        default_value = "l1"
+    )]
+    pub plot_type: PlotType,
 }
