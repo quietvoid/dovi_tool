@@ -148,6 +148,18 @@ impl ExtMetadataBlockLevel8 {
 
         Ok(())
     }
+
+    pub fn trim_target_nits(&self) -> u16 {
+        match self.target_display_index {
+            16 | 18 | 21 => 48,
+            42 => 108,
+            24 | 25 => 300,
+            27 | 28 => 600,
+            48 | 49 => 1000,
+            37 | 38 => 2000,
+            _ => 100,
+        }
+    }
 }
 
 impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {

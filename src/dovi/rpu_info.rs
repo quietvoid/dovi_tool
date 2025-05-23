@@ -1,16 +1,18 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::PathBuf;
 
 use anyhow::{Result, bail, ensure};
-use dolby_vision::rpu::vdr_dm_data::CmVersion;
-use itertools::Itertools;
-
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
+use dolby_vision::rpu::extension_metadata::MasteringDisplayPrimaries;
 use dolby_vision::rpu::extension_metadata::blocks::{
-    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel6,
+    ExtMetadataBlock, ExtMetadataBlockLevel1, ExtMetadataBlockLevel2, ExtMetadataBlockLevel5,
+    ExtMetadataBlockLevel6, ExtMetadataBlockLevel8,
 };
 use dolby_vision::rpu::utils::parse_rpu_file;
-use dolby_vision::utils::pq_to_nits;
+use dolby_vision::rpu::vdr_dm_data::CmVersion;
+use dolby_vision::utils::{nits_to_pq_12_bit, pq_to_nits};
+use itertools::Itertools;
 
 use super::input_from_either;
 use crate::commands::InfoArgs;
@@ -26,11 +28,21 @@ pub struct RpusListSummary {
     pub profiles_str: String,
     pub dm_version_str: &'static str,
     pub dm_version_counts: Option<(usize, usize)>,
+    pub dmv2: bool,
     pub l6_meta: Option<Vec<String>>,
+    pub l5_str: String,
+    pub l8_trims: Option<Vec<String>>,
+    pub l9_mdp: Option<Vec<String>>,
 
     pub l1_data: Vec<(f64, f64, f64)>,
     pub l1_stats: SummaryL1Stats,
     pub l2_trims: Vec<String>,
+    pub l2_data: Option<Vec<ExtMetadataBlockLevel2>>,
+    pub l2_stats: Option<SummaryTrimsStats>,
+    pub l8_data: Option<Vec<ExtMetadataBlockLevel8>>,
+    pub l8_stats_trims: Option<SummaryTrimsStats>,
+    pub l8_stats_saturation: Option<SummaryL8VectorStats>,
+    pub l8_stats_hue: Option<SummaryL8VectorStats>,
 }
 
 pub struct SummaryL1Stats {
@@ -41,6 +53,26 @@ pub struct SummaryL1Stats {
     pub maxfall_avg: f64,
 
     pub max_min_nits: f64,
+}
+
+pub struct SummaryTrimsStats {
+    pub slope: (f64, f64, f64),
+    pub offset: (f64, f64, f64),
+    pub power: (f64, f64, f64),
+    pub chroma: (f64, f64, f64),
+    pub saturation: (f64, f64, f64),
+    pub ms_weight: (f64, f64, f64),
+    pub target_mid_contrast: Option<(f64, f64, f64)>,
+    pub clip_trim: Option<(f64, f64, f64)>,
+}
+
+pub struct SummaryL8VectorStats {
+    pub red: (f64, f64, f64),
+    pub yellow: (f64, f64, f64),
+    pub green: (f64, f64, f64),
+    pub cyan: (f64, f64, f64),
+    pub blue: (f64, f64, f64),
+    pub magenta: (f64, f64, f64),
 }
 
 impl RpuInfo {
@@ -89,6 +121,9 @@ impl RpuInfo {
                 dm_version_str,
                 dm_version_counts,
                 l6_meta,
+                l5_str,
+                l8_trims,
+                l9_mdp,
                 l1_stats,
                 l2_trims,
                 ..
@@ -125,8 +160,18 @@ impl RpuInfo {
                 write!(summary_str, "\n  {final_str}")?;
             }
 
+            write!(summary_str, "\n  L5 offsets: {}", l5_str)?;
+
             if !l2_trims.is_empty() {
                 write!(summary_str, "\n  L2 trims: {}", l2_trims.join(", "))?;
+            }
+
+            if let Some(l8_trims) = l8_trims.filter(|v| !v.is_empty()) {
+                write!(summary_str, "\n  L8 trims: {}", l8_trims.join(", "))?;
+            }
+
+            if let Some(l9_mdp) = l9_mdp.filter(|v| !v.is_empty()) {
+                write!(summary_str, "\n  L9 MDP: {}", l9_mdp.join(", "))?;
             }
 
             println!("\n{summary_str}");
@@ -164,7 +209,8 @@ impl RpusListSummary {
             })
             .count();
 
-        let (dm_version_counts, dm_version_str) = if dmv2_count == dmv1_count {
+        let dmv2 = dmv2_count == dmv1_count;
+        let (dm_version_counts, dm_version_str) = if dmv2 {
             (None, "2 (CM v4.0)")
         } else if dmv2_count == 0 {
             (None, "1 (CM v2.9)")
@@ -333,6 +379,100 @@ impl RpusListSummary {
             .map(|target_nits| format!("{target_nits} nits"))
             .collect();
 
+        let l5_blocks: Vec<_> = rpus
+            .iter()
+            .filter_map(|rpu| {
+                rpu.vdr_dm_data.as_ref()?.get_block(5).and_then(|block| {
+                    if let ExtMetadataBlock::Level5(l5) = block {
+                        Some(l5)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .unique()
+            .collect();
+
+        type L5Mapping = (&'static str, fn(&ExtMetadataBlockLevel5) -> u16);
+        let l5_mappings: [L5Mapping; 4] = [
+            ("top", |l5| l5.active_area_top_offset),
+            ("bottom", |l5| l5.active_area_bottom_offset),
+            ("left", |l5| l5.active_area_left_offset),
+            ("right", |l5| l5.active_area_right_offset),
+        ];
+        let l5_str = l5_mappings
+            .iter()
+            .map(|(area, offset_extractor)| {
+                l5_blocks
+                    .iter()
+                    .map(|l5| offset_extractor(l5))
+                    .minmax()
+                    .into_option()
+                    .map_or(format!("{area}=N/A"), |(min, max)| {
+                        if min == max {
+                            format!("{area}={min}")
+                        } else {
+                            format!("{area}={min}..{max}")
+                        }
+                    })
+            })
+            .join(", ");
+
+        let l8_trims = if dmv2_count > 0 {
+            let l8_trims_str: Vec<String> = rpus
+                .iter()
+                .filter_map(|rpu| {
+                    rpu.vdr_dm_data.as_ref()?.get_block(8).and_then(|block| {
+                        if let ExtMetadataBlock::Level8(l8) = block {
+                            Some(l8.trim_target_nits())
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .unique()
+                .sorted()
+                .map(|target_nits| format!("{target_nits} nits"))
+                .collect();
+
+            Some(l8_trims_str)
+        } else {
+            None
+        };
+
+        let l9_mdp = if dmv2_count > 0 {
+            let l9_mdp_str: Vec<String> = rpus
+                .iter()
+                .filter_map(|rpu| {
+                    rpu.vdr_dm_data.as_ref()?.get_block(9).and_then(|block| {
+                        if let ExtMetadataBlock::Level9(l9) = block {
+                            Some(l9.source_primary_index)
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .fold(HashMap::new(), |mut frames, idx| {
+                    *frames.entry(idx).or_insert(0) += 1;
+                    frames
+                })
+                .into_iter()
+                .sorted_by_key(|e| e.0)
+                .map(|(idx, frames)| {
+                    let alias = MasteringDisplayPrimaries::from(idx).to_string();
+                    if frames < dmv2_count {
+                        format!("{alias} ({frames})")
+                    } else {
+                        alias
+                    }
+                })
+                .collect();
+
+            Some(l9_mdp_str)
+        } else {
+            None
+        };
+
         Ok(Self {
             count: rpus.len(),
             scene_count,
@@ -340,10 +480,158 @@ impl RpusListSummary {
             profiles_str,
             dm_version_str,
             dm_version_counts,
+            dmv2,
             l6_meta,
+            l5_str,
+            l8_trims,
+            l9_mdp,
             l1_data,
             l1_stats,
             l2_trims,
+            l2_data: None,
+            l2_stats: None,
+            l8_data: None,
+            l8_stats_trims: None,
+            l8_stats_saturation: None,
+            l8_stats_hue: None,
         })
+    }
+
+    pub fn with_l2_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::new(rpus)?;
+
+        let target_max_pq = nits_to_pq_12_bit(target_nits.into());
+        let l2_data: Vec<_> = rpus
+            .iter()
+            .map(|rpu| {
+                rpu.vdr_dm_data
+                    .as_ref()
+                    .and_then(|dm| {
+                        dm.level_blocks_iter(2).find_map(|block| match block {
+                            ExtMetadataBlock::Level2(l2) if l2.target_max_pq == target_max_pq => {
+                                Some(l2.clone())
+                            }
+                            _ => None,
+                        })
+                    })
+                    .unwrap_or_default()
+            })
+            .collect();
+
+        summary.l2_stats = Some(SummaryTrimsStats {
+            slope: Self::min_max_avg(&l2_data, |e| e.trim_slope as f64),
+            offset: Self::min_max_avg(&l2_data, |e| e.trim_offset as f64),
+            power: Self::min_max_avg(&l2_data, |e| e.trim_power as f64),
+            chroma: Self::min_max_avg(&l2_data, |e| e.trim_chroma_weight as f64),
+            saturation: Self::min_max_avg(&l2_data, |e| e.trim_saturation_gain as f64),
+            ms_weight: Self::min_max_avg(&l2_data, |e| e.ms_weight as f64),
+            target_mid_contrast: None,
+            clip_trim: None,
+        });
+        summary.l2_data = Some(l2_data);
+
+        Ok(summary)
+    }
+
+    fn with_l8_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::new(rpus)?;
+
+        let l8_data: Vec<_> = rpus
+            .iter()
+            .map(|rpu| {
+                rpu.vdr_dm_data
+                    .as_ref()
+                    .and_then(|dm| {
+                        dm.level_blocks_iter(8).find_map(|block| match block {
+                            ExtMetadataBlock::Level8(l8)
+                                if l8.trim_target_nits() == target_nits =>
+                            {
+                                Some(l8.clone())
+                            }
+                            _ => None,
+                        })
+                    })
+                    .unwrap_or_default()
+            })
+            .collect();
+
+        summary.l8_data = Some(l8_data);
+        Ok(summary)
+    }
+
+    pub fn with_l8_trims_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_trims = Some(SummaryTrimsStats {
+                slope: Self::min_max_avg(l8_data, |e| e.trim_slope as f64),
+                offset: Self::min_max_avg(l8_data, |e| e.trim_offset as f64),
+                power: Self::min_max_avg(l8_data, |e| e.trim_power as f64),
+                chroma: Self::min_max_avg(l8_data, |e| e.trim_chroma_weight as f64),
+                saturation: Self::min_max_avg(l8_data, |e| e.trim_saturation_gain as f64),
+                ms_weight: Self::min_max_avg(l8_data, |e| e.ms_weight as f64),
+                target_mid_contrast: Some(Self::min_max_avg(l8_data, |e| {
+                    e.target_mid_contrast as f64
+                })),
+                clip_trim: Some(Self::min_max_avg(l8_data, |e| e.clip_trim as f64)),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    pub fn with_l8_saturation_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_saturation = Some(SummaryL8VectorStats {
+                red: Self::min_max_avg(l8_data, |e| e.saturation_vector_field0 as f64),
+                yellow: Self::min_max_avg(l8_data, |e| e.saturation_vector_field1 as f64),
+                green: Self::min_max_avg(l8_data, |e| e.saturation_vector_field2 as f64),
+                cyan: Self::min_max_avg(l8_data, |e| e.saturation_vector_field3 as f64),
+                blue: Self::min_max_avg(l8_data, |e| e.saturation_vector_field4 as f64),
+                magenta: Self::min_max_avg(l8_data, |e| e.saturation_vector_field5 as f64),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    pub fn with_l8_hue_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
+
+        if let Some(l8_data) = summary.l8_data.as_ref() {
+            summary.l8_stats_hue = Some(SummaryL8VectorStats {
+                red: Self::min_max_avg(l8_data, |e| e.hue_vector_field0 as f64),
+                yellow: Self::min_max_avg(l8_data, |e| e.hue_vector_field1 as f64),
+                green: Self::min_max_avg(l8_data, |e| e.hue_vector_field2 as f64),
+                cyan: Self::min_max_avg(l8_data, |e| e.hue_vector_field3 as f64),
+                blue: Self::min_max_avg(l8_data, |e| e.hue_vector_field4 as f64),
+                magenta: Self::min_max_avg(l8_data, |e| e.hue_vector_field5 as f64),
+            });
+        }
+
+        Ok(summary)
+    }
+
+    fn min_max_avg<T, F>(data: &[T], field_extractor: F) -> (f64, f64, f64)
+    where
+        F: Fn(&T) -> f64,
+    {
+        let mut iter = data.iter().map(field_extractor);
+        let first = iter.next().unwrap();
+        let (mut min, mut max, mut sum) = (first, first, first);
+
+        for v in iter {
+            if v < min {
+                min = v;
+            }
+            if v > max {
+                max = v;
+            }
+            sum += v;
+        }
+
+        (min, max, sum / data.len() as f64)
     }
 }

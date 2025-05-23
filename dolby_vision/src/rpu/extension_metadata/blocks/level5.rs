@@ -12,7 +12,7 @@ const MAX_RESOLUTION_13_BITS: u16 = 8191;
 
 /// Active area of the picture (letterbox, aspect ratio)
 #[repr(C)]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ExtMetadataBlockLevel5 {
     pub active_area_left_offset: u16,

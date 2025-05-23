@@ -57,7 +57,7 @@ pub enum Commands {
     #[command(about = "Interleaves the enhancement layer into a base layer HEVC bitstream")]
     Mux(MuxArgs),
 
-    #[command(about = "Plot the L1 dynamic brightness metadata")]
+    #[command(about = "Plot the L1/L2/L8 metadata")]
     Plot(PlotArgs),
 
     #[command(about = "Removes the enhancement layer and RPU data from the video")]
