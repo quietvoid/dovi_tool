@@ -11,7 +11,7 @@ use dolby_vision::rpu::extension_metadata::blocks::{
 };
 use dolby_vision::rpu::utils::parse_rpu_file;
 use dolby_vision::rpu::vdr_dm_data::CmVersion;
-use dolby_vision::utils::pq_to_nits;
+use dolby_vision::utils::{nits_to_pq_12_bit, pq_to_nits};
 use itertools::Itertools;
 
 use super::input_from_either;
@@ -209,16 +209,13 @@ impl RpusListSummary {
             })
             .count();
 
-        let (dm_version_counts, dm_version_str, dmv2) = if dmv2_count == dmv1_count {
-            (None, "2 (CM v4.0)", true)
+        let dmv2 = dmv2_count == dmv1_count;
+        let (dm_version_counts, dm_version_str) = if dmv2 {
+            (None, "2 (CM v4.0)")
         } else if dmv2_count == 0 {
-            (None, "1 (CM v2.9)", false)
+            (None, "1 (CM v2.9)")
         } else {
-            (
-                Some((dmv1_count, dmv2_count)),
-                "1 + 2 (CM 2.9 and 4.0)",
-                false,
-            )
+            (Some((dmv1_count, dmv2_count)), "1 + 2 (CM 2.9 and 4.0)")
         };
 
         let scene_count = rpus
@@ -398,10 +395,10 @@ impl RpusListSummary {
 
         type L5Mapping = (&'static str, fn(&ExtMetadataBlockLevel5) -> u16);
         let l5_mappings: [L5Mapping; 4] = [
-            ("TOP", |l5| l5.active_area_top_offset),
-            ("BOTTOM", |l5| l5.active_area_bottom_offset),
-            ("LEFT", |l5| l5.active_area_left_offset),
-            ("RIGHT", |l5| l5.active_area_right_offset),
+            ("top", |l5| l5.active_area_top_offset),
+            ("bottom", |l5| l5.active_area_bottom_offset),
+            ("left", |l5| l5.active_area_left_offset),
+            ("right", |l5| l5.active_area_right_offset),
         ];
         let l5_str = l5_mappings
             .iter()
@@ -411,11 +408,11 @@ impl RpusListSummary {
                     .map(|l5| offset_extractor(l5))
                     .minmax()
                     .into_option()
-                    .map_or(format!("{area}: N/A"), |(min, max)| {
+                    .map_or(format!("{area}=N/A"), |(min, max)| {
                         if min == max {
-                            format!("{area}: {min}")
+                            format!("{area}={min}")
                         } else {
-                            format!("{area}: ({min} - {max})")
+                            format!("{area}={min}..{max}")
                         }
                     })
             })
@@ -500,19 +497,24 @@ impl RpusListSummary {
         })
     }
 
-    pub fn with_l2_data(rpus: &[DoviRpu]) -> Result<Self> {
+    pub fn with_l2_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
         let mut summary = Self::new(rpus)?;
 
+        let target_max_pq = nits_to_pq_12_bit(target_nits.into());
         let l2_data: Vec<_> = rpus
             .iter()
             .map(|rpu| {
-                if let Some(ExtMetadataBlock::Level2(l2)) =
-                    rpu.vdr_dm_data.as_ref().and_then(|dm| dm.get_block(2))
-                {
-                    l2.clone()
-                } else {
-                    ExtMetadataBlockLevel2::default()
-                }
+                rpu.vdr_dm_data
+                    .as_ref()
+                    .and_then(|dm| {
+                        dm.level_blocks_iter(2).find_map(|block| match block {
+                            ExtMetadataBlock::Level2(l2) if l2.target_max_pq == target_max_pq => {
+                                Some(l2.clone())
+                            }
+                            _ => None,
+                        })
+                    })
+                    .unwrap_or_default()
             })
             .collect();
 
@@ -531,19 +533,25 @@ impl RpusListSummary {
         Ok(summary)
     }
 
-    fn with_l8_data(rpus: &[DoviRpu]) -> Result<Self> {
+    fn with_l8_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
         let mut summary = Self::new(rpus)?;
 
         let l8_data: Vec<_> = rpus
             .iter()
             .map(|rpu| {
-                if let Some(ExtMetadataBlock::Level8(l8)) =
-                    rpu.vdr_dm_data.as_ref().and_then(|dm| dm.get_block(8))
-                {
-                    l8.clone()
-                } else {
-                    ExtMetadataBlockLevel8::default()
-                }
+                rpu.vdr_dm_data
+                    .as_ref()
+                    .and_then(|dm| {
+                        dm.level_blocks_iter(8).find_map(|block| match block {
+                            ExtMetadataBlock::Level8(l8)
+                                if l8.trim_target_nits() == target_nits =>
+                            {
+                                Some(l8.clone())
+                            }
+                            _ => None,
+                        })
+                    })
+                    .unwrap_or_default()
             })
             .collect();
 
@@ -551,8 +559,8 @@ impl RpusListSummary {
         Ok(summary)
     }
 
-    pub fn with_l8_trims_data(rpus: &[DoviRpu]) -> Result<Self> {
-        let mut summary = Self::with_l8_data(rpus)?;
+    pub fn with_l8_trims_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
 
         if let Some(l8_data) = summary.l8_data.as_ref() {
             summary.l8_stats_trims = Some(SummaryTrimsStats {
@@ -572,8 +580,8 @@ impl RpusListSummary {
         Ok(summary)
     }
 
-    pub fn with_l8_saturation_data(rpus: &[DoviRpu]) -> Result<Self> {
-        let mut summary = Self::with_l8_data(rpus)?;
+    pub fn with_l8_saturation_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
 
         if let Some(l8_data) = summary.l8_data.as_ref() {
             summary.l8_stats_saturation = Some(SummaryL8VectorStats {
@@ -589,8 +597,8 @@ impl RpusListSummary {
         Ok(summary)
     }
 
-    pub fn with_l8_hue_data(rpus: &[DoviRpu]) -> Result<Self> {
-        let mut summary = Self::with_l8_data(rpus)?;
+    pub fn with_l8_hue_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
+        let mut summary = Self::with_l8_data(rpus, target_nits)?;
 
         if let Some(l8_data) = summary.l8_data.as_ref() {
             summary.l8_stats_hue = Some(SummaryL8VectorStats {

@@ -33,6 +33,12 @@ pub fn nits_to_pq(nits: f64) -> f64 {
         .powf(ST2084_M2)
 }
 
+/// Helper function to calculate PQ codes from nits (cd/m2) values
+#[inline(always)]
+pub fn nits_to_pq_12_bit(nits: f64) -> u16 {
+    (nits_to_pq(nits) * 4095.0).round() as u16
+}
+
 /// Copied from hevc_parser for convenience, and to avoid a dependency
 /// Unescapes a byte slice from annexb.
 /// Allocates a new Vec.

@@ -1,4 +1,4 @@
-use crate::dovi::plotter::PlotType;
+use crate::dovi::plotter::{PlotType, TrimsFilter};
 use clap::{Args, ValueHint};
 use std::path::PathBuf;
 
@@ -49,4 +49,20 @@ pub struct PlotArgs {
         default_value = "l1"
     )]
     pub plot_type: PlotType,
+
+    #[arg(
+        long = "target-nits",
+        help = "Target brightness in nits for L2/L8 plots",
+        default_value = "100",
+        value_parser = ["100", "300", "600", "1000"]
+    )]
+    pub target_nits_str: String,
+
+    #[arg(
+        long,
+        help = "Parameters to exclude from L2/L8 trims plots\nSupports multiple occurrences prefixed by --trims-filter or delimited by ','",
+        value_enum,
+        value_delimiter = ','
+    )]
+    pub trims_filter: Vec<TrimsFilter>,
 }
