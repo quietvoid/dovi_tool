@@ -76,7 +76,7 @@ impl CmXmlParser {
 
                 let source_min_pq =
                     nits_to_pq_12_bit(min_display_mastering_luminance as f64 / 10000.0);
-                let source_max_pq = nits_to_pq_12_bit(max_display_mastering_luminance as f64);
+                let source_max_pq = nits_to_pq_12_bit(max_display_mastering_luminance);
                 parser.config.source_min_pq = Some(source_min_pq);
                 parser.config.source_max_pq = Some(source_max_pq);
 
@@ -576,9 +576,9 @@ impl CmXmlParser {
             "invalid L1 trim: should be 3 values"
         );
 
-        let min_pq = nits_to_pq_12_bit(measurements[0].parse::<f32>().unwrap());
-        let avg_pq = nits_to_pq_12_bit(measurements[1].parse::<f32>().unwrap());
-        let max_pq = nits_to_pq_12_bit(measurements[2].parse::<f32>().unwrap());
+        let min_pq = (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16;
+        let avg_pq = (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16;
+        let max_pq = (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16;
 
         Ok(ExtMetadataBlockLevel1::from_stats_cm_version(
             min_pq,
