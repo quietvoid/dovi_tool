@@ -6,7 +6,7 @@ use bitvec_helpers::{
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::utils::nits_to_pq;
+use crate::utils::nits_to_pq_12_bit;
 
 use super::{ExtMetadataBlock, ExtMetadataBlockInfo, MAX_12_BIT_VALUE};
 
@@ -73,7 +73,7 @@ impl ExtMetadataBlockLevel2 {
 
     pub fn from_nits(target_nits: u16) -> ExtMetadataBlockLevel2 {
         ExtMetadataBlockLevel2 {
-            target_max_pq: (nits_to_pq(target_nits.into()) * 4095.0).round() as u16,
+            target_max_pq: nits_to_pq_12_bit(target_nits),
             ..Default::default()
         }
     }

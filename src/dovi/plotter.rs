@@ -2,9 +2,6 @@ use std::fmt::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 
-use super::input_from_either;
-use super::rpu_info::RpusListSummary;
-use crate::commands::PlotArgs;
 use anyhow::{Result, bail};
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::{
@@ -19,6 +16,10 @@ use plotters::prelude::{
     LineSeries, PathElement, SeriesLabelPosition, WHITE,
 };
 use plotters::style::{BLACK, Color, IntoTextStyle, RGBColor, ShapeStyle};
+
+use super::input_from_either;
+use super::rpu_info::{AggregateStats, RpusListSummary, SummaryTrimsStats};
+use crate::commands::PlotArgs;
 
 #[cfg(not(feature = "system-font"))]
 const NOTO_SANS_REGULAR: &[u8] = include_bytes!(concat!(
@@ -39,10 +40,33 @@ const COLORS: [RGBColor; 8] = [
     RGBColor(139, 92, 246), // purple
 ];
 
-type Series<T> = (&'static str, bool, fn(&T) -> f64, (f64, f64, f64));
+pub struct Plotter {
+    input: PathBuf,
+}
+
+pub struct PlotCoord {
+    key_points: Vec<f64>,
+    range: Range<f64>,
+    mapper: fn(&f64, (i32, i32)) -> i32,
+    formatter: fn(&f64) -> String,
+}
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TrimsFilter {
+pub enum PlotType {
+    /// L1 Dynamic Brightness
+    L1,
+    /// L2 Trims
+    L2,
+    /// L8 Trims (CM v4.0 RPU required)
+    L8,
+    /// L8 Saturation Vectors (CM v4.0 RPU required)
+    L8Saturation,
+    /// L8 Hue Vectors (CM v4.0 RPU required)
+    L8Hue,
+}
+
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrimParameter {
     Slope,
     Offset,
     Power,
@@ -53,87 +77,10 @@ pub enum TrimsFilter {
     Clip,
 }
 
-#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlotType {
-    /// L1 Dynamic Brightness
-    L1,
-    /// L2 Trims
-    L2,
-    /// L8 Trims (CM v4.0 RPU required)
-    L8T,
-    /// L8 Saturation Vectors (CM v4.0 RPU required)
-    L8S,
-    /// L8 Hue Vectors (CM v4.0 RPU required)
-    L8H,
-}
-
-impl PlotType {
-    pub fn name(&self) -> &str {
-        match self {
-            PlotType::L1 => "L1 Dynamic Brightness",
-            PlotType::L2 => "L2 Trims",
-            PlotType::L8T => "L8 Trims",
-            PlotType::L8S => "L8 Saturation Vectors",
-            PlotType::L8H => "L8 Hue Vectors",
-        }
-    }
-
-    pub fn default_title(&self, target_nits: u16) -> String {
-        match self {
-            PlotType::L1 => format!("Dolby Vision {}", self.name()),
-            _ => format!("Dolby Vision {} ({} nits)", self.name(), target_nits),
-        }
-    }
-
-    pub fn default_output(&self, target_nits: u16) -> String {
-        match self {
-            PlotType::L1 => "L1_plot.png".to_string(),
-            PlotType::L2 => format!("L2_plot-{}.png", target_nits),
-            PlotType::L8T => format!("L8-trims_plot-{}.png", target_nits),
-            PlotType::L8S => format!("L8-saturation_plot-{}.png", target_nits),
-            PlotType::L8H => format!("L8-hue_plot-{}.png", target_nits),
-        }
-    }
-
-    pub fn y_desc(&self) -> &str {
-        match self {
-            PlotType::L1 => "nits (cd/m²)",
-            _ => "",
-        }
-    }
-
-    pub fn requires_dmv2(&self) -> bool {
-        !matches!(self, PlotType::L1 | PlotType::L2)
-    }
-
-    pub fn summary(&self, rpus: &[DoviRpu], target_nits: u16) -> Result<RpusListSummary> {
-        match self {
-            PlotType::L1 => RpusListSummary::new(rpus),
-            PlotType::L2 => RpusListSummary::with_l2_data(rpus, target_nits),
-            PlotType::L8T => RpusListSummary::with_l8_trims_data(rpus, target_nits),
-            PlotType::L8S => RpusListSummary::with_l8_saturation_data(rpus, target_nits),
-            PlotType::L8H => RpusListSummary::with_l8_hue_data(rpus, target_nits),
-        }
-    }
-
-    pub fn draw_series(
-        &self,
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
-        summary: &RpusListSummary,
-        trims_filter: &[TrimsFilter],
-    ) -> Result<()> {
-        match self {
-            PlotType::L1 => Plotter::draw_l1_series(chart, summary),
-            PlotType::L2 => Plotter::draw_l2_series(chart, summary, trims_filter),
-            PlotType::L8T => Plotter::draw_l8_trims_series(chart, summary, trims_filter),
-            PlotType::L8S => Plotter::draw_l8_saturation_series(chart, summary),
-            PlotType::L8H => Plotter::draw_l8_hue_series(chart, summary),
-        }
-    }
-}
-
-pub struct Plotter {
-    input: PathBuf,
+struct Series<'a, T> {
+    identifier: &'static str,
+    stats: &'a AggregateStats,
+    mapper: fn(&T) -> f64,
 }
 
 impl Plotter {
@@ -160,7 +107,7 @@ impl Plotter {
             end: end_arg,
             plot_type,
             target_nits_str,
-            trims_filter,
+            trims: trim_params,
         } = args;
 
         let target_nits = target_nits_str.parse::<u16>()?;
@@ -201,7 +148,7 @@ impl Plotter {
             .x_label_area_size(60)
             .y_label_area_size(60)
             .margin_top(90)
-            .build_cartesian_2d(x_spec, PqCoord::from(plot_type))?;
+            .build_cartesian_2d(x_spec, PlotCoord::from(plot_type))?;
 
         chart
             .configure_mesh()
@@ -215,7 +162,7 @@ impl Plotter {
             .y_desc(plot_type.y_desc())
             .draw()?;
 
-        plot_type.draw_series(&mut chart, &summary, &trims_filter)?;
+        plot_type.draw_series(&mut chart, &summary, trim_params)?;
 
         chart
             .configure_series_labels()
@@ -295,7 +242,7 @@ impl Plotter {
     }
 
     fn draw_l1_series(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         summary: &RpusListSummary,
     ) -> Result<()> {
         let data = &summary.l1_data;
@@ -311,19 +258,19 @@ impl Plotter {
         );
 
         let max_series = AreaSeries::new(
-            (0..).zip(data.iter()).map(|(x, y)| (x, y.1)),
+            (0..).zip(data.iter()).map(|(x, y)| (x, y.max)),
             0.0,
             MAX_COLOR.mix(0.25),
         )
         .border_style(MAX_COLOR);
         let avg_series = AreaSeries::new(
-            (0..).zip(data.iter()).map(|(x, y)| (x, y.2)),
+            (0..).zip(data.iter()).map(|(x, y)| (x, y.avg)),
             0.0,
             AVERAGE_COLOR.mix(0.50),
         )
         .border_style(AVERAGE_COLOR);
         let min_series = AreaSeries::new(
-            (0..).zip(data.iter()).map(|(x, y)| (x, y.0)),
+            (0..).zip(data.iter()).map(|(x, y)| (x, y.min)),
             0.0,
             BLACK.mix(0.50),
         )
@@ -373,211 +320,164 @@ impl Plotter {
     }
 
     fn draw_l2_series(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         summary: &RpusListSummary,
-        trims_filter: &[TrimsFilter],
+        mut trim_params: Option<Vec<TrimParameter>>,
     ) -> Result<()> {
         let data = summary.l2_data.as_ref().unwrap();
         let stats = summary.l2_stats.as_ref().unwrap();
 
-        let series: [Series<ExtMetadataBlockLevel2>; 6] = [
-            (
-                "slope (gain)",
-                !trims_filter.contains(&TrimsFilter::Slope),
-                |e| e.trim_slope as f64,
-                stats.slope,
-            ),
-            (
-                "offset (lift)",
-                !trims_filter.contains(&TrimsFilter::Offset),
-                |e| e.trim_offset as f64,
-                stats.offset,
-            ),
-            (
-                "power (gamma)",
-                !trims_filter.contains(&TrimsFilter::Power),
-                |e| e.trim_power as f64,
-                stats.power,
-            ),
-            (
-                "chroma (weight)",
-                !trims_filter.contains(&TrimsFilter::Chroma),
-                |e| e.trim_chroma_weight as f64,
-                stats.chroma,
-            ),
-            (
-                "saturation (gain)",
-                !trims_filter.contains(&TrimsFilter::Saturation),
-                |e| e.trim_saturation_gain as f64,
-                stats.saturation,
-            ),
-            (
-                "ms (weight)",
-                !trims_filter.contains(&TrimsFilter::MS),
-                |e| e.ms_weight as f64,
-                stats.ms_weight,
-            ),
-        ];
+        let default_params = TrimParameter::default_l2_params();
+
+        // Remove invalid params
+        if let Some(trims) = trim_params.as_mut() {
+            trims.retain(|p| default_params.contains(p));
+        }
+
+        let effective_params = if trim_params.as_ref().is_some_and(|v| !v.is_empty()) {
+            trim_params.as_deref().unwrap()
+        } else {
+            default_params
+        };
+
+        let series = effective_params
+            .iter()
+            .map(|param| param.l2_series_config(stats))
+            .collect::<Vec<_>>();
 
         Self::draw_line_series(chart, data, &series)
     }
 
     fn draw_l8_trims_series(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         summary: &RpusListSummary,
-        trims_filter: &[TrimsFilter],
+        trim_params: Option<Vec<TrimParameter>>,
     ) -> Result<()> {
         let data = summary.l8_data.as_ref().unwrap();
         let stats = summary.l8_stats_trims.as_ref().unwrap();
 
-        let series: [Series<ExtMetadataBlockLevel8>; 8] = [
-            (
-                "slope (gain)",
-                !trims_filter.contains(&TrimsFilter::Slope),
-                |e| e.trim_slope as f64,
-                stats.slope,
-            ),
-            (
-                "offset (lift)",
-                !trims_filter.contains(&TrimsFilter::Offset),
-                |e| e.trim_offset as f64,
-                stats.offset,
-            ),
-            (
-                "power (gamma)",
-                !trims_filter.contains(&TrimsFilter::Power),
-                |e| e.trim_power as f64,
-                stats.power,
-            ),
-            (
-                "chroma (weight)",
-                !trims_filter.contains(&TrimsFilter::Chroma),
-                |e| e.trim_chroma_weight as f64,
-                stats.chroma,
-            ),
-            (
-                "saturation (gain)",
-                !trims_filter.contains(&TrimsFilter::Saturation),
-                |e| e.trim_saturation_gain as f64,
-                stats.saturation,
-            ),
-            (
-                "ms (weight)",
-                !trims_filter.contains(&TrimsFilter::MS),
-                |e| e.ms_weight as f64,
-                stats.ms_weight,
-            ),
-            (
-                "mid (contrast)",
-                !trims_filter.contains(&TrimsFilter::Mid),
-                |e| e.target_mid_contrast as f64,
-                stats.target_mid_contrast.unwrap(),
-            ),
-            (
-                "clip (trim)",
-                !trims_filter.contains(&TrimsFilter::Clip),
-                |e| e.clip_trim as f64,
-                stats.clip_trim.unwrap(),
-            ),
-        ];
+        let default_params = TrimParameter::default_l8_params();
+        let effective_params = if trim_params.as_ref().is_some_and(|v| !v.is_empty()) {
+            trim_params.as_deref().unwrap()
+        } else {
+            default_params
+        };
+
+        let series = effective_params
+            .iter()
+            .map(|param| param.l8_series_config(stats))
+            .collect::<Vec<_>>();
 
         Self::draw_line_series(chart, data, &series)
     }
 
     fn draw_l8_saturation_series(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         summary: &RpusListSummary,
     ) -> Result<()> {
         let data = summary.l8_data.as_ref().unwrap();
         let stats = summary.l8_stats_saturation.as_ref().unwrap();
 
         let series: [Series<ExtMetadataBlockLevel8>; 6] = [
-            (
-                "red",
-                true,
-                |e| e.saturation_vector_field0 as f64,
-                stats.red,
-            ),
-            (
-                "yellow",
-                true,
-                |e| e.saturation_vector_field1 as f64,
-                stats.yellow,
-            ),
-            (
-                "green",
-                true,
-                |e| e.saturation_vector_field2 as f64,
-                stats.green,
-            ),
-            (
-                "cyan",
-                true,
-                |e| e.saturation_vector_field3 as f64,
-                stats.cyan,
-            ),
-            (
-                "blue",
-                true,
-                |e| e.saturation_vector_field4 as f64,
-                stats.blue,
-            ),
-            (
-                "magenta",
-                true,
-                |e| e.saturation_vector_field5 as f64,
-                stats.magenta,
-            ),
+            Series {
+                identifier: "red",
+                stats: &stats.red,
+                mapper: |e| e.saturation_vector_field0 as f64,
+            },
+            Series {
+                identifier: "yellow",
+                stats: &stats.yellow,
+                mapper: |e| e.saturation_vector_field1 as f64,
+            },
+            Series {
+                identifier: "green",
+                stats: &stats.green,
+                mapper: |e| e.saturation_vector_field2 as f64,
+            },
+            Series {
+                identifier: "cyan",
+                stats: &stats.cyan,
+                mapper: |e| e.saturation_vector_field3 as f64,
+            },
+            Series {
+                identifier: "blue",
+                stats: &stats.blue,
+                mapper: |e| e.saturation_vector_field4 as f64,
+            },
+            Series {
+                identifier: "magenta",
+                stats: &stats.magenta,
+                mapper: |e| e.saturation_vector_field5 as f64,
+            },
         ];
 
         Self::draw_line_series(chart, data, &series)
     }
 
     fn draw_l8_hue_series(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         summary: &RpusListSummary,
     ) -> Result<()> {
         let data = summary.l8_data.as_ref().unwrap();
         let stats = summary.l8_stats_hue.as_ref().unwrap();
 
         let series: [Series<ExtMetadataBlockLevel8>; 6] = [
-            ("red", true, |e| e.hue_vector_field0 as f64, stats.red),
-            ("yellow", true, |e| e.hue_vector_field1 as f64, stats.yellow),
-            ("green", true, |e| e.hue_vector_field2 as f64, stats.green),
-            ("cyan", true, |e| e.hue_vector_field3 as f64, stats.cyan),
-            ("blue", true, |e| e.hue_vector_field4 as f64, stats.blue),
-            (
-                "magenta",
-                true,
-                |e| e.hue_vector_field5 as f64,
-                stats.magenta,
-            ),
+            Series {
+                identifier: "red",
+                stats: &stats.red,
+                mapper: |e| e.hue_vector_field0 as f64,
+            },
+            Series {
+                identifier: "yellow",
+                stats: &stats.yellow,
+                mapper: |e| e.hue_vector_field1 as f64,
+            },
+            Series {
+                identifier: "green",
+                stats: &stats.green,
+                mapper: |e| e.hue_vector_field2 as f64,
+            },
+            Series {
+                identifier: "cyan",
+                stats: &stats.cyan,
+                mapper: |e| e.hue_vector_field3 as f64,
+            },
+            Series {
+                identifier: "blue",
+                stats: &stats.blue,
+                mapper: |e| e.hue_vector_field4 as f64,
+            },
+            Series {
+                identifier: "magenta",
+                stats: &stats.magenta,
+                mapper: |e| e.hue_vector_field5 as f64,
+            },
         ];
 
         Self::draw_line_series(chart, data, &series)
     }
 
     fn draw_line_series<T>(
-        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PqCoord>>,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
         data: &[T],
         series: &[Series<T>],
     ) -> Result<()> {
-        for ((name, include, field_extractor, stats), color) in series.iter().zip(COLORS.iter()) {
-            if !include {
-                continue;
-            }
+        for (series, color) in series.iter().zip(COLORS.iter()) {
+            let Series {
+                identifier,
+                stats,
+                mapper,
+            } = series;
 
             let label = format!(
-                "{name} (min: {:.0}, max: {:.0}, avg: {:.0})",
-                stats.0, stats.1, stats.2
+                "{identifier} (min: {:.0}, max: {:.0}, avg: {:.0})",
+                stats.min, stats.max, stats.avg
             );
-            let series = LineSeries::new(
-                (0..).zip(data.iter()).map(|(x, y)| (x, field_extractor(y))),
-                color,
-            );
+            let line_series =
+                LineSeries::new((0..).zip(data.iter()).map(|(x, y)| (x, mapper(y))), color);
 
             chart
-                .draw_series(series)?
+                .draw_series(line_series)?
                 .label(label)
                 .legend(move |(x, y)| {
                     PathElement::new(
@@ -595,17 +495,170 @@ impl Plotter {
     }
 }
 
-pub struct PqCoord {
-    key_points: Vec<f64>,
-    range: Range<f64>,
-    mapper: fn(&f64, (i32, i32)) -> i32,
-    formatter: fn(&f64) -> String,
+impl PlotType {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::L1 => "L1 Dynamic Brightness",
+            Self::L2 => "L2 Trims",
+            Self::L8 => "L8 Trims",
+            Self::L8Saturation => "L8 Saturation Vectors",
+            Self::L8Hue => "L8 Hue Vectors",
+        }
+    }
+
+    pub fn default_title(&self, target_nits: u16) -> String {
+        match self {
+            Self::L1 => format!("Dolby Vision {}", self.name()),
+            _ => format!("Dolby Vision {} ({} nits)", self.name(), target_nits),
+        }
+    }
+
+    pub fn default_output(&self, target_nits: u16) -> String {
+        match self {
+            Self::L1 => "L1_plot.png".to_string(),
+            Self::L2 => format!("L2_plot-{}.png", target_nits),
+            Self::L8 => format!("L8-trims_plot-{}.png", target_nits),
+            Self::L8Saturation => format!("L8-saturation_plot-{}.png", target_nits),
+            Self::L8Hue => format!("L8-hue_plot-{}.png", target_nits),
+        }
+    }
+
+    pub fn y_desc(&self) -> &str {
+        match self {
+            Self::L1 => "nits (cd/m²)",
+            _ => "",
+        }
+    }
+
+    pub fn requires_dmv2(&self) -> bool {
+        !matches!(self, Self::L1 | Self::L2)
+    }
+
+    pub fn summary(&self, rpus: &[DoviRpu], target_nits: u16) -> Result<RpusListSummary> {
+        match self {
+            Self::L1 => RpusListSummary::new(rpus),
+            Self::L2 => RpusListSummary::with_l2_data(rpus, target_nits),
+            Self::L8 => RpusListSummary::with_l8_trims_data(rpus, target_nits),
+            Self::L8Saturation => RpusListSummary::with_l8_saturation_data(rpus, target_nits),
+            Self::L8Hue => RpusListSummary::with_l8_hue_data(rpus, target_nits),
+        }
+    }
+
+    pub fn draw_series(
+        &self,
+        chart: &mut ChartContext<BitMapBackend, Cartesian2d<RangedCoordusize, PlotCoord>>,
+        summary: &RpusListSummary,
+        trim_params: Option<Vec<TrimParameter>>,
+    ) -> Result<()> {
+        match self {
+            Self::L1 => Plotter::draw_l1_series(chart, summary),
+            Self::L2 => Plotter::draw_l2_series(chart, summary, trim_params),
+            Self::L8 => Plotter::draw_l8_trims_series(chart, summary, trim_params),
+            Self::L8Saturation => Plotter::draw_l8_saturation_series(chart, summary),
+            Self::L8Hue => Plotter::draw_l8_hue_series(chart, summary),
+        }
+    }
 }
 
-impl From<PlotType> for PqCoord {
+impl TrimParameter {
+    pub const fn identifier(&self) -> &'static str {
+        match self {
+            Self::Slope => "slope (gain)",
+            Self::Offset => "offset (lift)",
+            Self::Power => "power (gamma)",
+            Self::Chroma => "chroma (weight)",
+            Self::Saturation => "saturation (gain)",
+            Self::MS => "ms (weight)",
+            Self::Mid => "mid (contrast)",
+            Self::Clip => "clip (trim)",
+        }
+    }
+
+    pub const fn param_stats<'a>(&self, stats: &'a SummaryTrimsStats) -> &'a AggregateStats {
+        match self {
+            Self::Slope => &stats.slope,
+            Self::Offset => &stats.offset,
+            Self::Power => &stats.power,
+            Self::Chroma => &stats.chroma,
+            Self::Saturation => &stats.saturation,
+            Self::MS => &stats.ms_weight,
+            Self::Mid => stats.target_mid_contrast.as_ref().unwrap(),
+            Self::Clip => stats.clip_trim.as_ref().unwrap(),
+        }
+    }
+
+    pub const fn default_l2_params() -> &'static [Self] {
+        &[
+            Self::Slope,
+            Self::Offset,
+            Self::Power,
+            Self::Chroma,
+            Self::Saturation,
+            Self::MS,
+        ]
+    }
+
+    pub const fn default_l8_params() -> &'static [Self] {
+        &[
+            Self::Slope,
+            Self::Offset,
+            Self::Power,
+            Self::Chroma,
+            Self::Saturation,
+            Self::MS,
+            Self::Mid,
+            Self::Clip,
+        ]
+    }
+
+    const fn l2_series_config<'a>(
+        &self,
+        stats: &'a SummaryTrimsStats,
+    ) -> Series<'a, ExtMetadataBlockLevel2> {
+        let mapper: fn(&ExtMetadataBlockLevel2) -> f64 = match self {
+            Self::Slope => |e| e.trim_slope as f64,
+            Self::Offset => |e| e.trim_offset as f64,
+            Self::Power => |e| e.trim_power as f64,
+            Self::Chroma => |e| e.trim_chroma_weight as f64,
+            Self::Saturation => |e| e.trim_saturation_gain as f64,
+            Self::MS => |e| e.ms_weight as f64,
+            _ => unreachable!(),
+        };
+
+        Series {
+            identifier: self.identifier(),
+            stats: self.param_stats(stats),
+            mapper,
+        }
+    }
+
+    const fn l8_series_config<'a>(
+        &self,
+        stats: &'a SummaryTrimsStats,
+    ) -> Series<'a, ExtMetadataBlockLevel8> {
+        let mapper: fn(&ExtMetadataBlockLevel8) -> f64 = match self {
+            Self::Slope => |e| e.trim_slope as f64,
+            Self::Offset => |e| e.trim_offset as f64,
+            Self::Power => |e| e.trim_power as f64,
+            Self::Chroma => |e| e.trim_chroma_weight as f64,
+            Self::Saturation => |e| e.trim_saturation_gain as f64,
+            Self::MS => |e| e.ms_weight as f64,
+            Self::Mid => |e| e.target_mid_contrast as f64,
+            Self::Clip => |e| e.clip_trim as f64,
+        };
+
+        Series {
+            identifier: self.identifier(),
+            stats: self.param_stats(stats),
+            mapper,
+        }
+    }
+}
+
+impl From<PlotType> for PlotCoord {
     fn from(plot_type: PlotType) -> Self {
         match plot_type {
-            PlotType::L1 => PqCoord {
+            PlotType::L1 => Self {
                 key_points: vec![
                     nits_to_pq(0.01),
                     nits_to_pq(0.1),
@@ -635,7 +688,7 @@ impl From<PlotType> for PqCoord {
                     format!("{nits}")
                 },
             },
-            PlotType::L2 | PlotType::L8T => PqCoord {
+            PlotType::L2 | PlotType::L8 => Self {
                 key_points: vec![
                     0.0, 512.0, 1024.0, 1536.0, 2048.0, 2560.0, 3072.0, 3584.0, 4096.0,
                 ],
@@ -647,7 +700,7 @@ impl From<PlotType> for PqCoord {
                 },
                 formatter: |value| format!("{value}"),
             },
-            PlotType::L8S | PlotType::L8H => PqCoord {
+            PlotType::L8Saturation | PlotType::L8Hue => Self {
                 key_points: vec![0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0, 224.0, 256.0],
                 range: 0_f64..256.0_f64,
                 mapper: |value, limit| {
@@ -661,7 +714,7 @@ impl From<PlotType> for PqCoord {
     }
 }
 
-impl Ranged for PqCoord {
+impl Ranged for PlotCoord {
     type FormatOption = NoDefaultFormatting;
     type ValueType = f64;
 
@@ -678,7 +731,7 @@ impl Ranged for PqCoord {
     }
 }
 
-impl ValueFormatter<f64> for PqCoord {
+impl ValueFormatter<f64> for PlotCoord {
     fn format_ext(&self, value: &f64) -> String {
         (self.formatter)(value)
     }

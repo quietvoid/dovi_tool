@@ -21,6 +21,12 @@ pub struct RpuInfo {
     input: PathBuf,
 }
 
+pub struct AggregateStats {
+    pub min: f64,
+    pub max: f64,
+    pub avg: f64,
+}
+
 pub struct RpusListSummary {
     pub count: usize,
     pub scene_count: usize,
@@ -34,7 +40,7 @@ pub struct RpusListSummary {
     pub l8_trims: Option<Vec<String>>,
     pub l9_mdp: Option<Vec<String>>,
 
-    pub l1_data: Vec<(f64, f64, f64)>,
+    pub l1_data: Vec<AggregateStats>,
     pub l1_stats: SummaryL1Stats,
     pub l2_trims: Vec<String>,
     pub l2_data: Option<Vec<ExtMetadataBlockLevel2>>,
@@ -56,23 +62,23 @@ pub struct SummaryL1Stats {
 }
 
 pub struct SummaryTrimsStats {
-    pub slope: (f64, f64, f64),
-    pub offset: (f64, f64, f64),
-    pub power: (f64, f64, f64),
-    pub chroma: (f64, f64, f64),
-    pub saturation: (f64, f64, f64),
-    pub ms_weight: (f64, f64, f64),
-    pub target_mid_contrast: Option<(f64, f64, f64)>,
-    pub clip_trim: Option<(f64, f64, f64)>,
+    pub slope: AggregateStats,
+    pub offset: AggregateStats,
+    pub power: AggregateStats,
+    pub chroma: AggregateStats,
+    pub saturation: AggregateStats,
+    pub ms_weight: AggregateStats,
+    pub target_mid_contrast: Option<AggregateStats>,
+    pub clip_trim: Option<AggregateStats>,
 }
 
 pub struct SummaryL8VectorStats {
-    pub red: (f64, f64, f64),
-    pub yellow: (f64, f64, f64),
-    pub green: (f64, f64, f64),
-    pub cyan: (f64, f64, f64),
-    pub blue: (f64, f64, f64),
-    pub magenta: (f64, f64, f64),
+    pub red: AggregateStats,
+    pub yellow: AggregateStats,
+    pub green: AggregateStats,
+    pub cyan: AggregateStats,
+    pub blue: AggregateStats,
+    pub magenta: AggregateStats,
 }
 
 impl RpuInfo {
@@ -308,7 +314,7 @@ impl RpusListSummary {
             ExtMetadataBlockLevel1::from_stats_cm_version(0, 0, 0, cm_version),
         );
 
-        let l1_data: Vec<_> = rpus
+        let l1_data = rpus
             .iter()
             .map(|rpu| {
                 let block = rpu
@@ -322,31 +328,36 @@ impl RpusListSummary {
                     let max_pq = (l1.max_pq as f64) / 4095.0;
                     let avg_pq = (l1.avg_pq as f64) / 4095.0;
 
-                    (min_pq, max_pq, avg_pq)
+                    AggregateStats {
+                        min: min_pq,
+                        max: max_pq,
+                        avg: avg_pq,
+                    }
                 } else {
                     unreachable!();
                 }
             })
-            .collect();
-
-        let max_pq_value = l1_data
-            .iter()
-            .map(|e| e.1)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let max_pq_mean_value = l1_data.iter().map(|e| e.1).sum::<f64>() / l1_data.len() as f64;
-        let max_avg_pq_value = l1_data
-            .iter()
-            .map(|e| e.2)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let avg_pq_mean_value = l1_data.iter().map(|e| e.2).sum::<f64>() / l1_data.len() as f64;
+            .collect::<Vec<_>>();
 
         let min_pq_max_value = l1_data
             .iter()
-            .map(|e| e.0)
+            .map(|e| e.min)
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
+
+        let max_pq_value = l1_data
+            .iter()
+            .map(|e| e.max)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let max_pq_mean_value = l1_data.iter().map(|e| e.max).sum::<f64>() / l1_data.len() as f64;
+
+        let max_avg_pq_value = l1_data
+            .iter()
+            .map(|e| e.avg)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let avg_pq_mean_value = l1_data.iter().map(|e| e.avg).sum::<f64>() / l1_data.len() as f64;
 
         let l1_stats = SummaryL1Stats {
             maxcll: pq_to_nits(max_pq_value),
@@ -379,7 +390,7 @@ impl RpusListSummary {
             .map(|target_nits| format!("{target_nits} nits"))
             .collect();
 
-        let l5_blocks: Vec<_> = rpus
+        let l5_blocks = rpus
             .iter()
             .filter_map(|rpu| {
                 rpu.vdr_dm_data.as_ref()?.get_block(5).and_then(|block| {
@@ -391,7 +402,7 @@ impl RpusListSummary {
                 })
             })
             .unique()
-            .collect();
+            .collect::<Vec<_>>();
 
         type L5Mapping = (&'static str, fn(&ExtMetadataBlockLevel5) -> u16);
         let l5_mappings: [L5Mapping; 4] = [
@@ -500,8 +511,8 @@ impl RpusListSummary {
     pub fn with_l2_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
         let mut summary = Self::new(rpus)?;
 
-        let target_max_pq = nits_to_pq_12_bit(target_nits.into());
-        let l2_data: Vec<_> = rpus
+        let target_max_pq = nits_to_pq_12_bit(target_nits);
+        let l2_data = rpus
             .iter()
             .map(|rpu| {
                 rpu.vdr_dm_data
@@ -516,7 +527,7 @@ impl RpusListSummary {
                     })
                     .unwrap_or_default()
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         summary.l2_stats = Some(SummaryTrimsStats {
             slope: Self::min_max_avg(&l2_data, |e| e.trim_slope as f64),
@@ -536,7 +547,7 @@ impl RpusListSummary {
     fn with_l8_data(rpus: &[DoviRpu], target_nits: u16) -> Result<Self> {
         let mut summary = Self::new(rpus)?;
 
-        let l8_data: Vec<_> = rpus
+        let l8_data = rpus
             .iter()
             .map(|rpu| {
                 rpu.vdr_dm_data
@@ -553,7 +564,7 @@ impl RpusListSummary {
                     })
                     .unwrap_or_default()
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         summary.l8_data = Some(l8_data);
         Ok(summary)
@@ -614,7 +625,7 @@ impl RpusListSummary {
         Ok(summary)
     }
 
-    fn min_max_avg<T, F>(data: &[T], field_extractor: F) -> (f64, f64, f64)
+    fn min_max_avg<T, F>(data: &[T], field_extractor: F) -> AggregateStats
     where
         F: Fn(&T) -> f64,
     {
@@ -632,6 +643,10 @@ impl RpusListSummary {
             sum += v;
         }
 
-        (min, max, sum / data.len() as f64)
+        AggregateStats {
+            min,
+            max,
+            avg: sum / data.len() as f64,
+        }
     }
 }

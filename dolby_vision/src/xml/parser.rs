@@ -10,7 +10,7 @@ use std::path::Path;
 use crate::rpu::extension_metadata::{blocks::*, primaries};
 use crate::rpu::generate::{GenerateConfig, ShotFrameEdit, VideoShot};
 use crate::rpu::vdr_dm_data::CmVersion;
-use crate::utils::nits_to_pq;
+use crate::utils::nits_to_pq_12_bit;
 
 use level10::PRESET_TARGET_DISPLAYS;
 use primaries::ColorPrimaries;
@@ -74,11 +74,9 @@ impl CmXmlParser {
                 let (min_display_mastering_luminance, max_display_mastering_luminance) =
                     parser.parse_mastering_display_metadata(&video);
 
-                let source_min_pq = (nits_to_pq(min_display_mastering_luminance as f64 / 10000.0)
-                    * 4095.0)
-                    .round() as u16;
-                let source_max_pq =
-                    (nits_to_pq(max_display_mastering_luminance as f64) * 4095.0).round() as u16;
+                let source_min_pq =
+                    nits_to_pq_12_bit(min_display_mastering_luminance as f64 / 10000.0);
+                let source_max_pq = nits_to_pq_12_bit(max_display_mastering_luminance as f64);
                 parser.config.source_min_pq = Some(source_min_pq);
                 parser.config.source_max_pq = Some(source_max_pq);
 
@@ -542,11 +540,8 @@ impl CmXmlParser {
             let mut block = ExtMetadataBlockLevel10 {
                 length,
                 target_display_index: target.id.parse::<u8>().unwrap(),
-                target_max_pq: min(
-                    4095,
-                    (nits_to_pq(target.peak_nits.into()) * 4095.0).round() as u16,
-                ),
-                target_min_pq: min(4095, (nits_to_pq(target.min_nits) * 4095.0).round() as u16),
+                target_max_pq: min(4095, nits_to_pq_12_bit(target.peak_nits)),
+                target_min_pq: min(4095, nits_to_pq_12_bit(target.min_nits)),
                 target_primary_index: index,
                 ..Default::default()
             };
@@ -581,9 +576,9 @@ impl CmXmlParser {
             "invalid L1 trim: should be 3 values"
         );
 
-        let min_pq = (measurements[0].parse::<f32>().unwrap() * 4095.0).round() as u16;
-        let avg_pq = (measurements[1].parse::<f32>().unwrap() * 4095.0).round() as u16;
-        let max_pq = (measurements[2].parse::<f32>().unwrap() * 4095.0).round() as u16;
+        let min_pq = nits_to_pq_12_bit(measurements[0].parse::<f32>().unwrap());
+        let avg_pq = nits_to_pq_12_bit(measurements[1].parse::<f32>().unwrap());
+        let max_pq = nits_to_pq_12_bit(measurements[2].parse::<f32>().unwrap());
 
         Ok(ExtMetadataBlockLevel1::from_stats_cm_version(
             min_pq,
