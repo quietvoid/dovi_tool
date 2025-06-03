@@ -147,7 +147,7 @@ dovi_tool <SUBCOMMAND> --help
 
 &nbsp;
 * ### **plot**
-    Allows plotting the RPU L1 metadata into a graph.  
+    Allows plotting the RPU metadata into a graph.  
     The output is a PNG image.
 
     **Flags**:
@@ -155,9 +155,23 @@ dovi_tool <SUBCOMMAND> --help
     - `-s`, `--start` Set frame range start
     - `-e`, `--end` Set frame range end (inclusive)
 
+    Plot options:
+    - `-p`, `--plot-type` Sets the DV metadata level to plot [default: `l1`, brightness metadata]  
+        Possible values: `l1`, `l2`, `l8`, `l8-saturation`, `l8-hue`
+
+    - `--target-nits` Target brightness in nits for L2/L8 plots [default: `100`]  
+        Possible values: `100`, `300`, `600`, `1000`, `2000`, `4000`
+
+    - `--trims` Trim parameters to include in L2/L8 trims plots. By default all are included.  
+        Possible values: `slope`, `offset`, `power`, `chroma`, `saturation`, `ms`, `mid`, `clip`  
+        `L8` only: `mid` and `clip`.
+
     **Example**:
     ```console
     dovi_tool plot RPU.bin -t "Dolby Vision L1 plot" -o L1_plot.png
+
+    # L2 plot
+    dovi_tool plot RPU.bin -p l2
     ```
 
 &nbsp;
@@ -257,7 +271,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     Extracts Dolby Vision RPU from an HEVC file.  
     Input file:
     - HEVC bitstream: single track (BL + RPU), single track dual layer (BL+EL+RPU) or an enhancement layer (EL+RPU) video file.
-    - Matroska (experimental): MKV file containing a HEVC video track.
+    - Matroska =: MKV file containing a HEVC video track.
  
     **Supports profiles 4, 5, 7, and 8**.
 
@@ -268,7 +282,7 @@ For working with an HEVC source file, there are multiple options that apply to m
     ```console
     dovi_tool extract-rpu video.hevc
 
-    # Experimental
+    # Directly using MKV file
     dovi_tool extract-rpu video.mkv
     ```
     ```console

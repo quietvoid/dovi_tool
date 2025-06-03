@@ -50,11 +50,6 @@ impl RpuExtractor {
 
     fn process_input(&self, options: CliOptions) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
-
-        if self.format == IoFormat::Matroska {
-            println!("Extractor: Matroska input is experimental!");
-        }
-
         self.extract_rpu_from_el(pb, options)
     }
 
