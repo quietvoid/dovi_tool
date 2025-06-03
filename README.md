@@ -48,7 +48,7 @@ dovi_tool <SUBCOMMAND> --help
 **`dovi_tool`** provides an important set of tools for analyzing, editing and generating Dolby Vision metadata.
 ## **Commands**
 * ### **info**
-    Prints the parsed RPU information.
+    Prints the parsed RPU information.  
     To get the summary, use `--summary` or `-s`.
 
     Using `--frame`: prints the RPU data as JSON for a specific frame.

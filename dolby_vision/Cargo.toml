@@ -54,3 +54,8 @@ harness = false
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(cargo_c)'] }
+
+[profile.release-deploy]
+inherits = "release"
+lto = "thin"
+strip = "symbols"

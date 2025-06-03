@@ -42,3 +42,8 @@ vergen-gitcl = { version = "1.0.8", default-features = false, features = ["build
 default = ["system-font"]
 system-font = ["plotters/ttf"]
 internal-font = ["plotters/ab_glyph"]
+
+[profile.release-deploy]
+inherits = "release"
+lto = "thin"
+strip = "symbols"

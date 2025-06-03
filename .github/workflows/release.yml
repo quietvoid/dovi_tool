@@ -6,6 +6,7 @@ name: Artifacts
 env:
   RELEASE_BIN: dovi_tool
   RELEASE_DIR: artifacts
+  BUILD_PROFILE: release-deploy
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   WINDOWS_ARM_TARGET: aarch64-pc-windows-msvc
   MACOS_X86_TARGET: x86_64-apple-darwin
@@ -30,22 +31,19 @@ jobs:
           rustup target add ${{ env.LINUX_TARGET }}
           rustup target add ${{ env.LINUX_ARM_TARGET }}
 
-          cargo build --release --target ${{ env.LINUX_TARGET }} --no-default-features --features internal-font
+          cargo build --profile ${{ env.BUILD_PROFILE }} --target ${{ env.LINUX_TARGET }} --no-default-features --features internal-font
           cargo build --config "target.${{ env.LINUX_ARM_TARGET }}.linker = 'aarch64-linux-gnu-gcc'" \
-            --release --target ${{ env.LINUX_ARM_TARGET }} --no-default-features --features internal-font
+            --profile ${{ env.BUILD_PROFILE }} --target ${{ env.LINUX_ARM_TARGET }} --no-default-features --features internal-font
 
       - name: Create tarball and checksum
         run: |
           X86_64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_TARGET }}.tar.gz
           AARCH64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.LINUX_ARM_TARGET }}.tar.gz
 
-          strip ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }}
-          aarch64-linux-gnu-strip ./target/${{ env.LINUX_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}
-
-          mv ./target/${{ env.LINUX_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
+          mv ./target/${{ env.LINUX_TARGET }}/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
           tar -cvzf ./${X86_64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
-          mv ./target/${{ env.LINUX_ARM_TARGET }}/release/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
+          mv ./target/${{ env.LINUX_ARM_TARGET }}/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
           tar -cvzf ./${AARCH64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
           python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
@@ -75,11 +73,11 @@ jobs:
         run: |
           rustup target add ${{ env.WINDOWS_ARM_TARGET }}
 
-          cargo build --release
-          cargo build --release --target ${{ env.WINDOWS_ARM_TARGET }}
+          cargo build --profile ${{ env.BUILD_PROFILE }}
+          cargo build --profile ${{ env.BUILD_PROFILE }} --target ${{ env.WINDOWS_ARM_TARGET }}
 
       - name: Build C lib
-        run: cargo cbuild --manifest-path dolby_vision/Cargo.toml --release
+        run: cargo cbuild --manifest-path dolby_vision/Cargo.toml --profile ${{ env.BUILD_PROFILE }} --library-type cdylib
 
       - name: Create zipfile
         shell: bash
@@ -87,13 +85,13 @@ jobs:
           X86_64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_TARGET }}.zip
           AARCH64_ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-${{ env.WINDOWS_ARM_TARGET }}.zip
 
-          mv ./target/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
+          mv ./target/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
           7z a ./${X86_64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
 
-          mv ./target/${{ env.WINDOWS_ARM_TARGET }}/release/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
+          mv ./target/${{ env.WINDOWS_ARM_TARGET }}/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }}.exe ./${{ env.RELEASE_BIN }}.exe
           7z a ./${AARCH64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}.exe
 
-          mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/release/dovi.dll .
+          mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/${{ env.BUILD_PROFILE }}/dovi.dll .
           7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
           python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
@@ -116,17 +114,14 @@ jobs:
         run: |
           rustup target add ${{ env.MACOS_X86_TARGET }}
 
-          cargo build --release
-          cargo build --release --target ${{ env.MACOS_X86_TARGET }}
+          cargo build --profile ${{ env.BUILD_PROFILE }}
+          cargo build --profile ${{ env.BUILD_PROFILE }} --target ${{ env.MACOS_X86_TARGET }}
 
       - name: Create universal macOS binary
         run: |
-          strip ./target/release/${{ env.RELEASE_BIN }}
-          strip ./target/${{ env.MACOS_X86_TARGET }}/release/${{ env.RELEASE_BIN }}
-
           lipo -create \
-            ./target/release/${{ env.RELEASE_BIN }} \
-            ./target/${{ env.MACOS_X86_TARGET }}/release/${{ env.RELEASE_BIN }} \
+            ./target/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }} \
+            ./target/${{ env.MACOS_X86_TARGET }}/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }} \
             -output ./${{ env.RELEASE_BIN }}
 
       - name: Create zipfile
