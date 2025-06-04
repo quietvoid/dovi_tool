@@ -1,3 +1,13 @@
+## 3.3.2
+- `rpu`: fix `write_rpu_data` allocated capacity. Now static and 512 bytes.
+- `RpuDataNlq`: fixed incorrect written data for `linear_deadzone_threshold_int`.
+- Updated edition to `2024`.
+
+C-API:
+- The Rust modules are no longer public.
+  They should not have been used anyways, as they are specific to the `capi` feature.
+  And that feature is only expected to be enabled when building the C compatible lib.
+
 ## 3.3.1
 - Added support for parsing `ext_mapping_idc` in `RpuDataHeader`.
   - `ext_mapping_idc_0_4` represents the 5 lowest bits, and `ext_mapping_idc_5_7` the 3 remaining bits.

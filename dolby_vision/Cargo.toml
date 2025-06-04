@@ -1,6 +1,6 @@
 [package]
 name = "dolby_vision"
-version = "3.3.1"
+version = "3.3.2"
 authors = ["quietvoid"]
 edition = "2024"
 rust-version = "1.85.0"

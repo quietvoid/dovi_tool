@@ -495,7 +495,7 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
 name = "dolby_vision"
-version = "3.3.1"
+version = "3.3.2"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "dovi_tool"
-version = "2.2.0"
+version = "2.3.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
