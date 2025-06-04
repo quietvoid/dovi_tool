@@ -490,7 +490,7 @@ impl EditConfig {
                 .any(|l| CmV40DmData::ALLOWED_BLOCK_LEVELS.contains(l));
 
         for (dst_rpu, src_rpu) in zip_iter {
-            dst_rpu.replace_levels_from_rpu(src_rpu, levels, allow_cmv4_transfer)?;
+            dst_rpu.replace_levels_from_rpu_cmv40(src_rpu, levels, allow_cmv4_transfer)?;
         }
 
         Ok(())

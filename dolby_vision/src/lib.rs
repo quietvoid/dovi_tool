@@ -17,8 +17,8 @@ pub mod xml;
 
 /// C API module
 #[cfg(any(cargo_c, feature = "capi"))]
-pub mod capi;
+mod capi;
 
 /// Structs used and exposed in the C API
 #[cfg(any(cargo_c, feature = "capi"))]
-pub mod c_structs;
+mod c_structs;

@@ -575,26 +575,15 @@ impl DoviRpu {
         Ok(())
     }
 
-    pub fn replace_levels_from_rpu(
-        &mut self,
-        src_rpu: &Self,
-        levels: &Vec<u8>,
-        allow_cmv4_transfer: bool,
-    ) -> Result<()> {
+    /// Replaces metadata levels from `src_rpu`.
+    /// If the RPU doesn't have `cmv40_metadata`, the CM v4.0 levels are ignored and an error may be returned.
+    pub fn replace_levels_from_rpu(&mut self, src_rpu: &Self, levels: &Vec<u8>) -> Result<()> {
         ensure!(!levels.is_empty(), "Must have levels to replace");
 
         if let (Some(dst_vdr_dm_data), Some(src_vdr_dm_data)) =
             (self.vdr_dm_data.as_mut(), src_rpu.vdr_dm_data.as_ref())
         {
             self.modified = true;
-
-            if allow_cmv4_transfer
-                && src_vdr_dm_data.cmv40_metadata.is_some()
-                && dst_vdr_dm_data.cmv40_metadata.is_none()
-            {
-                dst_vdr_dm_data.cmv40_metadata =
-                    Some(DmData::V40(CmV40DmData::new_with_l254_402()));
-            }
 
             for level in levels {
                 dst_vdr_dm_data
@@ -603,5 +592,30 @@ impl DoviRpu {
         }
 
         Ok(())
+    }
+
+    /// Same as `replace_levels_from_rpu` except `cmv40_metadata` is created if allowed.
+    /// Therefore allowing to copy CM v4.0 levels even if the original RPU was CM v2.9 only.
+    pub fn replace_levels_from_rpu_cmv40(
+        &mut self,
+        src_rpu: &Self,
+        levels: &Vec<u8>,
+        allow_cmv4_transfer: bool,
+    ) -> Result<()> {
+        if !allow_cmv4_transfer {
+            return self.replace_levels_from_rpu(src_rpu, levels);
+        }
+
+        let dm_data = self.vdr_dm_data.as_mut().zip(src_rpu.vdr_dm_data.as_ref());
+
+        if let Some((dst_vdr_dm_data, src_vdr_dm_data)) = dm_data {
+            if src_vdr_dm_data.cmv40_metadata.is_some() && dst_vdr_dm_data.cmv40_metadata.is_none()
+            {
+                dst_vdr_dm_data.cmv40_metadata =
+                    Some(DmData::V40(CmV40DmData::new_with_l254_402()));
+            }
+        }
+
+        self.replace_levels_from_rpu(src_rpu, levels)
     }
 }

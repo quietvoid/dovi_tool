@@ -355,7 +355,7 @@ impl VdrDmData {
 
                     Ok(())
                 } else {
-                    bail!("Cannot replace L2 metadata, no CM v4.0 DM data")
+                    bail!("Cannot replace L2 metadata, no CM v2.9 DM data")
                 }
             }
             ExtMetadataBlock::Level3(_) => self.replace_metadata_level(block),
