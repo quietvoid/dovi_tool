@@ -166,7 +166,7 @@ impl RpuInfo {
                 write!(summary_str, "\n  {final_str}")?;
             }
 
-            write!(summary_str, "\n  L5 offsets: {}", l5_str)?;
+            write!(summary_str, "\n  L5 offsets: {l5_str}")?;
 
             if !l2_trims.is_empty() {
                 write!(summary_str, "\n  L2 trims: {}", l2_trims.join(", "))?;

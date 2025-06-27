@@ -516,10 +516,10 @@ impl PlotType {
     pub fn default_output(&self, target_nits: u16) -> String {
         match self {
             Self::L1 => "L1_plot.png".to_string(),
-            Self::L2 => format!("L2_plot-{}.png", target_nits),
-            Self::L8 => format!("L8-trims_plot-{}.png", target_nits),
-            Self::L8Saturation => format!("L8-saturation_plot-{}.png", target_nits),
-            Self::L8Hue => format!("L8-hue_plot-{}.png", target_nits),
+            Self::L2 => format!("L2_plot-{target_nits}.png"),
+            Self::L8 => format!("L8-trims_plot-{target_nits}.png"),
+            Self::L8Saturation => format!("L8-saturation_plot-{target_nits}.png"),
+            Self::L8Hue => format!("L8-hue_plot-{target_nits}.png"),
         }
     }
 

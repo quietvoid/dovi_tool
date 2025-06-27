@@ -80,7 +80,7 @@ impl std::fmt::Display for MasteringDisplayPrimaries {
             Self::SGamut => "S-Gamut",
             Self::SGamut3Cine => "S-Gamut-3.Cine",
         };
-        write!(f, "{}", alias)
+        write!(f, "{alias}")
     }
 }
 
