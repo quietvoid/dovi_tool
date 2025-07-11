@@ -55,15 +55,15 @@ pub struct RpuDataHeader {
 
 impl RpuDataHeader {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<RpuDataHeader> {
-        let rpu_type = reader.get_n(6)?;
+        let rpu_type = reader.read::<6, u8>()?;
         ensure!(rpu_type == 2);
 
-        let rpu_format = reader.get_n(11)?;
+        let rpu_format = reader.read::<11, u16>()?;
 
-        let vdr_rpu_profile = reader.get_n(4)?;
-        let vdr_rpu_level = reader.get_n(4)?;
+        let vdr_rpu_profile = reader.read::<4, u8>()?;
+        let vdr_rpu_level = reader.read::<4, u8>()?;
 
-        let vdr_seq_info_present_flag = reader.get()?;
+        let vdr_seq_info_present_flag = reader.read_bit()?;
 
         let mut header = RpuDataHeader {
             rpu_type,
@@ -75,20 +75,20 @@ impl RpuDataHeader {
         };
 
         if vdr_seq_info_present_flag {
-            header.chroma_resampling_explicit_filter_flag = reader.get()?;
-            header.coefficient_data_type = reader.get_n(2)?;
+            header.chroma_resampling_explicit_filter_flag = reader.read_bit()?;
+            header.coefficient_data_type = reader.read::<2, u8>()?;
 
             if header.coefficient_data_type == 0 {
-                header.coefficient_log2_denom = reader.get_ue()?;
+                header.coefficient_log2_denom = reader.read_ue()?;
             }
 
-            header.vdr_rpu_normalized_idc = reader.get_n(2)?;
-            header.bl_video_full_range_flag = reader.get()?;
+            header.vdr_rpu_normalized_idc = reader.read::<2, u8>()?;
+            header.bl_video_full_range_flag = reader.read_bit()?;
 
             if header.rpu_format & 0x700 == 0 {
-                header.bl_bit_depth_minus8 = reader.get_ue()?;
+                header.bl_bit_depth_minus8 = reader.read_ue()?;
 
-                let el_bit_depth_minus8 = reader.get_ue()?;
+                let el_bit_depth_minus8 = reader.read_ue()?;
                 // 8 lowest bits
                 header.el_bit_depth_minus8 = el_bit_depth_minus8 & 0xFF;
 
@@ -98,11 +98,11 @@ impl RpuDataHeader {
                 header.ext_mapping_idc_0_4 = ext_mapping_idc & 0x1F;
                 header.ext_mapping_idc_5_7 = ext_mapping_idc >> 5;
 
-                header.vdr_bit_depth_minus8 = reader.get_ue()?;
-                header.spatial_resampling_filter_flag = reader.get()?;
-                header.reserved_zero_3bits = reader.get_n(3)?;
-                header.el_spatial_resampling_filter_flag = reader.get()?;
-                header.disable_residual_flag = reader.get()?;
+                header.vdr_bit_depth_minus8 = reader.read_ue()?;
+                header.spatial_resampling_filter_flag = reader.read_bit()?;
+                header.reserved_zero_3bits = reader.read::<3, u8>()?;
+                header.el_spatial_resampling_filter_flag = reader.read_bit()?;
+                header.disable_residual_flag = reader.read_bit()?;
             }
 
             header.coefficient_log2_denom_length = if header.coefficient_data_type == 0 {
@@ -117,11 +117,11 @@ impl RpuDataHeader {
             };
         }
 
-        header.vdr_dm_metadata_present_flag = reader.get()?;
+        header.vdr_dm_metadata_present_flag = reader.read_bit()?;
 
-        header.use_prev_vdr_rpu_flag = reader.get()?;
+        header.use_prev_vdr_rpu_flag = reader.read_bit()?;
         if header.use_prev_vdr_rpu_flag {
-            header.prev_vdr_rpu_id = reader.get_ue()?;
+            header.prev_vdr_rpu_id = reader.read_ue()?;
         }
 
         Ok(header)
@@ -194,45 +194,45 @@ impl RpuDataHeader {
     }
 
     pub fn write_header(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        writer.write_n(&self.rpu_type, 6)?;
-        writer.write_n(&self.rpu_format, 11)?;
+        writer.write::<6, u8>(self.rpu_type)?;
+        writer.write::<11, u16>(self.rpu_format)?;
 
-        writer.write_n(&self.vdr_rpu_profile, 4)?;
-        writer.write_n(&self.vdr_rpu_level, 4)?;
-        writer.write(self.vdr_seq_info_present_flag)?;
+        writer.write::<4, u8>(self.vdr_rpu_profile)?;
+        writer.write::<4, u8>(self.vdr_rpu_level)?;
+        writer.write_bit(self.vdr_seq_info_present_flag)?;
 
         if self.vdr_seq_info_present_flag {
-            writer.write(self.chroma_resampling_explicit_filter_flag)?;
-            writer.write_n(&self.coefficient_data_type, 2)?;
+            writer.write_bit(self.chroma_resampling_explicit_filter_flag)?;
+            writer.write::<2, u8>(self.coefficient_data_type)?;
 
             if self.coefficient_data_type == 0 {
-                writer.write_ue(&self.coefficient_log2_denom)?;
+                writer.write_ue(self.coefficient_log2_denom)?;
             }
 
-            writer.write_n(&self.vdr_rpu_normalized_idc, 2)?;
-            writer.write(self.bl_video_full_range_flag)?;
+            writer.write::<2, u8>(self.vdr_rpu_normalized_idc)?;
+            writer.write_bit(self.bl_video_full_range_flag)?;
 
             if self.rpu_format & 0x700 == 0 {
-                writer.write_ue(&self.bl_bit_depth_minus8)?;
+                writer.write_ue(self.bl_bit_depth_minus8)?;
 
                 let ext_mapping_idc =
                     ((self.ext_mapping_idc_5_7 << 5) | self.ext_mapping_idc_0_4) as u64;
                 let el_bit_depth_minus8 = (ext_mapping_idc << 8) | self.el_bit_depth_minus8;
-                writer.write_ue(&el_bit_depth_minus8)?;
+                writer.write_ue(el_bit_depth_minus8)?;
 
-                writer.write_ue(&self.vdr_bit_depth_minus8)?;
-                writer.write(self.spatial_resampling_filter_flag)?;
-                writer.write_n(&self.reserved_zero_3bits, 3)?;
-                writer.write(self.el_spatial_resampling_filter_flag)?;
-                writer.write(self.disable_residual_flag)?;
+                writer.write_ue(self.vdr_bit_depth_minus8)?;
+                writer.write_bit(self.spatial_resampling_filter_flag)?;
+                writer.write::<3, u8>(self.reserved_zero_3bits)?;
+                writer.write_bit(self.el_spatial_resampling_filter_flag)?;
+                writer.write_bit(self.disable_residual_flag)?;
             }
         }
 
-        writer.write(self.vdr_dm_metadata_present_flag)?;
-        writer.write(self.use_prev_vdr_rpu_flag)?;
+        writer.write_bit(self.vdr_dm_metadata_present_flag)?;
+        writer.write_bit(self.use_prev_vdr_rpu_flag)?;
 
         if self.use_prev_vdr_rpu_flag {
-            writer.write_ue(&self.prev_vdr_rpu_id)?;
+            writer.write_ue(self.prev_vdr_rpu_id)?;
         }
 
         Ok(())

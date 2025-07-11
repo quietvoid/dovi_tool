@@ -1,3 +1,7 @@
+## Unreleased
+
+- `ReservedExtMetadataBlock.data` was replaced by a regular `Vec`.
+
 ## 3.3.2
 - `rpu`: fix `write_rpu_data` allocated capacity. Now static and 512 bytes.
 - `RpuDataNlq`: fixed incorrect written data for `linear_deadzone_threshold_int`.

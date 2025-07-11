@@ -56,40 +56,40 @@ impl ExtMetadataBlockLevel8 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
-            target_display_index: reader.get_n(8)?,
-            trim_slope: reader.get_n(12)?,
-            trim_offset: reader.get_n(12)?,
-            trim_power: reader.get_n(12)?,
-            trim_chroma_weight: reader.get_n(12)?,
-            trim_saturation_gain: reader.get_n(12)?,
-            ms_weight: reader.get_n(12)?,
+            target_display_index: reader.read::<8, u8>()?,
+            trim_slope: reader.read::<12, u16>()?,
+            trim_offset: reader.read::<12, u16>()?,
+            trim_power: reader.read::<12, u16>()?,
+            trim_chroma_weight: reader.read::<12, u16>()?,
+            trim_saturation_gain: reader.read::<12, u16>()?,
+            ms_weight: reader.read::<12, u16>()?,
             ..Default::default()
         };
 
         if length > 10 {
-            block.target_mid_contrast = reader.get_n(12)?;
+            block.target_mid_contrast = reader.read::<12, u16>()?;
         }
 
         if length > 12 {
-            block.clip_trim = reader.get_n(12)?;
+            block.clip_trim = reader.read::<12, u16>()?;
         }
 
         if length > 13 {
-            block.saturation_vector_field0 = reader.get_n(8)?;
-            block.saturation_vector_field1 = reader.get_n(8)?;
-            block.saturation_vector_field2 = reader.get_n(8)?;
-            block.saturation_vector_field3 = reader.get_n(8)?;
-            block.saturation_vector_field4 = reader.get_n(8)?;
-            block.saturation_vector_field5 = reader.get_n(8)?;
+            block.saturation_vector_field0 = reader.read::<8, u8>()?;
+            block.saturation_vector_field1 = reader.read::<8, u8>()?;
+            block.saturation_vector_field2 = reader.read::<8, u8>()?;
+            block.saturation_vector_field3 = reader.read::<8, u8>()?;
+            block.saturation_vector_field4 = reader.read::<8, u8>()?;
+            block.saturation_vector_field5 = reader.read::<8, u8>()?;
         }
 
         if length > 19 {
-            block.hue_vector_field0 = reader.get_n(8)?;
-            block.hue_vector_field1 = reader.get_n(8)?;
-            block.hue_vector_field2 = reader.get_n(8)?;
-            block.hue_vector_field3 = reader.get_n(8)?;
-            block.hue_vector_field4 = reader.get_n(8)?;
-            block.hue_vector_field5 = reader.get_n(8)?;
+            block.hue_vector_field0 = reader.read::<8, u8>()?;
+            block.hue_vector_field1 = reader.read::<8, u8>()?;
+            block.hue_vector_field2 = reader.read::<8, u8>()?;
+            block.hue_vector_field3 = reader.read::<8, u8>()?;
+            block.hue_vector_field4 = reader.read::<8, u8>()?;
+            block.hue_vector_field5 = reader.read::<8, u8>()?;
         }
 
         Ok(ExtMetadataBlock::Level8(block))
@@ -98,39 +98,39 @@ impl ExtMetadataBlockLevel8 {
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_display_index, 8)?;
-        writer.write_n(&self.trim_slope, 12)?;
-        writer.write_n(&self.trim_offset, 12)?;
-        writer.write_n(&self.trim_power, 12)?;
-        writer.write_n(&self.trim_chroma_weight, 12)?;
-        writer.write_n(&self.trim_saturation_gain, 12)?;
-        writer.write_n(&self.ms_weight, 12)?;
+        writer.write::<8, u8>(self.target_display_index)?;
+        writer.write::<12, u16>(self.trim_slope)?;
+        writer.write::<12, u16>(self.trim_offset)?;
+        writer.write::<12, u16>(self.trim_power)?;
+        writer.write::<12, u16>(self.trim_chroma_weight)?;
+        writer.write::<12, u16>(self.trim_saturation_gain)?;
+        writer.write::<12, u16>(self.ms_weight)?;
 
         // Write default values when the fields can not be omitted
         if self.length > 10 {
-            writer.write_n(&self.target_mid_contrast, 12)?;
+            writer.write::<12, u16>(self.target_mid_contrast)?;
         }
 
         if self.length > 12 {
-            writer.write_n(&self.clip_trim, 12)?;
+            writer.write::<12, u16>(self.clip_trim)?;
         }
 
         if self.length > 13 {
-            writer.write_n(&self.saturation_vector_field0, 8)?;
-            writer.write_n(&self.saturation_vector_field1, 8)?;
-            writer.write_n(&self.saturation_vector_field2, 8)?;
-            writer.write_n(&self.saturation_vector_field3, 8)?;
-            writer.write_n(&self.saturation_vector_field4, 8)?;
-            writer.write_n(&self.saturation_vector_field5, 8)?;
+            writer.write::<8, u8>(self.saturation_vector_field0)?;
+            writer.write::<8, u8>(self.saturation_vector_field1)?;
+            writer.write::<8, u8>(self.saturation_vector_field2)?;
+            writer.write::<8, u8>(self.saturation_vector_field3)?;
+            writer.write::<8, u8>(self.saturation_vector_field4)?;
+            writer.write::<8, u8>(self.saturation_vector_field5)?;
         }
 
         if self.length > 19 {
-            writer.write_n(&self.hue_vector_field0, 8)?;
-            writer.write_n(&self.hue_vector_field1, 8)?;
-            writer.write_n(&self.hue_vector_field2, 8)?;
-            writer.write_n(&self.hue_vector_field3, 8)?;
-            writer.write_n(&self.hue_vector_field4, 8)?;
-            writer.write_n(&self.hue_vector_field5, 8)?;
+            writer.write::<8, u8>(self.hue_vector_field0)?;
+            writer.write::<8, u8>(self.hue_vector_field1)?;
+            writer.write::<8, u8>(self.hue_vector_field2)?;
+            writer.write::<8, u8>(self.hue_vector_field3)?;
+            writer.write::<8, u8>(self.hue_vector_field4)?;
+            writer.write::<8, u8>(self.hue_vector_field5)?;
         }
 
         Ok(())

@@ -29,13 +29,13 @@ pub struct ExtMetadataBlockLevel2 {
 impl ExtMetadataBlockLevel2 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         let mut level2 = Self {
-            target_max_pq: reader.get_n(12)?,
-            trim_slope: reader.get_n(12)?,
-            trim_offset: reader.get_n(12)?,
-            trim_power: reader.get_n(12)?,
-            trim_chroma_weight: reader.get_n(12)?,
-            trim_saturation_gain: reader.get_n(12)?,
-            ms_weight: reader.get_n::<u16>(13)? as i16,
+            target_max_pq: reader.read::<12, u16>()?,
+            trim_slope: reader.read::<12, u16>()?,
+            trim_offset: reader.read::<12, u16>()?,
+            trim_power: reader.read::<12, u16>()?,
+            trim_chroma_weight: reader.read::<12, u16>()?,
+            trim_saturation_gain: reader.read::<12, u16>()?,
+            ms_weight: reader.read::<13, i16>()?,
         };
 
         if level2.ms_weight > MAX_12_BIT_VALUE as i16 {
@@ -48,13 +48,13 @@ impl ExtMetadataBlockLevel2 {
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.target_max_pq, 12)?;
-        writer.write_n(&self.trim_slope, 12)?;
-        writer.write_n(&self.trim_offset, 12)?;
-        writer.write_n(&self.trim_power, 12)?;
-        writer.write_n(&self.trim_chroma_weight, 12)?;
-        writer.write_n(&self.trim_saturation_gain, 12)?;
-        writer.write_signed_n(&self.ms_weight, 13)?;
+        writer.write::<12, u16>(self.target_max_pq)?;
+        writer.write::<12, u16>(self.trim_slope)?;
+        writer.write::<12, u16>(self.trim_offset)?;
+        writer.write::<12, u16>(self.trim_power)?;
+        writer.write::<12, u16>(self.trim_chroma_weight)?;
+        writer.write::<12, u16>(self.trim_saturation_gain)?;
+        writer.write::<13, i16>(self.ms_weight)?;
 
         Ok(())
     }

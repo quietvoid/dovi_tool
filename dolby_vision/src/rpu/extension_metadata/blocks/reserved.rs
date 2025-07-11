@@ -1,6 +1,5 @@
 use anyhow::{Result, bail};
 
-use bitvec::{order::Msb0, prelude::BitVec};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -16,11 +15,8 @@ pub struct ReservedExtMetadataBlock {
     pub ext_block_length: u64,
     pub ext_block_level: u8,
 
-    #[cfg_attr(
-        feature = "serde",
-        serde(serialize_with = "crate::utils::bitvec_ser_bits", skip_deserializing)
-    )]
-    pub data: BitVec<u8, Msb0>,
+    #[cfg_attr(feature = "serde", serde(skip_deserializing))]
+    pub data: Vec<u8>,
 }
 
 impl ReservedExtMetadataBlock {
@@ -29,12 +25,8 @@ impl ReservedExtMetadataBlock {
         ext_block_level: u8,
         reader: &mut BsIoSliceReader,
     ) -> Result<ExtMetadataBlock> {
-        let bits = 8 * ext_block_length;
-        let mut data = BitVec::new();
-
-        for _ in 0..bits {
-            data.push(reader.get()?);
-        }
+        let mut data = vec![0; ext_block_length as usize];
+        reader.read_bytes(&mut data)?;
 
         Ok(ExtMetadataBlock::Reserved(Self {
             ext_block_length,
@@ -45,12 +37,10 @@ impl ReservedExtMetadataBlock {
 
     pub fn write(&self, _writer: &mut BitstreamIoWriter) -> Result<()> {
         bail!("Cannot write reserved block");
-        // self.data.iter().for_each(|b| writer.write(*b))?;
     }
 }
 
 impl ExtMetadataBlockInfo for ReservedExtMetadataBlock {
-    // TODO: Level 255 is actually definded for DM debugging purposes, we may add it.
     fn level(&self) -> u8 {
         0
     }
@@ -60,6 +50,6 @@ impl ExtMetadataBlockInfo for ReservedExtMetadataBlock {
     }
 
     fn required_bits(&self) -> u64 {
-        self.data.len() as u64
+        self.ext_block_length * 8
     }
 }

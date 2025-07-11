@@ -29,20 +29,20 @@ impl ST2094_10ItuT35 {
 
         let mut reader = BsIoSliceReader::from_slice(&bytes);
 
-        let itu_t_t35_country_code: u8 = reader.get_n(8)?;
-        let itu_t_t35_provider_code: u16 = reader.get_n(16)?;
+        let itu_t_t35_country_code = reader.read::<8, u8>()?;
+        let itu_t_t35_provider_code = reader.read::<16, u16>()?;
 
         ensure!(itu_t_t35_country_code == 0xB5);
         ensure!(itu_t_t35_provider_code == 0x31);
 
-        let user_identifier: u32 = reader.get_n(32)?;
+        let user_identifier = reader.read::<32, u32>()?;
         ensure!(
             user_identifier == 0x47413934,
             "invalid user_identifier: {}",
             user_identifier
         );
 
-        let user_data_type_code: u8 = reader.get_n(8)?;
+        let user_data_type_code = reader.read::<8, u8>()?;
 
         let meta = match user_data_type_code {
             0x08 => ST2094_10CmData::parse(&mut reader)?,

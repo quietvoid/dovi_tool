@@ -34,18 +34,18 @@ pub struct ExtMetadataBlockLevel1 {
 impl ExtMetadataBlockLevel1 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level1(Self {
-            min_pq: reader.get_n(12)?,
-            max_pq: reader.get_n(12)?,
-            avg_pq: reader.get_n(12)?,
+            min_pq: reader.read::<12, u16>()?,
+            max_pq: reader.read::<12, u16>()?,
+            avg_pq: reader.read::<12, u16>()?,
         }))
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.min_pq, 12)?;
-        writer.write_n(&self.max_pq, 12)?;
-        writer.write_n(&self.avg_pq, 12)?;
+        writer.write::<12, u16>(self.min_pq)?;
+        writer.write::<12, u16>(self.max_pq)?;
+        writer.write::<12, u16>(self.avg_pq)?;
 
         Ok(())
     }

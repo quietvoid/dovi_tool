@@ -21,14 +21,14 @@ pub struct ExtMetadataBlockLevel254 {
 impl ExtMetadataBlockLevel254 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level254(Self {
-            dm_mode: reader.get_n(8)?,
-            dm_version_index: reader.get_n(8)?,
+            dm_mode: reader.read::<8, u8>()?,
+            dm_version_index: reader.read::<8, u8>()?,
         }))
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        writer.write_n(&self.dm_mode, 8)?;
-        writer.write_n(&self.dm_version_index, 8)?;
+        writer.write::<8, u8>(self.dm_mode)?;
+        writer.write::<8, u8>(self.dm_version_index)?;
 
         Ok(())
     }

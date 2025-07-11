@@ -26,22 +26,22 @@ pub struct ExtMetadataBlockLevel255 {
 impl ExtMetadataBlockLevel255 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level255(Self {
-            dm_run_mode: reader.get_n(8)?,
-            dm_run_version: reader.get_n(8)?,
-            dm_debug0: reader.get_n(8)?,
-            dm_debug1: reader.get_n(8)?,
-            dm_debug2: reader.get_n(8)?,
-            dm_debug3: reader.get_n(8)?,
+            dm_run_mode: reader.read::<8, u8>()?,
+            dm_run_version: reader.read::<8, u8>()?,
+            dm_debug0: reader.read::<8, u8>()?,
+            dm_debug1: reader.read::<8, u8>()?,
+            dm_debug2: reader.read::<8, u8>()?,
+            dm_debug3: reader.read::<8, u8>()?,
         }))
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        writer.write_n(&self.dm_run_mode, 8)?;
-        writer.write_n(&self.dm_run_version, 8)?;
-        writer.write_n(&self.dm_debug0, 8)?;
-        writer.write_n(&self.dm_debug1, 8)?;
-        writer.write_n(&self.dm_debug2, 8)?;
-        writer.write_n(&self.dm_debug3, 8)?;
+        writer.write::<8, u8>(self.dm_run_mode)?;
+        writer.write::<8, u8>(self.dm_run_version)?;
+        writer.write::<8, u8>(self.dm_debug0)?;
+        writer.write::<8, u8>(self.dm_debug1)?;
+        writer.write::<8, u8>(self.dm_debug2)?;
+        writer.write::<8, u8>(self.dm_debug3)?;
 
         Ok(())
     }

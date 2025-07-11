@@ -60,19 +60,19 @@ impl ExtMetadataBlockLevel9 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
         let mut block = Self {
             length,
-            source_primary_index: reader.get_n(8)?,
+            source_primary_index: reader.read::<8, u8>()?,
             ..Default::default()
         };
 
         if length > 1 {
-            block.source_primary_red_x = reader.get_n(16)?;
-            block.source_primary_red_y = reader.get_n(16)?;
-            block.source_primary_green_x = reader.get_n(16)?;
-            block.source_primary_green_y = reader.get_n(16)?;
-            block.source_primary_blue_x = reader.get_n(16)?;
-            block.source_primary_blue_y = reader.get_n(16)?;
-            block.source_primary_white_x = reader.get_n(16)?;
-            block.source_primary_white_y = reader.get_n(16)?;
+            block.source_primary_red_x = reader.read::<16, u16>()?;
+            block.source_primary_red_y = reader.read::<16, u16>()?;
+            block.source_primary_green_x = reader.read::<16, u16>()?;
+            block.source_primary_green_y = reader.read::<16, u16>()?;
+            block.source_primary_blue_x = reader.read::<16, u16>()?;
+            block.source_primary_blue_y = reader.read::<16, u16>()?;
+            block.source_primary_white_x = reader.read::<16, u16>()?;
+            block.source_primary_white_y = reader.read::<16, u16>()?;
         }
 
         Ok(ExtMetadataBlock::Level9(block))
@@ -81,17 +81,17 @@ impl ExtMetadataBlockLevel9 {
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.source_primary_index, 8)?;
+        writer.write::<8, u8>(self.source_primary_index)?;
 
         if self.length > 1 {
-            writer.write_n(&self.source_primary_red_x, 16)?;
-            writer.write_n(&self.source_primary_red_y, 16)?;
-            writer.write_n(&self.source_primary_green_x, 16)?;
-            writer.write_n(&self.source_primary_green_y, 16)?;
-            writer.write_n(&self.source_primary_blue_x, 16)?;
-            writer.write_n(&self.source_primary_blue_y, 16)?;
-            writer.write_n(&self.source_primary_white_x, 16)?;
-            writer.write_n(&self.source_primary_white_y, 16)?;
+            writer.write::<16, u16>(self.source_primary_red_x)?;
+            writer.write::<16, u16>(self.source_primary_red_y)?;
+            writer.write::<16, u16>(self.source_primary_green_x)?;
+            writer.write::<16, u16>(self.source_primary_green_y)?;
+            writer.write::<16, u16>(self.source_primary_blue_x)?;
+            writer.write::<16, u16>(self.source_primary_blue_y)?;
+            writer.write::<16, u16>(self.source_primary_white_x)?;
+            writer.write::<16, u16>(self.source_primary_white_y)?;
         }
 
         Ok(())

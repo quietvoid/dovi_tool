@@ -77,16 +77,6 @@ pub fn add_start_code_emulation_prevention_3_byte(data: &mut Vec<u8>) {
     }
 }
 
-/// Serializing a bitvec as a vec of bits
-#[cfg(feature = "serde")]
-pub(crate) fn bitvec_ser_bits<S: Serializer>(
-    bitvec: &BitVec<u8, Msb0>,
-    s: S,
-) -> Result<S::Ok, S::Error> {
-    let bits: Vec<u8> = bitvec.iter().map(|b| *b as u8).collect();
-    bits.serialize(s)
-}
-
 /// Serializing an optional bitvec as a vec of bits
 #[cfg(feature = "serde")]
 pub(crate) fn opt_bitvec_ser_bits<S: Serializer>(

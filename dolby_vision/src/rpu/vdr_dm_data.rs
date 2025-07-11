@@ -87,9 +87,9 @@ pub(crate) fn vdr_dm_data_payload(
         VdrDmData {
             compressed: true,
 
-            affected_dm_metadata_id: reader.get_ue()?,
-            current_dm_metadata_id: reader.get_ue()?,
-            scene_refresh_flag: reader.get_ue()?,
+            affected_dm_metadata_id: reader.read_ue()?,
+            current_dm_metadata_id: reader.read_ue()?,
+            scene_refresh_flag: reader.read_ue()?,
             ..Default::default()
         }
     } else {
@@ -112,44 +112,44 @@ pub(crate) fn vdr_dm_data_payload(
 impl VdrDmData {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<VdrDmData> {
         let data = VdrDmData {
-            affected_dm_metadata_id: reader.get_ue()?,
-            current_dm_metadata_id: reader.get_ue()?,
-            scene_refresh_flag: reader.get_ue()?,
+            affected_dm_metadata_id: reader.read_ue()?,
+            current_dm_metadata_id: reader.read_ue()?,
+            scene_refresh_flag: reader.read_ue()?,
 
-            ycc_to_rgb_coef0: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef1: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef2: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef3: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef4: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef5: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef6: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef7: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_coef8: reader.get_n::<u16>(16)? as i16,
-            ycc_to_rgb_offset0: reader.get_n(32)?,
-            ycc_to_rgb_offset1: reader.get_n(32)?,
-            ycc_to_rgb_offset2: reader.get_n(32)?,
+            ycc_to_rgb_coef0: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef1: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef2: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef3: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef4: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef5: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef6: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef7: reader.read::<16, i16>()?,
+            ycc_to_rgb_coef8: reader.read::<16, i16>()?,
+            ycc_to_rgb_offset0: reader.read::<32, u32>()?,
+            ycc_to_rgb_offset1: reader.read::<32, u32>()?,
+            ycc_to_rgb_offset2: reader.read::<32, u32>()?,
 
-            rgb_to_lms_coef0: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef1: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef2: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef3: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef4: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef5: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef6: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef7: reader.get_n::<u16>(16)? as i16,
-            rgb_to_lms_coef8: reader.get_n::<u16>(16)? as i16,
+            rgb_to_lms_coef0: reader.read::<16, i16>()?,
+            rgb_to_lms_coef1: reader.read::<16, i16>()?,
+            rgb_to_lms_coef2: reader.read::<16, i16>()?,
+            rgb_to_lms_coef3: reader.read::<16, i16>()?,
+            rgb_to_lms_coef4: reader.read::<16, i16>()?,
+            rgb_to_lms_coef5: reader.read::<16, i16>()?,
+            rgb_to_lms_coef6: reader.read::<16, i16>()?,
+            rgb_to_lms_coef7: reader.read::<16, i16>()?,
+            rgb_to_lms_coef8: reader.read::<16, i16>()?,
 
-            signal_eotf: reader.get_n(16)?,
-            signal_eotf_param0: reader.get_n(16)?,
-            signal_eotf_param1: reader.get_n(16)?,
-            signal_eotf_param2: reader.get_n(32)?,
-            signal_bit_depth: reader.get_n(5)?,
-            signal_color_space: reader.get_n(2)?,
-            signal_chroma_format: reader.get_n(2)?,
-            signal_full_range_flag: reader.get_n(2)?,
-            source_min_pq: reader.get_n(12)?,
-            source_max_pq: reader.get_n(12)?,
-            source_diagonal: reader.get_n(10)?,
+            signal_eotf: reader.read::<16, u16>()?,
+            signal_eotf_param0: reader.read::<16, u16>()?,
+            signal_eotf_param1: reader.read::<16, u16>()?,
+            signal_eotf_param2: reader.read::<32, u32>()?,
+            signal_bit_depth: reader.read::<5, u8>()?,
+            signal_color_space: reader.read::<2, u8>()?,
+            signal_chroma_format: reader.read::<2, u8>()?,
+            signal_full_range_flag: reader.read::<2, u8>()?,
+            source_min_pq: reader.read::<12, u16>()?,
+            source_max_pq: reader.read::<12, u16>()?,
+            source_diagonal: reader.read::<10, u16>()?,
             ..Default::default()
         };
 
@@ -189,48 +189,48 @@ impl VdrDmData {
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        writer.write_ue(&self.affected_dm_metadata_id)?;
-        writer.write_ue(&self.current_dm_metadata_id)?;
-        writer.write_ue(&self.scene_refresh_flag)?;
+        writer.write_ue(self.affected_dm_metadata_id)?;
+        writer.write_ue(self.current_dm_metadata_id)?;
+        writer.write_ue(self.scene_refresh_flag)?;
 
         if !self.compressed {
-            writer.write_signed_n(&self.ycc_to_rgb_coef0, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef1, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef2, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef3, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef4, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef5, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef6, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef7, 16)?;
-            writer.write_signed_n(&self.ycc_to_rgb_coef8, 16)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef0)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef1)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef2)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef3)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef4)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef5)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef6)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef7)?;
+            writer.write::<16, i16>(self.ycc_to_rgb_coef8)?;
 
-            writer.write_n(&self.ycc_to_rgb_offset0, 32)?;
-            writer.write_n(&self.ycc_to_rgb_offset1, 32)?;
-            writer.write_n(&self.ycc_to_rgb_offset2, 32)?;
+            writer.write::<32, u32>(self.ycc_to_rgb_offset0)?;
+            writer.write::<32, u32>(self.ycc_to_rgb_offset1)?;
+            writer.write::<32, u32>(self.ycc_to_rgb_offset2)?;
 
-            writer.write_signed_n(&self.rgb_to_lms_coef0, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef1, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef2, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef3, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef4, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef5, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef6, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef7, 16)?;
-            writer.write_signed_n(&self.rgb_to_lms_coef8, 16)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef0)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef1)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef2)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef3)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef4)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef5)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef6)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef7)?;
+            writer.write::<16, i16>(self.rgb_to_lms_coef8)?;
 
-            writer.write_n(&self.signal_eotf, 16)?;
-            writer.write_n(&self.signal_eotf_param0, 16)?;
-            writer.write_n(&self.signal_eotf_param1, 16)?;
-            writer.write_n(&self.signal_eotf_param2, 32)?;
+            writer.write::<16, u16>(self.signal_eotf)?;
+            writer.write::<16, u16>(self.signal_eotf_param0)?;
+            writer.write::<16, u16>(self.signal_eotf_param1)?;
+            writer.write::<32, u32>(self.signal_eotf_param2)?;
 
-            writer.write_n(&self.signal_bit_depth, 5)?;
-            writer.write_n(&self.signal_color_space, 2)?;
-            writer.write_n(&self.signal_chroma_format, 2)?;
-            writer.write_n(&self.signal_full_range_flag, 2)?;
+            writer.write::<5, u8>(self.signal_bit_depth)?;
+            writer.write::<2, u8>(self.signal_color_space)?;
+            writer.write::<2, u8>(self.signal_chroma_format)?;
+            writer.write::<2, u8>(self.signal_full_range_flag)?;
 
-            writer.write_n(&self.source_min_pq, 12)?;
-            writer.write_n(&self.source_max_pq, 12)?;
-            writer.write_n(&self.source_diagonal, 10)?;
+            writer.write::<12, u16>(self.source_min_pq)?;
+            writer.write::<12, u16>(self.source_max_pq)?;
+            writer.write::<10, u16>(self.source_diagonal)?;
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {

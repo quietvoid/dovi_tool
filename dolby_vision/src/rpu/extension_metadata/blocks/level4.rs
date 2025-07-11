@@ -20,16 +20,16 @@ pub struct ExtMetadataBlockLevel4 {
 impl ExtMetadataBlockLevel4 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level4(Self {
-            anchor_pq: reader.get_n(12)?,
-            anchor_power: reader.get_n(12)?,
+            anchor_pq: reader.read::<12, u16>()?,
+            anchor_power: reader.read::<12, u16>()?,
         }))
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.anchor_pq, 12)?;
-        writer.write_n(&self.anchor_power, 12)?;
+        writer.write::<12, u16>(self.anchor_pq)?;
+        writer.write::<12, u16>(self.anchor_power)?;
 
         Ok(())
     }

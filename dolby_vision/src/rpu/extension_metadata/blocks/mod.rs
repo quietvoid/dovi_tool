@@ -216,7 +216,7 @@ impl ExtMetadataBlock {
 
         for _ in 0..ext_block_use_bits {
             ensure!(
-                !reader.get()?,
+                !reader.read_bit()?,
                 format!("{}: ext_dm_alignment_zero_bit != 0", T::VERSION)
             );
         }

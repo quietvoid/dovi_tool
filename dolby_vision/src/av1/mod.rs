@@ -52,19 +52,17 @@ pub(crate) fn av1_validated_trimmed_data(data: &[u8]) -> Result<&[u8]> {
 pub(crate) fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>> {
     let mut reader = BsIoSliceReader::from_slice(data);
 
-    let itu_t_t35_terminal_provider_code = reader.get_n::<u16>(16)?;
+    let itu_t_t35_terminal_provider_code = reader.read::<16, u16>()?;
     ensure!(itu_t_t35_terminal_provider_code == 0x3B);
 
-    let itu_t_t35_terminal_provider_oriented_code = reader.get_n::<u32>(32)?;
+    let itu_t_t35_terminal_provider_oriented_code = reader.read::<32, u32>()?;
     ensure!(itu_t_t35_terminal_provider_oriented_code == 0x800);
 
     let emdf_payload_size = parse_emdf_container(&mut reader)?;
-    let mut converted_buf = Vec::with_capacity(emdf_payload_size + 1);
-    converted_buf.push(0x19);
+    let mut converted_buf = vec![0; emdf_payload_size + 1];
+    converted_buf[0] = 0x19;
 
-    for _ in 0..emdf_payload_size {
-        converted_buf.push(reader.get_n(8)?);
-    }
+    reader.read_bytes(&mut converted_buf[1..])?;
 
     Ok(converted_buf)
 }
@@ -92,13 +90,13 @@ pub fn convert_regular_rpu_to_av1_payload(data: &[u8]) -> Result<Vec<u8>> {
 
     let mut writer = BitstreamIoWriter::with_capacity(capacity * 2);
 
-    writer.write_n(&0x3B, 16)?; // itu_t_t35_terminal_provider_code
-    writer.write_n(&0x800, 32)?; // itu_t_t35_terminal_provider_oriented_code
+    writer.write_const::<16, 0x003B>()?; // itu_t_t35_terminal_provider_code
+    writer.write_const::<32, 0x800>()?; // itu_t_t35_terminal_provider_oriented_code
 
     write_emdf_container_with_dovi_rpu_payload(&mut writer, data)?;
 
-    while !writer.is_aligned() {
-        writer.write(true)?;
+    while !writer.byte_aligned() {
+        writer.write_bit(true)?;
     }
 
     Ok(writer.into_inner())

@@ -42,8 +42,8 @@ impl WithExtMetadataBlocks for CmV40DmData {
     }
 
     fn parse_block(&mut self, reader: &mut BsIoSliceReader) -> Result<()> {
-        let ext_block_length = reader.get_ue()?;
-        let ext_block_level: u8 = reader.get_n(8)?;
+        let ext_block_length = reader.read_ue()?;
+        let ext_block_level: u8 = reader.read::<8, u8>()?;
 
         let ext_metadata_block = match ext_block_level {
             3 => level3::ExtMetadataBlockLevel3::parse(reader)?,

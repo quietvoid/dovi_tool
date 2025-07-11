@@ -82,7 +82,7 @@ pub trait WithExtMetadataBlocks {
     fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         let num_ext_blocks = self.num_ext_blocks();
 
-        writer.write_ue(&num_ext_blocks)?;
+        writer.write_ue(num_ext_blocks)?;
 
         // dm_alignment_zero_bit
         writer.byte_align()?;
@@ -91,17 +91,15 @@ pub trait WithExtMetadataBlocks {
 
         for ext_metadata_block in ext_metadata_blocks {
             let remaining_bits =
-                ext_metadata_block.length_bits() - ext_metadata_block.required_bits();
+                (ext_metadata_block.length_bits() - ext_metadata_block.required_bits()) as u32;
 
-            writer.write_ue(&ext_metadata_block.length_bytes())?;
-            writer.write_n(&ext_metadata_block.level(), 8)?;
+            writer.write_ue(ext_metadata_block.length_bytes())?;
+            writer.write::<8, u8>(ext_metadata_block.level())?;
 
             ext_metadata_block.write(writer)?;
 
             // ext_dm_alignment_zero_bit
-            for _ in 0..remaining_bits {
-                writer.write(false)?;
-            }
+            writer.pad(remaining_bits)?;
         }
 
         Ok(())
@@ -112,14 +110,14 @@ impl DmData {
     pub(crate) fn parse<T: WithExtMetadataBlocks + Default>(
         reader: &mut BsIoSliceReader,
     ) -> Result<Option<T>> {
-        let num_ext_blocks = reader.get_ue()?;
+        let num_ext_blocks = reader.read_ue()?;
         let mut meta = T::with_blocks_allocation(num_ext_blocks);
 
         meta.set_num_ext_blocks(num_ext_blocks);
 
-        while !reader.is_aligned() {
+        while !reader.byte_aligned() {
             ensure!(
-                !reader.get()?,
+                !reader.read_bit()?,
                 format!("{}: dm_alignment_zero_bit != 0", T::VERSION)
             );
         }

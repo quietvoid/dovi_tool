@@ -150,7 +150,7 @@ impl DoviRpu {
     fn read_rpu_data(bytes: &[u8]) -> Result<DoviRpu> {
         let mut reader = BsIoSliceReader::from_slice(bytes);
 
-        let rpu_prefix = reader.get_n(8)?;
+        let rpu_prefix = reader.read::<8, u8>()?;
         ensure!(rpu_prefix == 25, "rpu_nal_prefix should be 25");
 
         let mut header = RpuDataHeader::parse(&mut reader)?;
@@ -183,8 +183,8 @@ impl DoviRpu {
         };
 
         // rpu_alignment_zero_bit
-        while !reader.is_aligned() {
-            ensure!(!reader.get()?, "rpu_alignment_zero_bit != 0");
+        while !reader.byte_aligned() {
+            ensure!(!reader.read_bit()?, "rpu_alignment_zero_bit != 0");
         }
 
         // CRC32 is at the end, there can be more data in between
@@ -192,7 +192,7 @@ impl DoviRpu {
             let mut remaining: BitVec<u8, Msb0> = BitVec::new();
 
             while reader.available()? != CRC32_TERMINATOR_BITS {
-                remaining.push(reader.get()?);
+                remaining.push(reader.read_bit()?);
             }
 
             Some(remaining)
@@ -200,8 +200,8 @@ impl DoviRpu {
             None
         };
 
-        let rpu_data_crc32 = reader.get_n(32)?;
-        let last_byte: u8 = reader.get_n(8)?;
+        let rpu_data_crc32 = reader.read::<32, u32>()?;
+        let last_byte = reader.read::<8, u8>()?;
         ensure!(last_byte == FINAL_BYTE, "last byte should be 0x80");
 
         Ok(DoviRpu {
@@ -251,7 +251,7 @@ impl DoviRpu {
         self.validate()?;
 
         // RPU prefix
-        writer.write_n(&0x19, 8)?;
+        writer.write_const::<8, 0x19>()?;
 
         let header = &self.header;
         header.write_header(&mut writer)?;
@@ -271,8 +271,8 @@ impl DoviRpu {
         }
 
         if let Some(remaining) = &self.remaining {
-            for b in remaining {
-                writer.write(*b)?;
+            for b in remaining.iter().by_vals() {
+                writer.write_bit(b)?;
             }
         }
 
@@ -294,13 +294,13 @@ impl DoviRpu {
         }
 
         // Write crc32
-        writer.write_n(&computed_crc32, 32)?;
-        writer.write_n(&FINAL_BYTE, 8)?;
+        writer.write::<32, u32>(computed_crc32)?;
+        writer.write::<8, u8>(FINAL_BYTE)?;
 
         // Trailing bytes
         if self.trailing_zeroes > 0 {
             for _ in 0..self.trailing_zeroes {
-                writer.write_n(&0_u8, 8)?;
+                writer.write_const::<8, 0>()?;
             }
         }
 

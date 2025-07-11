@@ -16,9 +16,9 @@ pub struct ST2094_10DmData {
 impl ST2094_10DmData {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<UserDataTypeStruct> {
         let mut meta = ST2094_10DmData {
-            app_identifier: reader.get_ue()?,
-            app_version: reader.get_ue()?,
-            metadata_refresh_flag: reader.get()?,
+            app_identifier: reader.read_ue()?,
+            app_version: reader.read_ue()?,
+            metadata_refresh_flag: reader.read_bit()?,
             ..Default::default()
         };
 

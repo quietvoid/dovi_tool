@@ -102,9 +102,9 @@ impl RpuDataMapping {
         header: &RpuDataHeader,
     ) -> Result<RpuDataMapping> {
         let mut mapping = RpuDataMapping {
-            vdr_rpu_id: reader.get_ue()?,
-            mapping_color_space: reader.get_ue()?,
-            mapping_chroma_format_idc: reader.get_ue()?,
+            vdr_rpu_id: reader.read_ue()?,
+            mapping_color_space: reader.read_ue()?,
+            mapping_chroma_format_idc: reader.read_ue()?,
             ..Default::default()
         };
 
@@ -113,19 +113,19 @@ impl RpuDataMapping {
         for cmp in 0..NUM_COMPONENTS {
             let curve = &mut mapping.curves[cmp];
 
-            curve.num_pivots_minus2 = reader.get_ue()?;
+            curve.num_pivots_minus2 = reader.read_ue()?;
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
 
             curve.pivots = vec![0; num_pivots];
 
             for i in 0..num_pivots {
-                curve.pivots[i] = reader.get_n(bl_bit_depth)?;
+                curve.pivots[i] = reader.read_var(bl_bit_depth)?;
             }
         }
 
         // Profile 7 only
         if header.rpu_format & 0x700 == 0 && !header.disable_residual_flag {
-            let nlq_method_idc = reader.get_n::<u8>(3)?;
+            let nlq_method_idc = reader.read::<3, u8>()?;
             ensure!(nlq_method_idc == 0);
 
             mapping.nlq_method_idc = Some(DoviNlqMethod::from(nlq_method_idc));
@@ -133,14 +133,14 @@ impl RpuDataMapping {
 
             let mut nlq_pred_pivot_value = [0; NLQ_NUM_PIVOTS];
             for pv in &mut nlq_pred_pivot_value {
-                *pv = reader.get_n(bl_bit_depth)?;
+                *pv = reader.read_var(bl_bit_depth)?;
             }
 
             mapping.nlq_pred_pivot_value = Some(nlq_pred_pivot_value);
         }
 
-        mapping.num_x_partitions_minus1 = reader.get_ue()?;
-        mapping.num_y_partitions_minus1 = reader.get_ue()?;
+        mapping.num_x_partitions_minus1 = reader.read_ue()?;
+        mapping.num_y_partitions_minus1 = reader.read_ue()?;
 
         // rpu_data_mapping_param
 
@@ -149,7 +149,7 @@ impl RpuDataMapping {
             let num_pieces = (curve.num_pivots_minus2 + 1) as usize;
 
             for _ in 0..num_pieces {
-                let mapping_idc = DoviMappingMethod::from(reader.get_ue()?);
+                let mapping_idc = DoviMappingMethod::from(reader.read_ue()?);
                 curve.mapping_idc = mapping_idc;
 
                 // MAPPING_POLYNOMIAL
@@ -181,48 +181,48 @@ impl RpuDataMapping {
 
         let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as u32;
 
-        writer.write_ue(&self.vdr_rpu_id)?;
-        writer.write_ue(&self.mapping_color_space)?;
-        writer.write_ue(&self.mapping_chroma_format_idc)?;
+        writer.write_ue(self.vdr_rpu_id)?;
+        writer.write_ue(self.mapping_color_space)?;
+        writer.write_ue(self.mapping_chroma_format_idc)?;
 
         for cmp in 0..NUM_COMPONENTS {
             let curve = &self.curves[cmp];
-            writer.write_ue(&curve.num_pivots_minus2)?;
+            writer.write_ue(curve.num_pivots_minus2)?;
 
-            for p in &curve.pivots {
-                writer.write_n(p, bl_bit_depth)?;
+            for p in curve.pivots.iter().copied() {
+                writer.write_var(bl_bit_depth, p)?;
             }
         }
 
         if header.rpu_format & 0x700 == 0 && !header.disable_residual_flag {
             if let Some(nlq_method_idc) = self.nlq_method_idc {
-                writer.write_n(&(nlq_method_idc as u8), 3)?;
+                writer.write::<3, u8>(nlq_method_idc as u8)?;
             }
 
             if let Some(nlq_pred_pivot_value) = &self.nlq_pred_pivot_value {
-                for pv in nlq_pred_pivot_value {
-                    writer.write_n(pv, bl_bit_depth)?;
+                for pv in nlq_pred_pivot_value.iter().copied() {
+                    writer.write_var(bl_bit_depth, pv)?;
                 }
             }
         }
 
-        writer.write_ue(&self.num_x_partitions_minus1)?;
-        writer.write_ue(&self.num_y_partitions_minus1)?;
+        writer.write_ue(self.num_x_partitions_minus1)?;
+        writer.write_ue(self.num_y_partitions_minus1)?;
 
         for cmp in 0..NUM_COMPONENTS {
             let curve = &self.curves[cmp];
             let num_pieces = (curve.num_pivots_minus2 + 1) as usize;
 
             for i in 0..num_pieces {
-                writer.write_ue(&(curve.mapping_idc as u64))?;
+                writer.write_ue(curve.mapping_idc as u64)?;
 
                 // MAPPING_POLYNOMIAL
                 if let Some(poly_curve) = &curve.polynomial {
-                    writer.write_ue(&poly_curve.poly_order_minus1[i])?;
+                    writer.write_ue(poly_curve.poly_order_minus1[i])?;
 
                     let poly_order_minus1 = poly_curve.poly_order_minus1[i];
                     if poly_order_minus1 == 0 {
-                        writer.write(poly_curve.linear_interp_flag[i])?;
+                        writer.write_bit(poly_curve.linear_interp_flag[i])?;
                     }
 
                     if poly_order_minus1 == 0 && poly_curve.linear_interp_flag[i] {
@@ -259,34 +259,34 @@ impl RpuDataMapping {
 
                         for j in 0..=poly_coef_count {
                             if header.coefficient_data_type == 0 {
-                                writer.write_se(&poly_curve.poly_coef_int[i][j])?;
+                                writer.write_se(poly_curve.poly_coef_int[i][j])?;
                             }
 
-                            writer.write_n(
-                                &poly_curve.poly_coef[i][j],
+                            writer.write_var(
                                 coefficient_log2_denom_length,
+                                poly_curve.poly_coef[i][j],
                             )?;
                         }
                     }
                 } else if let Some(mmr_curve) = &curve.mmr {
                     // MAPPING_MMR
-                    writer.write_n(&mmr_curve.mmr_order_minus1[i], 2)?;
+                    writer.write::<2, u8>(mmr_curve.mmr_order_minus1[i])?;
 
                     if header.coefficient_data_type == 0 {
-                        writer.write_se(&mmr_curve.mmr_constant_int[i])?;
+                        writer.write_se(mmr_curve.mmr_constant_int[i])?;
                     }
 
-                    writer.write_n(&mmr_curve.mmr_constant[i], coefficient_log2_denom_length)?;
+                    writer.write_var(coefficient_log2_denom_length, mmr_curve.mmr_constant[i])?;
 
                     for j in 0..mmr_curve.mmr_order_minus1[i] as usize + 1 {
                         for k in 0..MMR_MAX_COEFFS {
                             if header.coefficient_data_type == 0 {
-                                writer.write_se(&mmr_curve.mmr_coef_int[i][j][k])?;
+                                writer.write_se(mmr_curve.mmr_coef_int[i][j][k])?;
                             }
 
-                            writer.write_n(
-                                &mmr_curve.mmr_coef[i][j][k],
+                            writer.write_var(
                                 coefficient_log2_denom_length,
+                                mmr_curve.mmr_coef[i][j][k],
                             )?;
                         }
                     }
@@ -397,13 +397,13 @@ impl DoviPolynomialCurve {
     fn parse(&mut self, reader: &mut BsIoSliceReader, header: &RpuDataHeader) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
-        let poly_order_minus1 = reader.get_ue()?;
+        let poly_order_minus1 = reader.read_ue()?;
         ensure!(poly_order_minus1 <= 1);
 
         self.poly_order_minus1.push(poly_order_minus1);
 
         let linear_interp_flag = if poly_order_minus1 == 0 {
-            reader.get()?
+            reader.read_bit()?
         } else {
             false
         };
@@ -414,7 +414,7 @@ impl DoviPolynomialCurve {
             unimplemented!("parse: Polynomial interpolation: please open an issue");
 
             /*if header.coefficient_data_type == 0 {
-                self.pred_linear_interp_value_int[i] = reader.get_ue()?;
+                self.pred_linear_interp_value_int[i] = reader.read_ue()?;
             }
 
             self.pred_linear_interp_value[i] =
@@ -423,7 +423,7 @@ impl DoviPolynomialCurve {
             if pivot_idx as u64 == header.num_pivots_minus2[cmp] {
                 if header.coefficient_data_type == 0 {
                     self.pred_linear_interp_value_int[cmp][pivot_idx + 1] =
-                        reader.get_ue()?;
+                        reader.read_ue()?;
                 }
 
                 self.pred_linear_interp_value[cmp][pivot_idx + 1] =
@@ -436,10 +436,10 @@ impl DoviPolynomialCurve {
 
             for _j in 0..poly_coef_count {
                 if header.coefficient_data_type == 0 {
-                    poly_coef_int.push(reader.get_se()?);
+                    poly_coef_int.push(reader.read_se()?);
                 }
 
-                poly_coef.push(reader.get_n(coefficient_log2_denom_length)?);
+                poly_coef.push(reader.read_var(coefficient_log2_denom_length)?);
             }
 
             self.poly_coef_int.push(poly_coef_int);
@@ -485,7 +485,7 @@ impl DoviMMRCurve {
     fn parse(&mut self, reader: &mut BsIoSliceReader, header: &RpuDataHeader) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
-        let mmr_order_minus1 = reader.get_n(2)?;
+        let mmr_order_minus1 = reader.read::<2, u8>()?;
         ensure!(mmr_order_minus1 <= 2);
 
         self.mmr_order_minus1.push(mmr_order_minus1);
@@ -493,10 +493,10 @@ impl DoviMMRCurve {
         let mmr_orders_count = mmr_order_minus1 as usize + 1;
 
         if header.coefficient_data_type == 0 {
-            self.mmr_constant_int.push(reader.get_se()?);
+            self.mmr_constant_int.push(reader.read_se()?);
         }
         self.mmr_constant
-            .push(reader.get_n(coefficient_log2_denom_length)?);
+            .push(reader.read_var(coefficient_log2_denom_length)?);
 
         let mut mmr_coef_int = array_vec!();
         let mut mmr_coef = array_vec!();
@@ -507,10 +507,10 @@ impl DoviMMRCurve {
 
             for _k in 0..MMR_MAX_COEFFS {
                 if header.coefficient_data_type == 0 {
-                    mmr_coef_int2.push(reader.get_se()?);
+                    mmr_coef_int2.push(reader.read_se()?);
                 }
 
-                mmr_coef2.push(reader.get_n(coefficient_log2_denom_length)?);
+                mmr_coef2.push(reader.read_var(coefficient_log2_denom_length)?);
             }
 
             mmr_coef_int.push(mmr_coef_int2);

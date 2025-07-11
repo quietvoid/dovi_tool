@@ -28,10 +28,10 @@ pub struct ExtMetadataBlockLevel11 {
 impl ExtMetadataBlockLevel11 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         let mut l11 = Self {
-            content_type: reader.get_n(8)?,
-            whitepoint: reader.get_n(8)?,
-            reserved_byte2: reader.get_n(8)?,
-            reserved_byte3: reader.get_n(8)?,
+            content_type: reader.read::<8, u8>()?,
+            whitepoint: reader.read::<8, u8>()?,
+            reserved_byte2: reader.read::<8, u8>()?,
+            reserved_byte3: reader.read::<8, u8>()?,
             ..Default::default()
         };
 
@@ -52,10 +52,10 @@ impl ExtMetadataBlockLevel11 {
             wp += MAX_WHITEPOINT_VALUE + 1
         }
 
-        writer.write_n(&self.content_type, 8)?;
-        writer.write_n(&wp, 8)?;
-        writer.write_n(&self.reserved_byte2, 8)?;
-        writer.write_n(&self.reserved_byte3, 8)?;
+        writer.write::<8, u8>(self.content_type)?;
+        writer.write::<8, u8>(wp)?;
+        writer.write::<8, u8>(self.reserved_byte2)?;
+        writer.write::<8, u8>(self.reserved_byte3)?;
 
         Ok(())
     }

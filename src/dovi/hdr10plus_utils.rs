@@ -19,16 +19,16 @@ pub fn st2094_40_sei_msg(sei_payload: &[u8]) -> Result<Option<SeiMessage>> {
                 let bytes = &sei_payload[start..end];
                 let mut reader = BsIoSliceReader::from_slice(bytes);
 
-                let itu_t_t35_country_code = reader.get_n::<u8>(8).unwrap();
-                let itu_t_t35_terminal_provider_code = reader.get_n::<u16>(16).unwrap();
-                let itu_t_t35_terminal_provider_oriented_code = reader.get_n::<u16>(16).unwrap();
+                let itu_t_t35_country_code = reader.read::<8, u8>().unwrap();
+                let itu_t_t35_terminal_provider_code = reader.read::<16, u16>().unwrap();
+                let itu_t_t35_terminal_provider_oriented_code = reader.read::<16, u16>().unwrap();
 
                 if itu_t_t35_country_code == 0xB5
                     && itu_t_t35_terminal_provider_code == 0x003C
                     && itu_t_t35_terminal_provider_oriented_code == 0x0001
                 {
-                    let application_identifier = reader.get_n::<u8>(8).unwrap();
-                    let application_version = reader.get_n::<u8>(8).unwrap();
+                    let application_identifier = reader.read::<8, u8>().unwrap();
+                    let application_version = reader.read::<8, u8>().unwrap();
 
                     if application_identifier == 4 && application_version == 1 {
                         return true;

@@ -25,20 +25,20 @@ pub struct ExtMetadataBlockLevel6 {
 impl ExtMetadataBlockLevel6 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader) -> Result<ExtMetadataBlock> {
         Ok(ExtMetadataBlock::Level6(Self {
-            max_display_mastering_luminance: reader.get_n(16)?,
-            min_display_mastering_luminance: reader.get_n(16)?,
-            max_content_light_level: reader.get_n(16)?,
-            max_frame_average_light_level: reader.get_n(16)?,
+            max_display_mastering_luminance: reader.read::<16, u16>()?,
+            min_display_mastering_luminance: reader.read::<16, u16>()?,
+            max_content_light_level: reader.read::<16, u16>()?,
+            max_frame_average_light_level: reader.read::<16, u16>()?,
         }))
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         self.validate()?;
 
-        writer.write_n(&self.max_display_mastering_luminance, 16)?;
-        writer.write_n(&self.min_display_mastering_luminance, 16)?;
-        writer.write_n(&self.max_content_light_level, 16)?;
-        writer.write_n(&self.max_frame_average_light_level, 16)?;
+        writer.write::<16, u16>(self.max_display_mastering_luminance)?;
+        writer.write::<16, u16>(self.min_display_mastering_luminance)?;
+        writer.write::<16, u16>(self.max_content_light_level)?;
+        writer.write::<16, u16>(self.max_frame_average_light_level)?;
 
         Ok(())
     }
