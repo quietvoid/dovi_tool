@@ -16,7 +16,7 @@ pub struct CmV40DmData {
 
 impl WithExtMetadataBlocks for CmV40DmData {
     const VERSION: &'static str = "CM v4.0";
-    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[3, 8, 9, 10, 11, 254];
+    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[3, 8, 9, 10, 11, 15, 254];
 
     fn with_blocks_allocation(num_ext_blocks: u64) -> Self {
         Self {
@@ -51,6 +51,7 @@ impl WithExtMetadataBlocks for CmV40DmData {
             9 => level9::ExtMetadataBlockLevel9::parse(reader, ext_block_length)?,
             10 => level10::ExtMetadataBlockLevel10::parse(reader, ext_block_length)?,
             11 => level11::ExtMetadataBlockLevel11::parse(reader)?,
+            15 => level15::ExtMetadataBlockLevel15::parse(reader)?,
             254 => level254::ExtMetadataBlockLevel254::parse(reader)?,
             1 | 2 | 4 | 5 | 6 | 255 => bail!(
                 "Invalid block level {} for {} RPU",
