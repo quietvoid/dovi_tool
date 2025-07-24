@@ -11,6 +11,7 @@ pub mod level10;
 pub mod level11;
 pub mod level15;
 pub mod level16;
+pub mod level17;
 pub mod level2;
 pub mod level253;
 pub mod level254;
@@ -35,6 +36,7 @@ pub use level10::ExtMetadataBlockLevel10;
 pub use level11::ExtMetadataBlockLevel11;
 pub use level15::ExtMetadataBlockLevel15;
 pub use level16::ExtMetadataBlockLevel16;
+pub use level17::ExtMetadataBlockLevel17;
 pub use level253::ExtMetadataBlockLevel253;
 pub use level254::ExtMetadataBlockLevel254;
 pub use level255::ExtMetadataBlockLevel255;
@@ -60,6 +62,7 @@ pub enum ExtMetadataBlock {
     Level11(ExtMetadataBlockLevel11),
     Level15(ExtMetadataBlockLevel15),
     Level16(ExtMetadataBlockLevel16),
+    Level17(ExtMetadataBlockLevel17),
     Level253(ExtMetadataBlockLevel253),
     Level254(ExtMetadataBlockLevel254),
     Level255(ExtMetadataBlockLevel255),
@@ -95,6 +98,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.bytes_size(),
             Self::Level15(b) => b.bytes_size(),
             Self::Level16(b) => b.bytes_size(),
+            Self::Level17(b) => b.bytes_size(),
             Self::Level253(b) => b.bytes_size(),
             Self::Level254(b) => b.bytes_size(),
             Self::Level255(b) => b.bytes_size(),
@@ -116,6 +120,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.bits_size(),
             Self::Level15(b) => b.bits_size(),
             Self::Level16(b) => b.bits_size(),
+            Self::Level17(b) => b.bits_size(),
             Self::Level253(b) => b.bits_size(),
             Self::Level254(b) => b.bits_size(),
             Self::Level255(b) => b.bits_size(),
@@ -137,6 +142,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.required_bits(),
             Self::Level15(b) => b.required_bits(),
             Self::Level16(b) => b.required_bits(),
+            Self::Level17(b) => b.required_bits(),
             Self::Level253(b) => b.required_bits(),
             Self::Level254(b) => b.required_bits(),
             Self::Level255(b) => b.required_bits(),
@@ -158,6 +164,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.level(),
             Self::Level15(b) => b.level(),
             Self::Level16(b) => b.level(),
+            Self::Level17(b) => b.level(),
             Self::Level253(b) => b.level(),
             Self::Level254(b) => b.level(),
             Self::Level255(b) => b.level(),
@@ -179,6 +186,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.sort_key(),
             Self::Level15(b) => b.sort_key(),
             Self::Level16(b) => b.sort_key(),
+            Self::Level17(b) => b.sort_key(),
             Self::Level253(b) => b.sort_key(),
             Self::Level254(b) => b.sort_key(),
             Self::Level255(b) => b.sort_key(),
@@ -200,6 +208,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.write(writer),
             Self::Level15(b) => b.write(writer),
             Self::Level16(b) => b.write(writer),
+            Self::Level17(b) => b.write(writer),
             Self::Level253(b) => b.write(writer),
             Self::Level254(b) => b.write(writer),
             Self::Level255(b) => b.write(writer),
@@ -261,6 +270,7 @@ impl ExtMetadataBlock {
             Self::Level11(b) => b.serialize(serializer),
             Self::Level15(b) => b.serialize(serializer),
             Self::Level16(b) => b.serialize(serializer),
+            Self::Level17(b) => b.serialize(serializer),
             Self::Level253(b) => b.serialize(serializer),
             Self::Level254(b) => b.serialize(serializer),
             Self::Level255(b) => b.serialize(serializer),
