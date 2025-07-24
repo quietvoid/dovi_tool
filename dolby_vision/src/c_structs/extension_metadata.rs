@@ -117,6 +117,9 @@ impl DmData {
                     self.level253 =
                         Box::into_raw(Box::new(Data::from(b.bytes.clone()))) as *const Data;
                 }
+                ExtMetadataBlock::Level16(_) => {
+                    // TODO
+                }
                 ExtMetadataBlock::Level254(b) => {
                     self.level254 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel254
