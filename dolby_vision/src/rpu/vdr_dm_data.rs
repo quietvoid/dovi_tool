@@ -391,6 +391,7 @@ impl VdrDmData {
             ExtMetadataBlock::Level15(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level16(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level17(_) => self.replace_metadata_level(block),
+            ExtMetadataBlock::Level18(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level254(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Level255(_) => self.replace_metadata_level(block),
             ExtMetadataBlock::Reserved(_) => bail!("Cannot replace specific reserved block"),
