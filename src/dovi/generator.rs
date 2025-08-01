@@ -268,8 +268,8 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
 
     for (i, scene) in madvr_info.scenes.iter().enumerate() {
         let min_pq = 0;
-        let max_pq = nits_to_pq_12_bit(scene.max_pq);
-        let avg_pq = nits_to_pq_12_bit(scene.avg_pq);
+        let max_pq = (scene.max_pq * 4095.0).round() as u16;
+        let avg_pq = (scene.avg_pq * 4095.0).round() as u16;
 
         let mut shot = VideoShot {
             start: scene.start as usize,
@@ -293,8 +293,8 @@ pub fn generate_metadata_from_madvr<P: AsRef<Path>>(
 
             frames.iter().enumerate().for_each(|(i, f)| {
                 let min_pq = 0;
-                let max_pq = nits_to_pq_12_bit(f.target_pq);
-                let avg_pq = nits_to_pq_12_bit(scene.avg_pq);
+                let max_pq = (f.target_pq * 4095.0).round() as u16;
+                let avg_pq = (scene.avg_pq * 4095.0).round() as u16;
 
                 let frame_edit = ShotFrameEdit {
                     edit_offset: i,
