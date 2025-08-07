@@ -47,15 +47,6 @@ pub struct I64Data {
 
 /// Struct representing a 2D data buffer
 #[repr(C)]
-pub struct Data2D {
-    /// Pointer to the list of Data structs
-    pub list: *const *const Data,
-    /// List length
-    pub len: size_t,
-}
-
-/// Struct representing a 2D data buffer
-#[repr(C)]
 pub struct U64Data2D {
     /// Pointer to the list of Data structs
     pub list: *const *const U64Data,
@@ -75,7 +66,7 @@ pub struct I64Data2D {
 /// Struct representing a 3D data buffer
 #[repr(C)]
 pub struct U64Data3D {
-    /// Pointer to the list of Data2D structs
+    /// Pointer to the list of U64Data2D structs
     pub list: *const *const U64Data2D,
     /// List length
     pub len: size_t,
@@ -84,7 +75,7 @@ pub struct U64Data3D {
 /// Struct representing a 3D data buffer
 #[repr(C)]
 pub struct I64Data3D {
-    /// Pointer to the list of Data2D structs
+    /// Pointer to the list of I64Data2D structs
     pub list: *const *const I64Data2D,
     /// List length
     pub len: size_t,
@@ -306,19 +297,6 @@ impl Freeable for I64Data {
     unsafe fn free(&self) {
         unsafe {
             Vec::from_raw_parts(self.data as *mut i64, self.len, self.len);
-        }
-    }
-}
-
-impl Freeable for Data2D {
-    unsafe fn free(&self) {
-        unsafe {
-            let list = Vec::from_raw_parts(self.list as *mut *const Data, self.len, self.len);
-
-            for data_ptr in list {
-                let data = Box::from_raw(data_ptr as *mut Data);
-                data.free();
-            }
         }
     }
 }
