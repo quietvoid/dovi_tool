@@ -1134,3 +1134,49 @@ fn profile20_apple() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn l15_to_l18() -> Result<()> {
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/l15_to_l18.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 8);
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    let vdr_dm_data = dovi_rpu.vdr_dm_data.as_ref().unwrap();
+
+    let l15_meta = vdr_dm_data.get_block(15).unwrap();
+    if let ExtMetadataBlock::Level15(b) = l15_meta {
+        assert_eq!(b.confidence, 244);
+        assert_eq!(b.precision_rendering_strength, 245);
+        assert_eq!(b.d_contrast_plus_one_no_pr, 253);
+        assert_eq!(b.revision, 1);
+    }
+
+    let l16_meta = vdr_dm_data.get_block(16).unwrap();
+    if let ExtMetadataBlock::Level16(b) = l16_meta {
+        assert_eq!(b.revision, 1);
+        assert_eq!(b.count, 2);
+        assert_eq!(b.params.len(), 2);
+        assert_eq!(b.params[0].max_d_saturation_plus_one, 234);
+        assert_eq!(b.params[1].precision_rendering_strength, 128);
+    }
+
+    let l17_meta = vdr_dm_data.get_block(17).unwrap();
+    if let ExtMetadataBlock::Level17(b) = l17_meta {
+        assert_eq!(b.mid_boost, 128);
+        assert_eq!(b.shadow_drop, 252);
+        assert_eq!(b.contrast_boost, 64);
+        assert_eq!(b.intensity_indicator_pq, 3696);
+        assert_eq!(b.revision, 1);
+    }
+
+    let l18_meta = vdr_dm_data.get_block(18).unwrap();
+    if let ExtMetadataBlock::Level18(b) = l18_meta {
+        assert_eq!(b.surround_luminance_pq, 3696);
+        assert_eq!(b.max_preserved_luminance_pq, 3699);
+        assert_eq!(b.revision, 1);
+    }
+
+    Ok(())
+}
