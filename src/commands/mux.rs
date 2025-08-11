@@ -32,15 +32,8 @@ pub struct MuxArgs {
     #[arg(long, num_args = 0, help = "Disable adding AUD NALUs between frames")]
     pub no_add_aud: bool,
 
-    #[arg(
-        long,
-        help = "Write the EOS/EOB NALUs before the EL. Defaults to false. See --help for more info",
-        long_help = "Write the EOS/EOB NALUs before the EL. Defaults to false.\n\
-                     In the case of the last frame containing EOS/EOB NALUs, they are written after the EL by default.\n\n\
-                     This behaviour is different from yusesope and MakeMKV's mux, but conforms to the HEVC spec.\n\
-                     To match their behaviour, enable the --eos-before-el flag."
-    )]
-    pub eos_before_el: bool,
+    #[arg(long, help = "Removes EOS/EOB NALUs from both BL and EL, if present")]
+    pub remove_eos: bool,
 
     #[arg(
         short = 'd',
@@ -48,4 +41,7 @@ pub struct MuxArgs {
         help = "Discard the EL video NALUs, keeping only the RPU"
     )]
     pub discard: bool,
+
+    #[arg(long, help = "Deprecated, enabled by default")]
+    pub eos_before_el: bool,
 }

@@ -194,11 +194,9 @@ impl RpuInjector {
         };
 
         if let Some(rpu_nb) = rpu_nb {
-            // Insert after the last NALU that isn't EOS/EOB
-            let insert_index = frame_buffer
-                .nals
-                .iter()
-                .rposition(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT));
+            // Insert after the last NALU
+            // FFmpeg always expects RPU to be the last
+            let insert_index = frame_buffer.nals.len().checked_sub(1);
 
             if let Some(idx) = insert_index {
                 // + 1 since we want the RPU after

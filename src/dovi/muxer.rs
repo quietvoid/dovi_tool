@@ -25,7 +25,7 @@ pub struct Muxer {
     progress_bar: ProgressBar,
 
     no_add_aud: bool,
-    eos_before_el: bool,
+    remove_eos: bool,
     options: CliOptions,
 
     frame_buffer: FrameBuffer,
@@ -38,6 +38,8 @@ pub struct Muxer {
 pub struct ElHandler {
     input: PathBuf,
     writer: BufWriter<File>,
+    remove_eos: bool,
+
     buffered_frames: VecDeque<FrameBuffer>,
 
     options: CliOptions,
@@ -50,8 +52,9 @@ impl Muxer {
             el,
             output,
             no_add_aud,
-            eos_before_el,
+            remove_eos,
             discard,
+            ..
         } = args;
 
         cli_options.discard_el = discard;
@@ -92,6 +95,7 @@ impl Muxer {
         let el_handler = ElHandler {
             input: el,
             writer,
+            remove_eos,
             buffered_frames: VecDeque::new(),
             options: cli_options.clone(),
         };
@@ -104,7 +108,7 @@ impl Muxer {
             progress_bar,
 
             no_add_aud,
-            eos_before_el,
+            remove_eos,
             options: cli_options,
 
             frame_buffer: FrameBuffer {
@@ -215,16 +219,6 @@ impl IoProcessor for Muxer {
                     self.el_handler.write_next_frame()?;
                 }
 
-                // Write remaining EOS/EOB
-                if !self.eos_before_el {
-                    Muxer::write_buffers(
-                        &mut self.el_handler.writer,
-                        self.frame_buffer.nals.iter().enumerate(),
-                        self.options.start_code,
-                        false,
-                    )?;
-                }
-
                 self.frame_buffer.frame_number = nal.decoded_frame_index;
                 self.frame_buffer.nals.clear();
             }
@@ -298,16 +292,6 @@ impl IoProcessor for Muxer {
                     total_frames,
                     last_frame.frame_number + 1
                 ));
-            }
-
-            // Write remaining EOS/EOB
-            if !self.eos_before_el {
-                Muxer::write_buffers(
-                    &mut self.el_handler.writer,
-                    self.frame_buffer.nals.iter().enumerate(),
-                    self.options.start_code,
-                    false,
-                )?;
             }
 
             self.frame_buffer.nals.clear();
@@ -386,26 +370,19 @@ impl IoProcessor for ElHandler {
 
 impl Muxer {
     fn write_bl_frame(&mut self) -> Result<()> {
-        if !self.eos_before_el {
-            // Default behaviour, EOS/EOB after EL is written
-
-            let nals_to_write = self
+        if self.remove_eos {
+            let filtered_nals = self
                 .frame_buffer
                 .nals
                 .iter()
-                .filter(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
-                .enumerate();
+                .filter(|nb| !matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT));
 
             Muxer::write_buffers(
                 &mut self.el_handler.writer,
-                nals_to_write,
+                filtered_nals.enumerate(),
                 self.options.start_code,
                 true,
             )?;
-
-            self.frame_buffer
-                .nals
-                .retain(|nb| matches!(nb.nal_type, NAL_EOS_NUT | NAL_EOB_NUT))
         } else {
             Muxer::write_buffers(
                 &mut self.el_handler.writer,
@@ -413,9 +390,9 @@ impl Muxer {
                 self.options.start_code,
                 true,
             )?;
-
-            self.frame_buffer.nals.clear();
         }
+
+        self.frame_buffer.nals.clear();
 
         Ok(())
     }
@@ -446,6 +423,10 @@ impl ElHandler {
                 } else {
                     NAL_UNSPEC62
                 };
+
+                if self.remove_eos && matches!(nal_buf.nal_type, NAL_EOS_NUT | NAL_EOB_NUT) {
+                    continue;
+                }
 
                 // Ignore nal type since it's wrapped in UNSPEC63
                 // Annex B: Always size 3 start code unless RPU
