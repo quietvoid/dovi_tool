@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -11,7 +11,7 @@ const SUBCOMMAND: &str = "generate";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -23,7 +23,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn generate_default_cmv29() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/default_cmv29.json");
@@ -70,7 +70,7 @@ fn generate_default_cmv29() -> Result<()> {
 
 #[test]
 fn generate_default_cmv40() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/default_cmv40.json");
@@ -129,7 +129,7 @@ fn generate_default_cmv40() -> Result<()> {
 
 #[test]
 fn generate_full() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/full_example.json");
@@ -212,7 +212,7 @@ fn generate_full() -> Result<()> {
 
 #[test]
 fn generate_full_hdr10plus() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/no_duration.json");
@@ -360,7 +360,7 @@ fn generate_full_hdr10plus() -> Result<()> {
 
 #[test]
 fn xml_cmv2_9_with_l5() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let xml = Path::new("assets/tests/cmv2_9.xml");
@@ -391,7 +391,7 @@ fn xml_cmv2_9_with_l5() -> Result<()> {
 
 #[test]
 fn xml_cmv4_0_2() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let xml = Path::new("assets/tests/cmv4_0_2.xml");
@@ -418,7 +418,7 @@ fn xml_cmv4_0_2() -> Result<()> {
 
 #[test]
 fn xml_cmv4_0_2_with_l5() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let xml = Path::new("assets/tests/cmv4_0_2.xml");
@@ -449,7 +449,7 @@ fn xml_cmv4_0_2_with_l5() -> Result<()> {
 
 #[test]
 fn xml_cmv4_0_2_custom_displays() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let xml = Path::new("assets/tests/cmv4_0_2_custom_displays.xml");
@@ -480,7 +480,7 @@ fn xml_cmv4_0_2_custom_displays() -> Result<()> {
 
 #[test]
 fn xml_cmv4_2_510() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let xml = Path::new("assets/tests/cmv4_2_xml_510.xml");
@@ -507,7 +507,7 @@ fn xml_cmv4_2_510() -> Result<()> {
 
 #[test]
 fn generate_l1_cmv29() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/l1_cmv29.json");
@@ -567,7 +567,7 @@ fn generate_l1_cmv29() -> Result<()> {
 
 #[test]
 fn generate_l1_cmv40() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/l1_cmv40.json");
@@ -623,7 +623,7 @@ fn generate_l1_cmv40() -> Result<()> {
 
 #[test]
 fn l1_cmv29_override_avg_cmv40() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/l1_cmv29_override_avg_cmv40.json");

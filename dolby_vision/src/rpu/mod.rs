@@ -18,8 +18,9 @@ pub const NUM_COMPONENTS: usize = 3;
 pub(crate) const MMR_MAX_COEFFS: usize = 7;
 pub(crate) const NLQ_NUM_PIVOTS: usize = 2;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConversionMode {
+    #[default]
     Lossless = 0,
     ToMel,
     To81,
@@ -55,11 +56,5 @@ impl std::fmt::Display for ConversionMode {
                 write!(f, "To 8.1, preserving the mapping metadata")
             }
         }
-    }
-}
-
-impl Default for ConversionMode {
-    fn default() -> Self {
-        Self::Lossless
     }
 }

@@ -19,22 +19,22 @@ hevc_parser = { version = "0.6.9", features = ["hevc_io"] }
 madvr_parse = "1.0.2"
 hdr10plus = { version = "2.1.4", features = ["json"] }
 
-anyhow = "1.0.98"
-clap = { version = "4.5.41", features = ["derive", "wrap_help", "deprecated"] }
+anyhow = "1.0.100"
+clap = { version = "4.5.51", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
-indicatif = "0.18.0"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = { version = "1.0.140", features = ["preserve_order"] }
+indicatif = "0.18.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145", features = ["preserve_order"] }
 itertools = "0.14.0"
 plotters = { version = "0.3.7", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
 [dev-dependencies]
-assert_cmd = "2.0.17"
+assert_cmd = "2.1.1"
 assert_fs = "1.1.3"
 predicates = "3.1.3"
 
 [build-dependencies]
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 vergen-gitcl = { version = "1.0.8", default-features = false, features = ["build"] }
 
 [features]

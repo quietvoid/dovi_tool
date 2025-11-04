@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -11,7 +11,7 @@ const SUBCOMMAND: &str = "mux";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -25,7 +25,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn mux() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
@@ -55,7 +55,7 @@ fn mux() -> Result<()> {
 
 #[test]
 fn discard() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
@@ -86,7 +86,7 @@ fn discard() -> Result<()> {
 
 #[test]
 fn no_add_aud() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/no_aud_bl.hevc");
@@ -118,7 +118,7 @@ fn no_add_aud() -> Result<()> {
 /// Edit config with specific active area
 #[test]
 fn edit_config() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
@@ -146,7 +146,7 @@ fn edit_config() -> Result<()> {
 
     // Extract result
     let output_rpu = temp.child("RPU.bin");
-    let assert = Command::cargo_bin(env!("CARGO_PKG_NAME"))?
+    let assert = cargo::cargo_bin_cmd!()
         .arg("extract-rpu")
         .arg(output_file.as_ref())
         .arg("--rpu-out")
@@ -171,7 +171,7 @@ fn edit_config() -> Result<()> {
 
 #[test]
 fn el_with_more_frames() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4_shorter.hevc");
@@ -204,7 +204,7 @@ fn el_with_more_frames() -> Result<()> {
 
 #[test]
 fn remove_eos() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -11,7 +11,7 @@ const SUBCOMMAND: &str = "editor";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -25,7 +25,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn mode() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/fel_orig.bin");
@@ -57,7 +57,7 @@ fn mode() -> Result<()> {
 
 #[test]
 fn remove_cmv4() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/mel_variable_l8_length13.bin");
@@ -103,7 +103,7 @@ fn remove_cmv4() -> Result<()> {
 
 #[test]
 fn active_area_specific() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/hevc_tests/regular_rpu.bin");
@@ -156,7 +156,7 @@ fn active_area_specific() -> Result<()> {
 
 #[test]
 fn add_l9_l11_no_effect() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/fel_orig.bin");
@@ -202,7 +202,7 @@ fn add_l9_l11_no_effect() -> Result<()> {
 
 #[test]
 fn add_l9_l11() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/mel_variable_l8_length13.bin");
@@ -273,7 +273,7 @@ fn add_l9_l11() -> Result<()> {
 
 #[test]
 fn source_rpu() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/fel_orig.bin");
@@ -302,7 +302,7 @@ fn source_rpu() -> Result<()> {
 
 #[test]
 fn duplicate() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_rpu = Path::new("assets/tests/cmv4_2_510_xml_rpu.bin");

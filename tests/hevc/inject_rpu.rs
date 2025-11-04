@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -9,7 +9,7 @@ const SUBCOMMAND: &str = "inject-rpu";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -23,7 +23,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn inject() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
@@ -52,7 +52,7 @@ fn inject() -> Result<()> {
 
 #[test]
 fn inject_aud() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/no_aud_bl.hevc");
@@ -81,7 +81,7 @@ fn inject_aud() -> Result<()> {
 
 #[test]
 fn inject_no_add_aud() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/no_aud_bl.hevc");
@@ -111,7 +111,7 @@ fn inject_no_add_aud() -> Result<()> {
 
 #[test]
 fn annexb() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
@@ -143,7 +143,7 @@ fn annexb() -> Result<()> {
 #[test]
 fn duplicated_end() -> Result<()> {
     // Generate shorter RPU
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let generate_config = Path::new("assets/generator_examples/default_cmv29.json");
@@ -162,7 +162,7 @@ fn duplicated_end() -> Result<()> {
     output_rpu.assert(predicate::path::is_file());
 
     // Inject and expect to duplicate
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
 
     let input_bl = Path::new("assets/hevc_tests/regular_bl_start_code_4.hevc");
     let output_file = temp.child("injected_output.hevc");
@@ -186,7 +186,7 @@ fn duplicated_end() -> Result<()> {
     output_file.assert(predicate::path::is_file());
 
     // Extract result and verify count
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
 
     let output_rpu = temp.child("RPU_duplicated.bin");
 
@@ -218,7 +218,7 @@ fn sei_suffix_before_rpu() -> Result<()> {
     let output_bl = temp.child("BL.hevc");
     let output_el = temp.child("EL.hevc");
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd
         .arg("demux")
         .arg(input_file)
@@ -236,7 +236,7 @@ fn sei_suffix_before_rpu() -> Result<()> {
     // Extract RPU
     let output_rpu = temp.child("RPU.bin");
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd
         .arg("extract-rpu")
         .arg(input_file)
@@ -250,7 +250,7 @@ fn sei_suffix_before_rpu() -> Result<()> {
     // Reinject
     let output_file = temp.child("injected_output.hevc");
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd
         .arg(SUBCOMMAND)
         .arg(output_bl.as_ref())

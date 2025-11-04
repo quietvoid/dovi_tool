@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -11,7 +11,7 @@ const SUBCOMMAND: &str = "extract-rpu";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -25,7 +25,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn extract_rpu() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular.hevc");
@@ -51,7 +51,7 @@ fn extract_rpu() -> Result<()> {
 
 #[test]
 fn mode_mel() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular.hevc");
@@ -80,7 +80,7 @@ fn mode_mel() -> Result<()> {
 /// Edit config with specific active area
 #[test]
 fn edit_config() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular.hevc");
@@ -116,7 +116,7 @@ fn edit_config() -> Result<()> {
 
 #[test]
 fn extract_rpu_mkv() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular.mkv");

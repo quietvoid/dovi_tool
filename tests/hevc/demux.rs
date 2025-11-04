@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use dolby_vision::rpu::extension_metadata::blocks::ExtMetadataBlock;
 use predicates::prelude::*;
@@ -10,7 +10,7 @@ const SUBCOMMAND: &str = "demux";
 
 #[test]
 fn help() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let assert = cmd.arg(SUBCOMMAND).arg("--help").assert();
 
     assert
@@ -24,7 +24,7 @@ fn help() -> Result<()> {
 
 #[test]
 fn demux() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");
@@ -58,7 +58,7 @@ fn demux() -> Result<()> {
 
 #[test]
 fn el_only() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");
@@ -90,7 +90,7 @@ fn el_only() -> Result<()> {
 
 #[test]
 fn mode_lossless_el_only() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");
@@ -125,7 +125,7 @@ fn mode_lossless_el_only() -> Result<()> {
 /// Edit config with specific active area
 #[test]
 fn edit_config() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");
@@ -153,7 +153,7 @@ fn edit_config() -> Result<()> {
 
     // Extract result
     let output_rpu = temp.child("RPU.bin");
-    let assert = Command::cargo_bin(env!("CARGO_PKG_NAME"))?
+    let assert = cargo::cargo_bin_cmd!()
         .arg("extract-rpu")
         .arg(output_el.as_ref())
         .arg("--rpu-out")
@@ -178,7 +178,7 @@ fn edit_config() -> Result<()> {
 
 #[test]
 fn annexb() -> Result<()> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     let temp = assert_fs::TempDir::new().unwrap();
 
     let input_file = Path::new("assets/hevc_tests/regular_start_code_4_muxed_el.hevc");

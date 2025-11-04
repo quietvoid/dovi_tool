@@ -14,10 +14,11 @@ use super::rpu_data_nlq::{DoviELType, RpuDataNlq};
 
 use super::{NLQ_NUM_PIVOTS, NUM_COMPONENTS};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum DoviMappingMethod {
     /// Not a valid value, placeholder for Default
+    #[default]
     Invalid = 255,
 
     Polynomial = 0,
@@ -521,12 +522,6 @@ impl DoviMMRCurve {
         self.mmr_coef.push(mmr_coef);
 
         Ok(())
-    }
-}
-
-impl Default for DoviMappingMethod {
-    fn default() -> Self {
-        Self::Invalid
     }
 }
 
