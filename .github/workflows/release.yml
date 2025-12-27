@@ -46,9 +46,6 @@ jobs:
           mv ./target/${{ env.LINUX_ARM_TARGET }}/${{ env.BUILD_PROFILE }}/${{ env.RELEASE_BIN }} ./${{ env.RELEASE_BIN }}
           tar -cvzf ./${AARCH64_ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
 
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${AARCH64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${AARCH64_ARCHIVE_FILE}.sha256
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -94,9 +91,6 @@ jobs:
           mv ./dolby_vision/target/${{ env.WINDOWS_TARGET }}/${{ env.BUILD_PROFILE }}/dovi.dll .
           7z a ./${{ env.RELEASE_DIR }}/libdovi-${{ env.LIBDOVI_PKG_VERSION }}-${{ env.WINDOWS_TARGET }}.zip ./dovi.dll
 
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${X86_64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${X86_64_ARCHIVE_FILE}.sha256
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${AARCH64_ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${AARCH64_ARCHIVE_FILE}.sha256
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -128,8 +122,6 @@ jobs:
         run: |
           ARCHIVE_FILE=${{ env.RELEASE_DIR }}/${{ env.ARCHIVE_PREFIX }}-universal-macOS.zip
           zip -9 ./${ARCHIVE_FILE} ./${{ env.RELEASE_BIN }}
-
-          python -c "import hashlib; import pathlib; print(hashlib.sha256(pathlib.Path('${ARCHIVE_FILE}').read_bytes()).hexdigest())" > ${ARCHIVE_FILE}.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -14,17 +14,17 @@ path = "src/main.rs"
 
 [dependencies]
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
-bitvec_helpers = { version = "4.0.0", default-features = false, features = ["bitstream-io"] }
-hevc_parser = { version = "0.6.9", features = ["hevc_io"] }
-madvr_parse = "1.0.2"
-hdr10plus = { version = "2.1.4", features = ["json"] }
+bitvec_helpers = { version = "4.0.1", default-features = false, features = ["bitstream-io"] }
+hevc_parser = { version = "0.6.10", features = ["hevc_io"] }
+madvr_parse = "1.0.3"
+hdr10plus = { version = "2.1.5", features = ["json"] }
 
 anyhow = "1.0.100"
-clap = { version = "4.5.51", features = ["derive", "wrap_help", "deprecated"] }
+clap = { version = "4.5.53", features = ["derive", "wrap_help", "deprecated"] }
 clap_lex = "*"
-indicatif = "0.18.2"
+indicatif = "0.18.3"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.145", features = ["preserve_order"] }
+serde_json = { version = "1.0.148", features = ["preserve_order"] }
 itertools = "0.14.0"
 plotters = { version = "0.3.7", default-features = false, features = ["bitmap_backend", "bitmap_encoder", "all_series"] }
 
