@@ -384,6 +384,7 @@ impl RpusListSummary {
             })
             .flatten()
             .unique()
+            .sorted()
             .map(|target_max_pq| {
                 ((pq_to_nits(target_max_pq as f64 / 4095.0) / 100.0).round() * 100.0) as u16
             })
@@ -433,14 +434,19 @@ impl RpusListSummary {
             let l8_trims_str: Vec<String> = rpus
                 .iter()
                 .filter_map(|rpu| {
-                    rpu.vdr_dm_data.as_ref()?.get_block(8).and_then(|block| {
-                        if let ExtMetadataBlock::Level8(l8) = block {
-                            Some(l8.trim_target_nits())
-                        } else {
-                            None
-                        }
+                    rpu.vdr_dm_data.as_ref().map(|vdr| {
+                        vdr.level_blocks_iter(8)
+                            .map(|b| {
+                                if let ExtMetadataBlock::Level8(l8) = b {
+                                    l8.trim_target_nits()
+                                } else {
+                                    unreachable!()
+                                }
+                            })
+                            .unique()
                     })
                 })
+                .flatten()
                 .unique()
                 .sorted()
                 .map(|target_nits| format!("{target_nits} nits"))
