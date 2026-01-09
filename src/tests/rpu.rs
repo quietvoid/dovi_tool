@@ -464,10 +464,10 @@ fn cmv40_full_rpu() -> Result<()> {
         ..Default::default()
     });
 
-    let mut rpus = config.generate_rpu_list()?;
+    let rpus = config.generate_rpu_list()?;
     assert_eq!(rpus.len(), config.length);
 
-    let encoded_rpus = GenerateConfig::encode_rpus(&mut rpus);
+    let encoded_rpus = GenerateConfig::collect_encoded_rpus(GenerateConfig::encode_rpus(&rpus));
     assert_eq!(encoded_rpus.len(), config.length);
 
     let vdr_dm_data = rpus[0].vdr_dm_data.as_ref().unwrap();
@@ -939,10 +939,10 @@ fn cmv40_full_l8_l9_l10() -> Result<()> {
         ..Default::default()
     });
 
-    let mut rpus = config.generate_rpu_list()?;
+    let rpus = config.generate_rpu_list()?;
     assert_eq!(rpus.len(), config.length);
 
-    let encoded_rpus = GenerateConfig::encode_rpus(&mut rpus);
+    let encoded_rpus = GenerateConfig::collect_encoded_rpus(GenerateConfig::encode_rpus(&rpus));
     assert_eq!(encoded_rpus.len(), config.length);
 
     let vdr_dm_data = rpus[0].vdr_dm_data.as_ref().unwrap();

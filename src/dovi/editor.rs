@@ -151,7 +151,18 @@ impl Editor {
 
         config.execute(&mut rpus)?;
 
-        let mut data = GenerateConfig::encode_option_rpus(&mut rpus);
+        let mut warned = false;
+        let mut data = GenerateConfig::encode_option_rpus(&rpus)
+            .enumerate()
+            .filter_map(|(i, res)| {
+                if !warned && let Err(err) = &res {
+                    warned = true;
+                    println!("Failed writing invalid RPU: Index {i}\n  {err:#}");
+                }
+
+                res.ok()
+            })
+            .collect();
 
         if let Some(to_duplicate) = config.duplicate.as_mut() {
             to_duplicate.sort_by_key(|meta| meta.offset);
