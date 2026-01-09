@@ -93,7 +93,7 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
             .filter_map(|(i, res)| {
                 if let Err(e) = &res {
                     if warning_error.is_none() {
-                        warning_error = Some(format!("Found invalid RPU: Index {i}, error: {e}"))
+                        warning_error = Some(format!("Found invalid RPU: Index {i}\n  {e:#}"))
                     }
                 }
 
@@ -126,7 +126,7 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
     } else if offsets_count == 0 {
         bail!("No RPU found");
     } else if let Some(error) = warning_error {
-        bail!("{}", error);
+        bail!("{error}");
     } else {
         bail!(
             "Number of valid RPUs different from total: expected {} got {}",

@@ -93,9 +93,11 @@ fn invalid_l3_error() -> Result<()> {
 
     let assert = cmd.arg(SUBCOMMAND).arg(input_rpu).arg("-s").assert();
 
-    assert.failure().stderr(predicate::str::contains(
-        "Error: Found invalid RPU: Index 0, error: Invalid block level 3 for CM v2.9 RPU",
-    ));
+    assert.failure().stderr(
+        predicate::str::contains("Error: Found invalid RPU: Index 0").and(
+            predicate::str::contains("CM v2.9: Disallowed block level 3"),
+        ),
+    );
 
     Ok(())
 }

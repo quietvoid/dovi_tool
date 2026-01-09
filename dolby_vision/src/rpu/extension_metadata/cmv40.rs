@@ -52,19 +52,14 @@ impl WithExtMetadataBlocks for CmV40DmData {
             10 => level10::ExtMetadataBlockLevel10::parse(reader, ext_block_length)?,
             11 => level11::ExtMetadataBlockLevel11::parse(reader)?,
             254 => level254::ExtMetadataBlockLevel254::parse(reader)?,
-            1 | 2 | 4 | 5 | 6 | 255 => bail!(
-                "Invalid block level {} for {} RPU",
-                ext_block_level,
-                Self::VERSION,
-            ),
+            1 | 2 | 4 | 5 | 6 | 255 => bail!("Disallowed block level {}", ext_block_level),
             _ => {
+                // FIXME: This returns early so the parsing doesn't actually take place
                 ensure!(
                     false,
                     format!(
-                        "{} - Unknown metadata block found: Level {}, length {}, please open an issue.",
-                        Self::VERSION,
-                        ext_block_level,
-                        ext_block_length
+                        "Unknown metadata block found: Level {}, length {}, please open an issue.",
+                        ext_block_level, ext_block_length
                     )
                 );
 
@@ -145,51 +140,30 @@ impl CmV40DmData {
 
         ensure!(
             invalid_blocks_count == 0,
-            format!(
-                "{}: Only allowed blocks level 3, 8, 9, 10, 11 and 254",
-                Self::VERSION
-            )
+            "Only allowed blocks level 3, 8, 9, 10, 11 and 254"
         );
 
-        ensure!(
-            level254_count == 1,
-            format!("{}: There must be one L254 metadata block", Self::VERSION)
-        );
+        ensure!(level254_count == 1, "There must be one L254 metadata block");
 
         ensure!(
             level3_count <= 1,
-            format!(
-                "{}: There must be at most one L3 metadata block",
-                Self::VERSION
-            )
+            "There must be at most one L3 metadata block"
         );
         ensure!(
             level8_count <= 5,
-            format!(
-                "{}: There must be at most 5 L8 metadata blocks",
-                Self::VERSION
-            )
+            "There must be at most 5 L8 metadata blocks"
         );
         ensure!(
             level9_count <= 1,
-            format!(
-                "{}: There must be at most one L9 metadata block",
-                Self::VERSION
-            )
+            "There must be at most one L9 metadata block"
         );
         ensure!(
             level10_count <= 4,
-            format!(
-                "{}: There must be at most 4 L10 metadata blocks",
-                Self::VERSION
-            )
+            "There must be at most 4 L10 metadata blocks"
         );
         ensure!(
             level11_count <= 1,
-            format!(
-                "{}: There must be at most one L11 metadata block",
-                Self::VERSION
-            )
+            "There must be at most one L11 metadata block"
         );
 
         Ok(())

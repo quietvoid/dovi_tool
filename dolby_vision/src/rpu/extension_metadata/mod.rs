@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -59,9 +59,7 @@ pub trait WithExtMetadataBlocks {
 
         ensure!(
             Self::ALLOWED_BLOCK_LEVELS.contains(&level),
-            "Metadata block level {} is invalid for {}",
-            &level,
-            Self::VERSION
+            "Metadata block level {level} is not allowed"
         );
 
         let blocks = self.blocks_mut();
@@ -90,13 +88,16 @@ pub trait WithExtMetadataBlocks {
         let ext_metadata_blocks = self.blocks_ref();
 
         for ext_metadata_block in ext_metadata_blocks {
+            let level = ext_metadata_block.level();
             let remaining_bits =
                 (ext_metadata_block.length_bits() - ext_metadata_block.required_bits()) as u32;
 
             writer.write_ue(ext_metadata_block.length_bytes())?;
-            writer.write::<8, u8>(ext_metadata_block.level())?;
+            writer.write::<8, u8>(level)?;
 
-            ext_metadata_block.write(writer)?;
+            ext_metadata_block
+                .write(writer)
+                .with_context(|| format!("Level {level}"))?;
 
             // ext_dm_alignment_zero_bit
             writer.pad(remaining_bits)?;
@@ -116,10 +117,7 @@ impl DmData {
         meta.set_num_ext_blocks(num_ext_blocks);
 
         while !reader.byte_aligned() {
-            ensure!(
-                !reader.read_bit()?,
-                format!("{}: dm_alignment_zero_bit != 0", T::VERSION)
-            );
+            ensure!(!reader.read_bit()?, "dm_alignment_zero_bit != 0");
         }
 
         for _ in 0..num_ext_blocks {

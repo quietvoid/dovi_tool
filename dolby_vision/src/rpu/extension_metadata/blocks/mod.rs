@@ -185,9 +185,8 @@ impl ExtMetadataBlock {
 
         ensure!(
             T::ALLOWED_BLOCK_LEVELS.contains(&level),
-            "Metadata block level {} is invalid for {}",
-            &level,
-            T::VERSION
+            "Metadata block level {} is not allowed",
+            &level
         );
 
         Ok(())
@@ -203,8 +202,7 @@ impl ExtMetadataBlock {
         ensure!(
             block_length == self.length_bytes(),
             format!(
-                "{}: Invalid metadata block. Block level {} should have length {}",
-                T::VERSION,
+                "Invalid metadata block. Block level {} should have length {}",
                 level,
                 self.length_bytes()
             )
@@ -217,7 +215,7 @@ impl ExtMetadataBlock {
         for _ in 0..ext_block_use_bits {
             ensure!(
                 !reader.read_bit()?,
-                format!("{}: ext_dm_alignment_zero_bit != 0", T::VERSION)
+                format!("ext_dm_alignment_zero_bit != 0")
             );
         }
 

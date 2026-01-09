@@ -1,4 +1,4 @@
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -96,12 +96,16 @@ pub(crate) fn vdr_dm_data_payload(
         VdrDmData::parse(reader)?
     };
 
-    if let Some(cmv29_dm_data) = DmData::parse::<CmV29DmData>(reader)? {
+    if let Some(cmv29_dm_data) =
+        DmData::parse::<CmV29DmData>(reader).with_context(|| CmV29DmData::VERSION)?
+    {
         vdr_dm_data.cmv29_metadata = Some(DmData::V29(cmv29_dm_data));
     }
 
     if reader.available()? >= DM_DATA_PAYLOAD2_MIN_BITS {
-        if let Some(cmv40_dm_data) = DmData::parse::<CmV40DmData>(reader)? {
+        if let Some(cmv40_dm_data) =
+            DmData::parse::<CmV40DmData>(reader).with_context(|| CmV40DmData::VERSION)?
+        {
             vdr_dm_data.cmv40_metadata = Some(DmData::V40(cmv40_dm_data));
         }
     }
@@ -178,11 +182,11 @@ impl VdrDmData {
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {
-            cmv29.validate()?;
+            cmv29.validate().with_context(|| CmV29DmData::VERSION)?;
         }
 
         if let Some(cmv40) = &self.cmv40_metadata {
-            cmv40.validate()?;
+            cmv40.validate().with_context(|| CmV40DmData::VERSION)?;
         }
 
         Ok(())
@@ -234,11 +238,11 @@ impl VdrDmData {
         }
 
         if let Some(cmv29) = &self.cmv29_metadata {
-            cmv29.write(writer)?;
+            cmv29.write(writer).with_context(|| CmV29DmData::VERSION)?;
         }
 
         if let Some(cmv40) = &self.cmv40_metadata {
-            cmv40.write(writer)?;
+            cmv40.write(writer).with_context(|| CmV40DmData::VERSION)?;
         }
 
         Ok(())
@@ -315,9 +319,9 @@ impl VdrDmData {
 
         if let Some(dm_data) = self.extension_metadata_for_level_mut(level) {
             match dm_data {
-                DmData::V29(meta) => meta.add_block(block)?,
-                DmData::V40(meta) => meta.add_block(block)?,
-            }
+                DmData::V29(meta) => meta.add_block(block).with_context(|| CmV29DmData::VERSION),
+                DmData::V40(meta) => meta.add_block(block).with_context(|| CmV40DmData::VERSION),
+            }?
         }
 
         Ok(())
