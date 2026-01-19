@@ -10,7 +10,7 @@ The C compatible library is also known as **`libdovi`**, refer to the same docum
 ## **Building**
 ### **Toolchain**
 
-The minimum Rust version to build **`dovi_tool`** is 1.85.0.
+The minimum Rust version to build **`dovi_tool`** is 1.88.0.
 
 ### **Dependencies**
 On Linux systems, [fontconfig](https://github.com/yeslogic/fontconfig-rs#dependencies) is required.  
