@@ -295,16 +295,16 @@ impl EditConfig {
         if range.contains('-') {
             let mut split = range.split('-');
 
-            if let Some(first) = split.next() {
-                if let Ok(first_num) = first.parse() {
-                    result.0 = first_num;
-                }
+            if let Some(first) = split.next()
+                && let Ok(first_num) = first.parse()
+            {
+                result.0 = first_num;
             }
 
-            if let Some(second) = split.next() {
-                if let Ok(second_num) = second.parse() {
-                    result.1 = second_num;
-                }
+            if let Some(second) = split.next()
+                && let Ok(second_num) = second.parse()
+            {
+                result.1 = second_num;
             }
 
             Ok(result)
@@ -430,11 +430,11 @@ impl EditConfig {
         // Allow passing "all" instead of a range
         // Do "all" presets before specific ranges
         for edit in edits {
-            if edit.0.to_lowercase() == "all" {
-                if let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut() {
-                    rpu.modified = true;
-                    vdr_dm_data.set_scene_cut(*edit.1);
-                }
+            if edit.0.to_lowercase() == "all"
+                && let Some(vdr_dm_data) = rpu.vdr_dm_data.as_mut()
+            {
+                rpu.modified = true;
+                vdr_dm_data.set_scene_cut(*edit.1);
             }
         }
 
@@ -510,10 +510,10 @@ impl EditConfig {
 
 impl ActiveArea {
     fn execute(&self, rpus: &mut [Option<DoviRpu>]) -> Result<()> {
-        if let Some(edits) = &self.edits {
-            if !edits.is_empty() {
-                self.do_edits(edits, rpus)?;
-            }
+        if let Some(edits) = &self.edits
+            && !edits.is_empty()
+        {
+            self.do_edits(edits, rpus)?;
         }
 
         Ok(())
