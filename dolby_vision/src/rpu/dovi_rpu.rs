@@ -200,6 +200,11 @@ impl DoviRpu {
             None
         };
 
+        let avail = reader.available()?;
+        if avail != CRC32_TERMINATOR_BITS {
+            bail!("expected {CRC32_TERMINATOR_BITS} remaining bits but have {avail} bits");
+        }
+
         let rpu_data_crc32 = reader.read::<32, u32>()?;
         let last_byte = reader.read::<8, u8>()?;
         ensure!(last_byte == FINAL_BYTE, "last byte should be 0x80");
