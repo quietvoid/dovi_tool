@@ -19,7 +19,12 @@ use super::c_structs::*;
 /// Adds an error if the parsing fails.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
-    assert!(!buf.is_null());
+    if buf.is_null() {
+        return Box::into_raw(Box::new(RpuOpaque::new(
+            None,
+            CString::new("dovi_parse_rpu: null buffer pointer").ok(),
+        )));
+    }
 
     let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_rpu(data);
@@ -37,7 +42,12 @@ pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
     buf: *const u8,
     len: size_t,
 ) -> *mut RpuOpaque {
-    assert!(!buf.is_null());
+    if buf.is_null() {
+        return Box::into_raw(Box::new(RpuOpaque::new(
+            None,
+            CString::new("dovi_parse_itu_t35_dovi_metadata_obu: null buffer pointer").ok(),
+        )));
+    }
 
     let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_itu_t35_dovi_metadata_obu(data);
@@ -52,7 +62,12 @@ pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
 /// Adds an error if the parsing fails.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
-    assert!(!buf.is_null());
+    if buf.is_null() {
+        return Box::into_raw(Box::new(RpuOpaque::new(
+            None,
+            CString::new("dovi_parse_unspec62_nalu: null buffer pointer").ok(),
+        )));
+    }
 
     let data = unsafe { slice::from_raw_parts(buf, len) };
     let res = DoviRpu::parse_unspec62_nalu(data);

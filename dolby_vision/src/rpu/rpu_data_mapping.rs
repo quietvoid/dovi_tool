@@ -150,7 +150,7 @@ impl RpuDataMapping {
             let num_pieces = (curve.num_pivots_minus2 + 1) as usize;
 
             for _ in 0..num_pieces {
-                let mapping_idc = DoviMappingMethod::from(reader.read_ue()?);
+                let mapping_idc = DoviMappingMethod::try_from(reader.read_ue()?)?;
                 curve.mapping_idc = mapping_idc;
 
                 // MAPPING_POLYNOMIAL
@@ -525,12 +525,14 @@ impl DoviMMRCurve {
     }
 }
 
-impl From<u64> for DoviMappingMethod {
-    fn from(value: u64) -> Self {
+impl TryFrom<u64> for DoviMappingMethod {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u64) -> Result<Self> {
         match value {
-            0 => Self::Polynomial,
-            1 => Self::MMR,
-            _ => unreachable!(),
+            0 => Ok(Self::Polynomial),
+            1 => Ok(Self::MMR),
+            _ => bail!("Invalid mapping_idc value: {value}"),
         }
     }
 }

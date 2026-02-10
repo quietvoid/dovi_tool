@@ -129,24 +129,43 @@ impl DmData {
     }
 
     /// # Safety
+    /// All non-null pointers must have been allocated by Box::into_raw.
     pub unsafe fn free(&self) {
         unsafe {
-            drop(Box::from_raw(self.level1 as *mut ExtMetadataBlockLevel1));
+            if !self.level1.is_null() {
+                drop(Box::from_raw(self.level1 as *mut ExtMetadataBlockLevel1));
+            }
             self.level2.free();
-            drop(Box::from_raw(self.level3 as *mut ExtMetadataBlockLevel3));
-            drop(Box::from_raw(self.level4 as *mut ExtMetadataBlockLevel4));
-            drop(Box::from_raw(self.level5 as *mut ExtMetadataBlockLevel5));
-            drop(Box::from_raw(self.level6 as *mut ExtMetadataBlockLevel6));
+            if !self.level3.is_null() {
+                drop(Box::from_raw(self.level3 as *mut ExtMetadataBlockLevel3));
+            }
+            if !self.level4.is_null() {
+                drop(Box::from_raw(self.level4 as *mut ExtMetadataBlockLevel4));
+            }
+            if !self.level5.is_null() {
+                drop(Box::from_raw(self.level5 as *mut ExtMetadataBlockLevel5));
+            }
+            if !self.level6.is_null() {
+                drop(Box::from_raw(self.level6 as *mut ExtMetadataBlockLevel6));
+            }
             self.level8.free();
-            drop(Box::from_raw(self.level9 as *mut ExtMetadataBlockLevel9));
+            if !self.level9.is_null() {
+                drop(Box::from_raw(self.level9 as *mut ExtMetadataBlockLevel9));
+            }
             self.level10.free();
-            drop(Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11));
-            drop(Box::from_raw(
-                self.level254 as *mut ExtMetadataBlockLevel254,
-            ));
-            drop(Box::from_raw(
-                self.level255 as *mut ExtMetadataBlockLevel255,
-            ));
+            if !self.level11.is_null() {
+                drop(Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11));
+            }
+            if !self.level254.is_null() {
+                drop(Box::from_raw(
+                    self.level254 as *mut ExtMetadataBlockLevel254,
+                ));
+            }
+            if !self.level255.is_null() {
+                drop(Box::from_raw(
+                    self.level255 as *mut ExtMetadataBlockLevel255,
+                ));
+            }
         }
     }
 }

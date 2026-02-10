@@ -267,8 +267,10 @@ impl<const N: usize> From<Option<[u16; N]>> for U16Data {
 
 impl Freeable for Data {
     unsafe fn free(&self) {
-        unsafe {
-            Vec::from_raw_parts(self.data as *mut u8, self.len, self.len);
+        if !self.data.is_null() {
+            unsafe {
+                Vec::from_raw_parts(self.data as *mut u8, self.len, self.len);
+            }
         }
     }
 }
@@ -295,8 +297,10 @@ impl Freeable for U64Data {
 
 impl Freeable for I64Data {
     unsafe fn free(&self) {
-        unsafe {
-            Vec::from_raw_parts(self.data as *mut i64, self.len, self.len);
+        if !self.data.is_null() {
+            unsafe {
+                Vec::from_raw_parts(self.data as *mut i64, self.len, self.len);
+            }
         }
     }
 }
