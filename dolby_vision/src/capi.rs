@@ -20,9 +20,8 @@ use super::c_structs::*;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_rpu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     if buf.is_null() {
-        return Box::into_raw(Box::new(RpuOpaque::new(
-            None,
-            CString::new("dovi_parse_rpu: null buffer pointer").ok(),
+        return Box::into_raw(Box::new(RpuOpaque::invalid_with_error(
+            "dovi_parse_rpu: null buffer pointer",
         )));
     }
 
@@ -43,9 +42,8 @@ pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
     len: size_t,
 ) -> *mut RpuOpaque {
     if buf.is_null() {
-        return Box::into_raw(Box::new(RpuOpaque::new(
-            None,
-            CString::new("dovi_parse_itu_t35_dovi_metadata_obu: null buffer pointer").ok(),
+        return Box::into_raw(Box::new(RpuOpaque::invalid_with_error(
+            "dovi_parse_itu_t35_dovi_metadata_obu: null buffer pointer",
         )));
     }
 
@@ -63,9 +61,8 @@ pub unsafe extern "C" fn dovi_parse_itu_t35_dovi_metadata_obu(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dovi_parse_unspec62_nalu(buf: *const u8, len: size_t) -> *mut RpuOpaque {
     if buf.is_null() {
-        return Box::into_raw(Box::new(RpuOpaque::new(
-            None,
-            CString::new("dovi_parse_unspec62_nalu: null buffer pointer").ok(),
+        return Box::into_raw(Box::new(RpuOpaque::invalid_with_error(
+            "dovi_parse_unspec62_nalu: null buffer pointer",
         )));
     }
 
@@ -139,8 +136,7 @@ pub unsafe extern "C" fn dovi_write_rpu(ptr: *mut RpuOpaque) -> *const Data {
         match rpu.write_rpu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                opaque.error = CString::new(format!("Failed writing byte buffer: {e}")).ok();
                 null_mut()
             }
         }
@@ -166,8 +162,7 @@ pub unsafe extern "C" fn dovi_write_unspec62_nalu(ptr: *mut RpuOpaque) -> *const
         match rpu.write_hevc_unspec62_nalu() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                opaque.error = CString::new(format!("Failed writing byte buffer: {e}")).ok();
                 null_mut()
             }
         }
@@ -206,7 +201,7 @@ pub unsafe extern "C" fn dovi_convert_rpu_with_mode(ptr: *mut RpuOpaque, mode: u
             Ok(_) => 0,
             Err(e) => {
                 opaque.error =
-                    Some(CString::new(format!("Failed converting with mode {mode}: {e}")).unwrap());
+                    CString::new(format!("Failed converting with mode {mode}: {e}")).ok();
                 -1
             }
         }
@@ -352,7 +347,7 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
 
                         let opaque_list: Vec<*mut RpuOpaque> = rpus
                             .into_iter()
-                            .map(|rpu| Box::into_raw(Box::new(RpuOpaque::new(Some(rpu), None))))
+                            .map(|rpu| Box::into_raw(Box::new(RpuOpaque::new(Some(rpu)))))
                             .collect();
 
                         rpu_list.list =
@@ -370,8 +365,8 @@ pub unsafe extern "C" fn dovi_parse_rpu_bin_file(path: *const c_char) -> *const 
                 Some("parse_rpu_bin_file: Failed parsing the input path as a string".to_string());
         }
 
-        if let Some(err) = error {
-            rpu_list.error = CString::new(err).unwrap().into_raw();
+        if let Some(err) = error.and_then(|err| CString::new(err).ok()) {
+            rpu_list.error = err.into_raw();
         }
 
         return Box::into_raw(Box::new(rpu_list));
@@ -418,7 +413,7 @@ pub unsafe extern "C" fn dovi_rpu_set_active_area_offsets(
             Ok(_) => 0,
             Err(e) => {
                 opaque.error =
-                    Some(CString::new(format!("Failed editing active area offsets: {e}")).unwrap());
+                    CString::new(format!("Failed editing active area offsets: {e}")).ok();
                 -1
             }
         }
@@ -467,8 +462,7 @@ pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_payload(
         match rpu.write_av1_rpu_metadata_obu_t35_payload() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                opaque.error = CString::new(format!("Failed writing byte buffer: {e}")).ok();
                 null_mut()
             }
         }
@@ -496,8 +490,7 @@ pub unsafe extern "C" fn dovi_write_av1_rpu_metadata_obu_t35_complete(
         match rpu.write_av1_rpu_metadata_obu_t35_complete() {
             Ok(buf) => Box::into_raw(Box::new(Data::from(buf))),
             Err(e) => {
-                opaque.error =
-                    Some(CString::new(format!("Failed writing byte buffer: {e}")).unwrap());
+                opaque.error = CString::new(format!("Failed writing byte buffer: {e}")).ok();
                 null_mut()
             }
         }

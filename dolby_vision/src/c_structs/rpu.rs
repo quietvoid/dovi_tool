@@ -27,19 +27,23 @@ pub struct RpuOpaqueList {
 }
 
 impl RpuOpaque {
-    pub(crate) fn new(rpu: Option<DoviRpu>, error: Option<CString>) -> Self {
-        Self { rpu, error }
+    pub(crate) fn new(rpu: Option<DoviRpu>) -> Self {
+        Self { rpu, error: None }
+    }
+
+    pub(crate) fn invalid_with_error(msg: &str) -> Self {
+        Self {
+            rpu: None,
+            error: CString::new(msg).ok(),
+        }
     }
 }
 
 impl From<Result<DoviRpu, anyhow::Error>> for RpuOpaque {
     fn from(res: Result<DoviRpu, anyhow::Error>) -> Self {
         match res {
-            Ok(rpu) => Self::new(Some(rpu), None),
-            Err(e) => Self::new(
-                None,
-                Some(CString::new(format!("Failed parsing RPU: {e}")).unwrap()),
-            ),
+            Ok(rpu) => Self::new(Some(rpu)),
+            Err(e) => Self::invalid_with_error(&format!("Failed parsing RPU: {e}")),
         }
     }
 }

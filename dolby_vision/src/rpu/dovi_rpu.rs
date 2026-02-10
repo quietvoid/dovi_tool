@@ -118,7 +118,10 @@ impl DoviRpu {
         let rpu_end = data.len() - trailing_zeroes;
 
         // Minimum: 1 prefix byte + at least 1 byte payload + 4 CRC32 bytes + 1 final byte = 7
-        ensure!(rpu_end >= 7, "RPU data too short: {rpu_end} bytes after trimming trailing zeroes");
+        ensure!(
+            rpu_end >= 7,
+            "RPU data too short: {rpu_end} bytes after trimming trailing zeroes"
+        );
 
         let last_byte = data[rpu_end - 1];
 

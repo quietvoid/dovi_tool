@@ -5,6 +5,7 @@
 - `GenerateConfig`: list encoding helpers now return iterators instead of a `Vec`.
   - The iterators do not filter out errors anymore.  
     `collect_encoded_rpus` was added for convenience to reproduce previous behaviour.
+- `From<u64> for DoviMappingMethod` was replaced by `TryFrom`.
 
 ## 3.3.2
 - `rpu`: fix `write_rpu_data` allocated capacity. Now static and 512 bytes.
