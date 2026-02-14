@@ -34,7 +34,6 @@ pub struct RpuInjector {
     mismatched_length: bool,
 
     frame_buffer: FrameBuffer,
-    last_metadata_written: Option<NalBuffer>,
 }
 
 impl RpuInjector {
@@ -79,7 +78,6 @@ impl RpuInjector {
                 frame_number: 0,
                 nals: Vec::with_capacity(16),
             },
-            last_metadata_written: None,
         };
 
         println!("Parsing RPU file...");
@@ -162,7 +160,6 @@ impl RpuInjector {
         rpus: &[DoviRpu],
         frame_buffer: &FrameBuffer,
         mismatched_length: bool,
-        last_metadata: &Option<NalBuffer>,
     ) -> Result<(usize, NalBuffer)> {
         let existing_frame = frames
             .iter()
@@ -171,24 +168,32 @@ impl RpuInjector {
         // If we have a RPU buffered frame, write it
         // Otherwise, write the same data as previous
         let rpu_nb = if let Some(frame) = existing_frame {
-            if let Some(dovi_rpu) = rpus.get(frame.presentation_number as usize) {
-                let rpu_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+            let dovi_rpu = rpus
+                .get(frame.presentation_number as usize)
+                .or_else(|| mismatched_length.then(|| rpus.last()).flatten());
+
+            if let Some(rpu) = dovi_rpu {
+                let data = rpu.write_hevc_unspec62_nalu()?;
 
                 Some(NalBuffer {
                     nal_type: NAL_UNSPEC62,
                     start_code: NALUStartCode::Length4,
-                    data: rpu_data,
+                    data,
                 })
-            } else if mismatched_length {
-                last_metadata.clone()
             } else {
                 bail!(
                     "No RPU found for presentation frame {}",
                     frame.presentation_number
                 );
             }
-        } else if mismatched_length {
-            last_metadata.clone()
+        } else if mismatched_length && let Some(rpu) = rpus.last() {
+            let data = rpu.write_hevc_unspec62_nalu()?;
+
+            Some(NalBuffer {
+                nal_type: NAL_UNSPEC62,
+                start_code: NALUStartCode::Length4,
+                data,
+            })
         } else {
             None
         };
@@ -281,10 +286,8 @@ impl IoProcessor for RpuInjector {
                         rpus,
                         &self.frame_buffer,
                         self.mismatched_length,
-                        &self.last_metadata_written,
                     )?;
 
-                    self.last_metadata_written = Some(rpu_nb.clone());
                     self.frame_buffer.nals.insert(idx, rpu_nb);
 
                     // Write NALUs for the frame
@@ -369,10 +372,8 @@ impl IoProcessor for RpuInjector {
                     rpus,
                     &self.frame_buffer,
                     self.mismatched_length,
-                    &self.last_metadata_written,
                 )?;
 
-                self.last_metadata_written = Some(rpu_nb.clone());
                 self.frame_buffer.nals.insert(idx, rpu_nb);
 
                 // Write NALUs for the last frame
