@@ -5,7 +5,7 @@ use std::path::PathBuf;
 pub struct ConvertArgs {
     #[arg(
         id = "input",
-        help = "Sets the input HEVC file to use, or piped with -",
+        help = "Sets the input file to use (.hevc, .av1, .ivf), or piped with -",
         long,
         short = 'i',
         conflicts_with = "input_pos",
@@ -16,7 +16,7 @@ pub struct ConvertArgs {
 
     #[arg(
         id = "input_pos",
-        help = "Sets the input HEVC file to use, or piped with - (positional)",
+        help = "Sets the input file to use (.hevc, .av1, .ivf), or piped with - (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
         value_hint = ValueHint::FilePath

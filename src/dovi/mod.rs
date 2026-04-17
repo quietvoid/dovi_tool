@@ -13,6 +13,7 @@ use hevc_parser::io::{IoFormat, StartCodePreset};
 use self::editor::EditConfig;
 use super::commands::ConversionModeCli;
 
+pub mod av1;
 pub mod converter;
 pub mod demuxer;
 pub mod editor;
@@ -107,6 +108,24 @@ pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u
     }
 
     dovi_rpu.write_hevc_unspec62_nalu()
+}
+
+/// Apply conversion options to an already-parsed `DoviRpu` in-place.
+/// Used by AV1 converter which works directly with `DoviRpu` objects.
+pub fn convert_encoded_from_opts_rpu(opts: &CliOptions, rpu: &mut DoviRpu) -> Result<()> {
+    if let Some(edit_config) = &opts.edit_config {
+        edit_config.execute_single_rpu(rpu)?;
+    } else {
+        if let Some(mode) = opts.mode {
+            rpu.convert_with_mode(mode)?;
+        }
+
+        if opts.crop {
+            rpu.crop()?;
+        }
+    }
+
+    Ok(())
 }
 
 pub fn input_from_either(cmd: &str, in1: Option<PathBuf>, in2: Option<PathBuf>) -> Result<PathBuf> {

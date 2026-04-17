@@ -5,7 +5,7 @@ use std::path::PathBuf;
 pub struct InjectRpuArgs {
     #[arg(
         id = "input",
-        help = "Sets the input HEVC file to use",
+        help = "Sets the input file to use (.hevc, .av1, .ivf)",
         long,
         short = 'i',
         conflicts_with = "input_pos",
@@ -16,7 +16,7 @@ pub struct InjectRpuArgs {
 
     #[arg(
         id = "input_pos",
-        help = "Sets the input HEVC file to use (positional)",
+        help = "Sets the input file to use (.hevc, .av1, .ivf) (positional)",
         conflicts_with = "input",
         required_unless_present = "input",
         value_hint = ValueHint::FilePath
@@ -34,6 +34,6 @@ pub struct InjectRpuArgs {
     )]
     pub output: Option<PathBuf>,
 
-    #[arg(long, num_args = 0, help = "Disable adding AUD NALUs between frames")]
+    #[arg(long, num_args = 0, help = "Disable adding AUD NALUs between frames (HEVC only)")]
     pub no_add_aud: bool,
 }

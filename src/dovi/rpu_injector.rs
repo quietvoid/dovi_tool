@@ -1,6 +1,6 @@
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write, stdout};
-use std::path::PathBuf;
+use std::io::{BufReader, BufWriter, Read, Write, stdout};
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 use indicatif::ProgressBar;
@@ -14,8 +14,233 @@ use dolby_vision::rpu::utils::parse_rpu_file;
 
 use crate::commands::InjectRpuArgs;
 
+use super::av1::{
+    IvfFrameHeader, IvfWriter, Obu, OBU_TEMPORAL_DELIMITER,
+    build_dovi_obu, is_dovi_rpu_obu,
+    try_read_ivf_file_header, read_ivf_frame_header, read_obus_from_ivf_frame,
+};
 use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
 use super::{CliOptions, DoviRpu, IoFormat, input_from_either};
+
+fn is_av1_input(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("av1") | Some("ivf")
+    )
+}
+
+fn inject_rpu_av1(input: &Path, rpu_in: &Path, output: &Path) -> Result<()> {
+    println!("Parsing RPU file...");
+    stdout().flush().ok();
+
+    let rpus = parse_rpu_file(rpu_in)?;
+    println!("Loaded {} RPU(s).", rpus.len());
+
+    let file = File::open(input)?;
+    let mut reader = BufReader::with_capacity(100_000, file);
+
+    if let Some(ivf_header) = try_read_ivf_file_header(&mut reader)? {
+        // IVF container — IvfWriter owns frame-level I/O (consistent with remover)
+        let out_file = BufWriter::with_capacity(
+            100_000,
+            File::create(output).expect("Can't create output file"),
+        );
+        let mut ivf_writer = IvfWriter::new(out_file, &ivf_header)?;
+        inject_ivf_av1(&mut reader, &mut ivf_writer, &rpus)?;
+        ivf_writer.flush()?;
+    } else {
+        // Raw AV1 bitstream
+        let mut writer = BufWriter::with_capacity(
+            100_000,
+            File::create(output).expect("Can't create output file"),
+        );
+        inject_raw_av1(&mut reader, &mut writer, &rpus)?;
+        writer.flush()?;
+    }
+
+    println!("Rewriting with interleaved RPU OBUs: Done.");
+    Ok(())
+}
+
+fn inject_ivf_av1<R: Read, W: Write>(
+    reader: &mut R,
+    ivf_writer: &mut IvfWriter<W>,
+    rpus: &[DoviRpu],
+) -> Result<()> {
+    let total_rpus = rpus.len();
+    let mut tu_index = 0usize;
+    let mut warned_existing = false;
+    let mut warned_mismatch = false;
+
+    loop {
+        let fh: IvfFrameHeader = match read_ivf_frame_header(reader)? {
+            Some(h) => h,
+            None => break,
+        };
+
+        let mut frame_data = vec![0u8; fh.frame_size as usize];
+        reader.read_exact(&mut frame_data)?;
+
+        let obus = read_obus_from_ivf_frame(frame_data)?;
+
+        if !warned_existing && obus.iter().any(|o| is_dovi_rpu_obu(o)) {
+            warned_existing = true;
+            println!(
+                "\nWarning: Input file already has Dolby Vision RPU OBUs; \
+                 they will be replaced."
+            );
+        }
+
+        let encoded = if tu_index < total_rpus {
+            build_dovi_obu(&rpus[tu_index])?
+        } else {
+            if !warned_mismatch {
+                warned_mismatch = true;
+                println!(
+                    "\nWarning: mismatched lengths. \
+                     RPU has {total_rpus} entries but video has more frames. \
+                     Last RPU will be duplicated."
+                );
+            }
+            match rpus.last() {
+                Some(rpu) => build_dovi_obu(rpu)?,
+                None => bail!("No RPU available for TU {tu_index}"),
+            }
+        };
+
+        let output_frame = build_output_frame_av1(&obus, &encoded);
+        ivf_writer.write_frame(fh.timestamp, &output_frame)?;
+
+        tu_index += 1;
+    }
+
+    if tu_index < total_rpus {
+        println!(
+            "\nWarning: mismatched lengths. RPU has {total_rpus} entries \
+             but video has {tu_index} frames. Excess RPU data was ignored."
+        );
+    }
+
+    Ok(())
+}
+
+fn inject_raw_av1<R: Read, W: Write>(
+    reader: &mut R,
+    writer: &mut W,
+    rpus: &[DoviRpu],
+) -> Result<()> {
+    let total_rpus = rpus.len();
+    let mut tu_index = 0usize;
+    let mut warned_existing = false;
+    let mut warned_mismatch = false;
+
+    let mut current_td: Option<Obu> = None;
+    let mut pending: Vec<Obu> = Vec::new();
+
+    loop {
+        let obu_opt = Obu::read_from(reader)?;
+        let is_eof = obu_opt.is_none();
+        let is_td = obu_opt
+            .as_ref()
+            .map(|o| o.obu_type == OBU_TEMPORAL_DELIMITER)
+            .unwrap_or(false);
+
+        if (is_eof || is_td) && current_td.is_some() {
+            if !warned_existing && pending.iter().any(|o| is_dovi_rpu_obu(o)) {
+                warned_existing = true;
+                println!(
+                    "\nWarning: Input file already has Dolby Vision RPU OBUs; \
+                     they will be replaced."
+                );
+            }
+
+            let encoded = if tu_index < total_rpus {
+                build_dovi_obu(&rpus[tu_index])?
+            } else {
+                if !warned_mismatch {
+                    warned_mismatch = true;
+                    println!(
+                        "\nWarning: mismatched lengths. \
+                         RPU has {total_rpus} entries but video has more frames. \
+                         Last RPU will be duplicated."
+                    );
+                }
+                match rpus.last() {
+                    Some(rpu) => build_dovi_obu(rpu)?,
+                    None => bail!("No RPU available for TU {tu_index}"),
+                }
+            };
+
+            // Write: TD + RPU OBU + remaining OBUs (skip existing DoVi)
+            let td = current_td.take().unwrap();
+            writer.write_all(&td.raw_bytes)?;
+            writer.write_all(&encoded)?;
+            for obu in pending.drain(..) {
+                if !is_dovi_rpu_obu(&obu) {
+                    writer.write_all(&obu.raw_bytes)?;
+                }
+            }
+
+            tu_index += 1;
+        }
+
+        match obu_opt {
+            None => break,
+            Some(obu) => {
+                if obu.obu_type == OBU_TEMPORAL_DELIMITER {
+                    current_td = Some(obu);
+                    pending.clear();
+                } else if current_td.is_some() {
+                    pending.push(obu);
+                } else {
+                    // OBUs before the first TD — pass through unchanged
+                    writer.write_all(&obu.raw_bytes)?;
+                }
+            }
+        }
+    }
+
+    if tu_index < total_rpus {
+        println!(
+            "\nWarning: mismatched lengths. RPU has {total_rpus} entries \
+             but video has {tu_index} frames. Excess RPU data was ignored."
+        );
+    }
+
+    Ok(())
+}
+
+/// Build the output byte buffer for one IVF temporal unit:
+/// inject the RPU OBU right after OBU_TEMPORAL_DELIMITER (if present)
+/// and strip any existing Dolby Vision RPU OBUs.
+fn build_output_frame_av1(obus: &[Obu], encoded: &[u8]) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut injected = false;
+
+    // Insertion point: right after OBU_TEMPORAL_DELIMITER, or at position 0
+    let insert_after_td = obus
+        .iter()
+        .position(|o| o.obu_type == OBU_TEMPORAL_DELIMITER)
+        .map(|i| i + 1)
+        .unwrap_or(0);
+
+    for (i, obu) in obus.iter().enumerate() {
+        if !injected && i == insert_after_td {
+            out.extend_from_slice(encoded);
+            injected = true;
+        }
+        if is_dovi_rpu_obu(obu) {
+            continue; // drop existing Dolby Vision RPU
+        }
+        out.extend_from_slice(&obu.raw_bytes);
+    }
+
+    if !injected {
+        out.extend_from_slice(encoded);
+    }
+
+    out
+}
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -91,6 +316,15 @@ impl RpuInjector {
 
     pub fn inject_rpu(args: InjectRpuArgs, cli_options: CliOptions) -> Result<()> {
         let input = input_from_either("inject-rpu", args.input.clone(), args.input_pos.clone())?;
+
+        if is_av1_input(&input) {
+            let output = args.output.clone().unwrap_or_else(|| {
+                let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("av1");
+                PathBuf::from(format!("injected_output.{ext}"))
+            });
+            return inject_rpu_av1(&input, &args.rpu_in, &output);
+        }
+
         let format = hevc_parser::io::format_from_path(&input)?;
 
         if let IoFormat::Raw = format {
