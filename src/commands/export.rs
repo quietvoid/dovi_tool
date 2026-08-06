@@ -110,6 +110,14 @@ pub enum ExportLevel {
     Level10,
     #[value(alias = "l11")]
     Level11,
+    #[value(alias = "l15")]
+    Level15,
+    #[value(alias = "l16")]
+    Level16,
+    #[value(alias = "l17")]
+    Level17,
+    #[value(alias = "l18")]
+    Level18,
 }
 
 impl ExportData {
@@ -135,6 +143,10 @@ impl ExportLevel {
             Self::Level9 => 9,
             Self::Level10 => 10,
             Self::Level11 => 11,
+            Self::Level15 => 15,
+            Self::Level16 => 16,
+            Self::Level17 => 17,
+            Self::Level18 => 18,
         }
     }
     pub fn default_output_file(&self, format: LevelsOutputFormat) -> String {

@@ -22,6 +22,10 @@ pub struct DmData {
     level9: *const ExtMetadataBlockLevel9,
     level10: Level10BlockList,
     level11: *const ExtMetadataBlockLevel11,
+    level15: *const ExtMetadataBlockLevel15,
+    level16: *const ExtMetadataBlockLevel16,
+    level17: *const ExtMetadataBlockLevel17,
+    level18: *const ExtMetadataBlockLevel18,
     level254: *const ExtMetadataBlockLevel254,
     level255: *const ExtMetadataBlockLevel255,
 }
@@ -106,6 +110,22 @@ impl DmData {
                     self.level11 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel11
                 }
+                ExtMetadataBlock::Level15(b) => {
+                    self.level15 =
+                        Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel15
+                }
+                ExtMetadataBlock::Level16(b) => {
+                    self.level16 =
+                        Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel16
+                }
+                ExtMetadataBlock::Level17(b) => {
+                    self.level17 =
+                        Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel17
+                }
+                ExtMetadataBlock::Level18(b) => {
+                    self.level18 =
+                        Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel18
+                }
                 ExtMetadataBlock::Level254(b) => {
                     self.level254 =
                         Box::into_raw(Box::new(b.clone())) as *const ExtMetadataBlockLevel254
@@ -156,6 +176,18 @@ impl DmData {
             if !self.level11.is_null() {
                 drop(Box::from_raw(self.level11 as *mut ExtMetadataBlockLevel11));
             }
+            if !self.level15.is_null() {
+                drop(Box::from_raw(self.level15 as *mut ExtMetadataBlockLevel15));
+            }
+            if !self.level16.is_null() {
+                drop(Box::from_raw(self.level16 as *mut ExtMetadataBlockLevel16));
+            }
+            if !self.level17.is_null() {
+                drop(Box::from_raw(self.level17 as *mut ExtMetadataBlockLevel17));
+            }
+            if !self.level18.is_null() {
+                drop(Box::from_raw(self.level18 as *mut ExtMetadataBlockLevel18));
+            }
             if !self.level254.is_null() {
                 drop(Box::from_raw(
                     self.level254 as *mut ExtMetadataBlockLevel254,
@@ -184,6 +216,10 @@ impl Default for DmData {
             level9: null(),
             level10: Default::default(),
             level11: null(),
+            level15: null(),
+            level16: null(),
+            level17: null(),
+            level18: null(),
             level254: null(),
             level255: null(),
         }

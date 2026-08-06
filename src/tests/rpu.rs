@@ -7,6 +7,7 @@ use dolby_vision::rpu::ConversionMode;
 use dolby_vision::rpu::dovi_rpu::DoviRpu;
 use dolby_vision::rpu::extension_metadata::blocks::{ExtMetadataBlock, ExtMetadataBlockLevel6};
 use dolby_vision::rpu::extension_metadata::{ColorPrimaries, MasteringDisplayPrimaries};
+use dolby_vision::rpu::extension_metadata::{DmData, WithExtMetadataBlocks};
 use dolby_vision::rpu::generate::GenerateConfig;
 use dolby_vision::rpu::rpu_data_nlq::DoviELType;
 use hevc_parser::hevc::{NAL_UNSPEC62, NALUnit};
@@ -1141,6 +1142,44 @@ fn profile20_apple() -> Result<()> {
     assert_eq!(dovi_rpu.dovi_profile, 5);
     let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
 
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
+
+/// DV2 (CM v4.0) extension metadata blocks Level 15, 16 and 18.
+/// Verifies that RPU streams carrying the new DV2 metadata blocks
+/// (Dolby Image Engine / Reference mode engine / Precision Black)
+/// parse and round-trip bit-exactly.
+#[test]
+fn l15_to_l18() -> Result<()> {
+    let (original_data, dovi_rpu) = _parse_file(PathBuf::from("./assets/tests/l15_to_l18.bin"))?;
+
+    // CM v4.0 metadata must be present
+    let vdr_dm_data = dovi_rpu.vdr_dm_data.as_ref().unwrap();
+    let cmv40 = match vdr_dm_data.cmv40_metadata.as_ref().unwrap() {
+        DmData::V40(m) => m,
+        _ => panic!("expected CM v4.0 metadata"),
+    };
+    let blocks = cmv40.blocks_ref();
+
+    // At least one of each new DV2 block must have been parsed
+    let has_l15 = blocks
+        .iter()
+        .any(|b| matches!(b, ExtMetadataBlock::Level15(_)));
+    let has_l16 = blocks
+        .iter()
+        .any(|b| matches!(b, ExtMetadataBlock::Level16(_)));
+    let has_l18 = blocks
+        .iter()
+        .any(|b| matches!(b, ExtMetadataBlock::Level18(_)));
+
+    assert!(has_l15, "no Level 15 block parsed");
+    assert!(has_l16, "no Level 16 block parsed");
+    assert!(has_l18, "no Level 18 block parsed");
+
+    // Round-trip: rewritten bytes must match the original
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
     assert_eq!(&original_data[4..], &parsed_data[2..]);
 
     Ok(())
