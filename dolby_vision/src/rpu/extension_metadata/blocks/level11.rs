@@ -19,6 +19,12 @@ pub struct ExtMetadataBlockLevel11 {
 
     #[cfg_attr(feature = "serde", serde(default))]
     pub reserved_byte2: u8,
+    /// Byte 3 of the L11 block. In DV2 this carries Authentic Motion /
+    /// FRC metadata (see Dolby Vision Metadata Spec v1.5.1 §6, HDMI
+    /// Transmission Spec v5.1.1 PB[13]): bits [3:0] = `frc_strength`,
+    /// bit 4 = `frc_type` (0 = De-judder, 1 = Smoothness). Stored as a
+    /// raw byte for round-trip fidelity; decoded via [`Self::frc_strength`]
+    /// and [`Self::frc_type`].
     #[cfg_attr(feature = "serde", serde(default))]
     pub reserved_byte3: u8,
 }
@@ -51,9 +57,21 @@ impl ExtMetadataBlockLevel11 {
     pub fn validate(&self) -> Result<()> {
         ensure!(self.content_type <= 15);
         ensure!(self.whitepoint <= 15);
-        ensure!(self.reserved_byte3 == 0);
 
         Ok(())
+    }
+
+    /// FRC strength (Authentic Motion), bits [3:0] of byte 3.
+    /// Range 0..=15. Only meaningful when `DV2_Motion_Control` is set
+    /// (byte 1, bit 5); otherwise this is expected to be 0.
+    pub const fn frc_strength(&self) -> u8 {
+        self.reserved_byte3 & 0x0F
+    }
+
+    /// FRC type (Authentic Motion), bit 4 of byte 3.
+    /// `false` (0) = De-judder (<=30fps film), `true` (1) = Smoothness (>=50fps sports).
+    pub const fn frc_type(&self) -> bool {
+        (self.reserved_byte3 >> 4) & 0x01 == 1
     }
 
     /// Cinema, D65 whitepoint
