@@ -213,10 +213,7 @@ impl ExtMetadataBlock {
         let ext_block_use_bits = self.length_bits() - self.required_bits();
 
         for _ in 0..ext_block_use_bits {
-            ensure!(
-                !reader.read_bit()?,
-                format!("ext_dm_alignment_zero_bit != 0")
-            );
+            ensure!(!reader.read_bit()?, "ext_dm_alignment_zero_bit != 0");
         }
 
         Ok(())
