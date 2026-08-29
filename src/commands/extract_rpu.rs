@@ -38,4 +38,11 @@ pub struct ExtractRpuArgs {
         help = "Stop processing input after N frames"
     )]
     pub limit: Option<u64>,
+
+    #[arg(
+        long,
+        short = 't',
+        help = "Video track number to use in the container (Matroska)"
+    )]
+    pub track_number: Option<usize>,
 }

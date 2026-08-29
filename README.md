@@ -270,12 +270,13 @@ For working with an HEVC source file, there are multiple options that apply to m
     Extracts Dolby Vision RPU from an HEVC file.  
     Input file:
     - HEVC bitstream: single track (BL + RPU), single track dual layer (BL+EL+RPU) or an enhancement layer (EL+RPU) video file.
-    - Matroska =: MKV file containing a HEVC video track.
+    - Matroska: MKV file containing a HEVC video track.
  
     **Supports profiles 4, 5, 7, and 8**.
 
     **Flags**:
     - `-l`, `--limit` Number of frames to process from the input. Processing stops after N frames.
+    - `-t`, `--track-number` Video track number to use when the input is a Matroska file.
 
     **Examples**:
     ```console

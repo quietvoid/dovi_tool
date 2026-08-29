@@ -85,9 +85,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "assert_cmd"
@@ -778,9 +778,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hevc_parser"
-version = "0.6.11"
+version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19d181a8f3d9530b912659983a7827a05744eb28740cf739106debfcfeffc852"
+checksum = "5a9df1d8e830ffe200351fefd3c7ba49d90a17ce5a4f1c787d4607fc76888193"
 dependencies = [
  "anyhow",
  "bitvec_helpers",
@@ -941,9 +941,9 @@ dependencies = [
 
 [[package]]
 name = "matroska-demuxer"
-version = "0.7.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb23384e6bf1431427b45e7db9574146e948ef0cd975018693e6f53eb6d44199"
+checksum = "4cbf36668475a45a46bf8710e927e7458b7c387e7c46ddb5457ae0c71cf5e817"
 
 [[package]]
 name = "memchr"

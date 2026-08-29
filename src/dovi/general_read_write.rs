@@ -56,6 +56,7 @@ pub struct RpuNal {
 #[derive(Default)]
 pub struct DoviProcessorOptions {
     pub limit: Option<u64>,
+    pub track_number: Option<usize>,
 }
 
 #[derive(Default)]
@@ -134,9 +135,13 @@ impl DoviProcessor {
     pub fn read_write_from_io(&mut self, format: &IoFormat) -> Result<()> {
         let chunk_size = 100_000;
 
+        let container_opts = Some(processor::ContainerProcessorOpts {
+            track_number: self.processor_opts.track_number,
+        });
         let processor_opts = HevcProcessorOpts {
             parse_nals: true,
             limit: self.processor_opts.limit,
+            container_opts,
             ..Default::default()
         };
         let mut processor = HevcProcessor::new(format.clone(), processor_opts, chunk_size);
