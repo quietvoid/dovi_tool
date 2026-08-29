@@ -38,4 +38,11 @@ pub struct ExtractRpuArgs {
         help = "Stop processing input after N frames"
     )]
     pub limit: Option<u64>,
+
+    #[arg(
+        long,
+        short = 't',
+        help = "Select Matroska HEVC video track by track number"
+    )]
+    pub track: Option<u64>,
 }

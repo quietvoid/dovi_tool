@@ -16,6 +16,7 @@ pub struct RpuExtractor {
     input: PathBuf,
     rpu_out: PathBuf,
     limit: Option<u64>,
+    track: Option<u64>,
 }
 
 impl RpuExtractor {
@@ -25,6 +26,7 @@ impl RpuExtractor {
             input_pos,
             rpu_out,
             limit,
+            track,
         } = args;
 
         let input = input_from_either("extract-rpu", input, input_pos)?;
@@ -40,6 +42,7 @@ impl RpuExtractor {
             input,
             rpu_out,
             limit,
+            track,
         })
     }
 
@@ -62,7 +65,10 @@ impl RpuExtractor {
             self.input.clone(),
             dovi_writer,
             pb,
-            DoviProcessorOptions { limit: self.limit },
+            DoviProcessorOptions {
+                limit: self.limit,
+                track: self.track,
+            },
         );
 
         let res = dovi_processor.read_write_from_io(&self.format);
