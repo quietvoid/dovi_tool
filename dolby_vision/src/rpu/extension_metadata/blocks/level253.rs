@@ -30,12 +30,17 @@ impl ExtMetadataBlockLevel253 {
     }
 
     pub fn validate(&self) -> Result<()> {
-        ensure!(self.bytes.iter().all(|e| *e == LEVEL253_FILLER_BYTE));
+        ensure!(
+            self.bytes.iter().all(|e| *e == LEVEL253_FILLER_BYTE),
+            "Level 253 filler bytes are expected to equal {LEVEL253_FILLER_BYTE:#x}"
+        );
 
         Ok(())
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        self.validate()?;
+
         writer.write_bytes(&self.bytes)?;
 
         Ok(())
