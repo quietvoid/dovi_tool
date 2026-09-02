@@ -280,6 +280,10 @@ int process_dm_metadata(DoviRpuOpaque *rpu, const DoviRpuDataHeader *header) {
                    meta->content_type, (meta->whitepoint * 375) + 6504, meta->reference_mode_flag);
         }
 
+        if (vdr_dm_data->dm_data.level253) {
+            printf("    L253 filler bytes: %d bytes\n", vdr_dm_data->dm_data.level253->len);
+        }
+
         if (vdr_dm_data->dm_data.level254) {
             const DoviExtMetadataBlockLevel254 *meta = vdr_dm_data->dm_data.level254;
 

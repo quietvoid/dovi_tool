@@ -301,6 +301,7 @@ impl<'a> Serialize for CsvHeaders<'a> {
             ExtMetadataBlock::Level9(b) => json!(b),
             ExtMetadataBlock::Level10(b) => json!(b),
             ExtMetadataBlock::Level11(b) => json!(b),
+            ExtMetadataBlock::Level253(b) => json!(b),
             ExtMetadataBlock::Level254(b) => json!(b),
             ExtMetadataBlock::Level255(b) => json!(b),
             ExtMetadataBlock::Reserved(b) => json!(b),

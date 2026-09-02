@@ -1145,3 +1145,26 @@ fn profile20_apple() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn level253_ext_metadata() -> Result<()> {
+    let (original_data, dovi_rpu) =
+        _parse_file(PathBuf::from("./assets/tests/level253-ext-metadata.bin"))?;
+    assert_eq!(dovi_rpu.dovi_profile, 5);
+
+    let vdr_dm_data = dovi_rpu.vdr_dm_data.as_ref().unwrap();
+
+    let l253_meta = vdr_dm_data.get_block(253).unwrap();
+    assert_eq!(l253_meta.length_bytes(), 2);
+    assert_eq!(l253_meta.length_bits(), 16);
+
+    if let ExtMetadataBlock::Level253(b) = l253_meta {
+        assert_eq!(b.bytes, vec![0x55; 2]);
+    }
+
+    let parsed_data = dovi_rpu.write_hevc_unspec62_nalu()?;
+
+    assert_eq!(&original_data[4..], &parsed_data[2..]);
+
+    Ok(())
+}
