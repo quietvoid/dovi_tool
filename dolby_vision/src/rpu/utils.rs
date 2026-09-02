@@ -94,7 +94,9 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
                 if let Err(e) = &res
                     && warning_error.is_none()
                 {
-                    warning_error = Some(format!("Found invalid RPU: Index {i}\n  {e:#}"));
+                    // there may be multiple read chunks
+                    let actual_idx = offsets_count + i;
+                    warning_error = Some(format!("Found invalid RPU: Index {actual_idx}\n  {e:#}"));
                 }
 
                 res.ok()
