@@ -25,9 +25,9 @@ pub struct DmData {
     level9: *const ExtMetadataBlockLevel9,
     level10: Level10BlockList,
     level11: *const ExtMetadataBlockLevel11,
-    level253: *const Data,
     level254: *const ExtMetadataBlockLevel254,
     level255: *const ExtMetadataBlockLevel255,
+    level253: *const Data,
 }
 
 #[repr(C)]

@@ -1,3 +1,10 @@
+## Unreleased
+
+- Added support for extension metadata level `253` blocks.
+
+C-API:
+- Added `level253` pointer to `DmData` struct.
+
 ## 3.4.0
 
 - `ReservedExtMetadataBlock.data` was replaced by a regular `Vec`.

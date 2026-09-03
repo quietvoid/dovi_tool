@@ -17,11 +17,12 @@ pub struct ExtMetadataBlockLevel253 {
     pub bytes: Vec<u8>,
 }
 
+pub const LEVEL253_MAX_LENGTH: usize = 66;
 pub const LEVEL253_FILLER_BYTE: u8 = 0x55;
 
 impl ExtMetadataBlockLevel253 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
-        ensure!(length <= 66, "Level 253 block should be at most 66 bytes");
+        Self::ensure_valid_length(length as usize)?;
 
         let mut bytes = vec![0; length as usize];
         reader.read_bytes(&mut bytes)?;
@@ -30,6 +31,8 @@ impl ExtMetadataBlockLevel253 {
     }
 
     pub fn validate(&self) -> Result<()> {
+        Self::ensure_valid_length(self.bytes.len())?;
+
         ensure!(
             self.bytes.iter().all(|e| *e == LEVEL253_FILLER_BYTE),
             "Level 253 filler bytes are expected to equal {LEVEL253_FILLER_BYTE:#x}"
@@ -42,6 +45,15 @@ impl ExtMetadataBlockLevel253 {
         self.validate()?;
 
         writer.write_bytes(&self.bytes)?;
+
+        Ok(())
+    }
+
+    fn ensure_valid_length(length: usize) -> Result<()> {
+        ensure!(
+            length <= LEVEL253_MAX_LENGTH,
+            "Level 253 block should be at most {LEVEL253_MAX_LENGTH} bytes"
+        );
 
         Ok(())
     }
