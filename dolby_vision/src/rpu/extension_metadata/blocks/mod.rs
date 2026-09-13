@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize, Serializer};
 pub mod level1;
 pub mod level10;
 pub mod level11;
+pub mod level15;
+pub mod level16;
+pub mod level17;
+pub mod level18;
 pub mod level2;
 pub mod level253;
 pub mod level254;
@@ -31,6 +35,10 @@ pub use level8::ExtMetadataBlockLevel8;
 pub use level9::ExtMetadataBlockLevel9;
 pub use level10::ExtMetadataBlockLevel10;
 pub use level11::ExtMetadataBlockLevel11;
+pub use level15::ExtMetadataBlockLevel15;
+pub use level16::ExtMetadataBlockLevel16;
+pub use level17::ExtMetadataBlockLevel17;
+pub use level18::ExtMetadataBlockLevel18;
 pub use level253::ExtMetadataBlockLevel253;
 pub use level254::ExtMetadataBlockLevel254;
 pub use level255::ExtMetadataBlockLevel255;
@@ -54,6 +62,10 @@ pub enum ExtMetadataBlock {
     Level9(ExtMetadataBlockLevel9),
     Level10(ExtMetadataBlockLevel10),
     Level11(ExtMetadataBlockLevel11),
+    Level15(ExtMetadataBlockLevel15),
+    Level16(ExtMetadataBlockLevel16),
+    Level17(ExtMetadataBlockLevel17),
+    Level18(ExtMetadataBlockLevel18),
     Level253(ExtMetadataBlockLevel253),
     Level254(ExtMetadataBlockLevel254),
     Level255(ExtMetadataBlockLevel255),
@@ -77,115 +89,139 @@ pub trait ExtMetadataBlockInfo {
 impl ExtMetadataBlock {
     pub fn length_bytes(&self) -> u64 {
         match self {
-            ExtMetadataBlock::Level1(b) => b.bytes_size(),
-            ExtMetadataBlock::Level2(b) => b.bytes_size(),
-            ExtMetadataBlock::Level3(b) => b.bytes_size(),
-            ExtMetadataBlock::Level4(b) => b.bytes_size(),
-            ExtMetadataBlock::Level5(b) => b.bytes_size(),
-            ExtMetadataBlock::Level6(b) => b.bytes_size(),
-            ExtMetadataBlock::Level8(b) => b.bytes_size(),
-            ExtMetadataBlock::Level9(b) => b.bytes_size(),
-            ExtMetadataBlock::Level10(b) => b.bytes_size(),
-            ExtMetadataBlock::Level11(b) => b.bytes_size(),
-            ExtMetadataBlock::Level253(b) => b.bytes_size(),
-            ExtMetadataBlock::Level254(b) => b.bytes_size(),
-            ExtMetadataBlock::Level255(b) => b.bytes_size(),
-            ExtMetadataBlock::Reserved(b) => b.bytes_size(),
+            Self::Level1(b) => b.bytes_size(),
+            Self::Level2(b) => b.bytes_size(),
+            Self::Level3(b) => b.bytes_size(),
+            Self::Level4(b) => b.bytes_size(),
+            Self::Level5(b) => b.bytes_size(),
+            Self::Level6(b) => b.bytes_size(),
+            Self::Level8(b) => b.bytes_size(),
+            Self::Level9(b) => b.bytes_size(),
+            Self::Level10(b) => b.bytes_size(),
+            Self::Level11(b) => b.bytes_size(),
+            Self::Level15(b) => b.bytes_size(),
+            Self::Level16(b) => b.bytes_size(),
+            Self::Level17(b) => b.bytes_size(),
+            Self::Level18(b) => b.bytes_size(),
+            Self::Level253(b) => b.bytes_size(),
+            Self::Level254(b) => b.bytes_size(),
+            Self::Level255(b) => b.bytes_size(),
+            Self::Reserved(b) => b.bytes_size(),
         }
     }
 
     pub fn length_bits(&self) -> u64 {
         match self {
-            ExtMetadataBlock::Level1(b) => b.bits_size(),
-            ExtMetadataBlock::Level2(b) => b.bits_size(),
-            ExtMetadataBlock::Level3(b) => b.bits_size(),
-            ExtMetadataBlock::Level4(b) => b.bits_size(),
-            ExtMetadataBlock::Level5(b) => b.bits_size(),
-            ExtMetadataBlock::Level6(b) => b.bits_size(),
-            ExtMetadataBlock::Level8(b) => b.bits_size(),
-            ExtMetadataBlock::Level9(b) => b.bits_size(),
-            ExtMetadataBlock::Level10(b) => b.bits_size(),
-            ExtMetadataBlock::Level11(b) => b.bits_size(),
-            ExtMetadataBlock::Level253(b) => b.bits_size(),
-            ExtMetadataBlock::Level254(b) => b.bits_size(),
-            ExtMetadataBlock::Level255(b) => b.bits_size(),
-            ExtMetadataBlock::Reserved(b) => b.bits_size(),
+            Self::Level1(b) => b.bits_size(),
+            Self::Level2(b) => b.bits_size(),
+            Self::Level3(b) => b.bits_size(),
+            Self::Level4(b) => b.bits_size(),
+            Self::Level5(b) => b.bits_size(),
+            Self::Level6(b) => b.bits_size(),
+            Self::Level8(b) => b.bits_size(),
+            Self::Level9(b) => b.bits_size(),
+            Self::Level10(b) => b.bits_size(),
+            Self::Level11(b) => b.bits_size(),
+            Self::Level15(b) => b.bits_size(),
+            Self::Level16(b) => b.bits_size(),
+            Self::Level17(b) => b.bits_size(),
+            Self::Level18(b) => b.bits_size(),
+            Self::Level253(b) => b.bits_size(),
+            Self::Level254(b) => b.bits_size(),
+            Self::Level255(b) => b.bits_size(),
+            Self::Reserved(b) => b.bits_size(),
         }
     }
 
     pub fn required_bits(&self) -> u64 {
         match self {
-            ExtMetadataBlock::Level1(b) => b.required_bits(),
-            ExtMetadataBlock::Level2(b) => b.required_bits(),
-            ExtMetadataBlock::Level3(b) => b.required_bits(),
-            ExtMetadataBlock::Level4(b) => b.required_bits(),
-            ExtMetadataBlock::Level5(b) => b.required_bits(),
-            ExtMetadataBlock::Level6(b) => b.required_bits(),
-            ExtMetadataBlock::Level8(b) => b.required_bits(),
-            ExtMetadataBlock::Level9(b) => b.required_bits(),
-            ExtMetadataBlock::Level10(b) => b.required_bits(),
-            ExtMetadataBlock::Level11(b) => b.required_bits(),
-            ExtMetadataBlock::Level253(b) => b.required_bits(),
-            ExtMetadataBlock::Level254(b) => b.required_bits(),
-            ExtMetadataBlock::Level255(b) => b.required_bits(),
-            ExtMetadataBlock::Reserved(b) => b.required_bits(),
+            Self::Level1(b) => b.required_bits(),
+            Self::Level2(b) => b.required_bits(),
+            Self::Level3(b) => b.required_bits(),
+            Self::Level4(b) => b.required_bits(),
+            Self::Level5(b) => b.required_bits(),
+            Self::Level6(b) => b.required_bits(),
+            Self::Level8(b) => b.required_bits(),
+            Self::Level9(b) => b.required_bits(),
+            Self::Level10(b) => b.required_bits(),
+            Self::Level11(b) => b.required_bits(),
+            Self::Level15(b) => b.required_bits(),
+            Self::Level16(b) => b.required_bits(),
+            Self::Level17(b) => b.required_bits(),
+            Self::Level18(b) => b.required_bits(),
+            Self::Level253(b) => b.required_bits(),
+            Self::Level254(b) => b.required_bits(),
+            Self::Level255(b) => b.required_bits(),
+            Self::Reserved(b) => b.required_bits(),
         }
     }
 
     pub fn level(&self) -> u8 {
         match self {
-            ExtMetadataBlock::Level1(b) => b.level(),
-            ExtMetadataBlock::Level2(b) => b.level(),
-            ExtMetadataBlock::Level3(b) => b.level(),
-            ExtMetadataBlock::Level4(b) => b.level(),
-            ExtMetadataBlock::Level5(b) => b.level(),
-            ExtMetadataBlock::Level6(b) => b.level(),
-            ExtMetadataBlock::Level8(b) => b.level(),
-            ExtMetadataBlock::Level9(b) => b.level(),
-            ExtMetadataBlock::Level10(b) => b.level(),
-            ExtMetadataBlock::Level11(b) => b.level(),
-            ExtMetadataBlock::Level253(b) => b.level(),
-            ExtMetadataBlock::Level254(b) => b.level(),
-            ExtMetadataBlock::Level255(b) => b.level(),
-            ExtMetadataBlock::Reserved(b) => b.level(),
+            Self::Level1(b) => b.level(),
+            Self::Level2(b) => b.level(),
+            Self::Level3(b) => b.level(),
+            Self::Level4(b) => b.level(),
+            Self::Level5(b) => b.level(),
+            Self::Level6(b) => b.level(),
+            Self::Level8(b) => b.level(),
+            Self::Level9(b) => b.level(),
+            Self::Level10(b) => b.level(),
+            Self::Level11(b) => b.level(),
+            Self::Level15(b) => b.level(),
+            Self::Level16(b) => b.level(),
+            Self::Level17(b) => b.level(),
+            Self::Level18(b) => b.level(),
+            Self::Level253(b) => b.level(),
+            Self::Level254(b) => b.level(),
+            Self::Level255(b) => b.level(),
+            Self::Reserved(b) => b.level(),
         }
     }
 
     pub fn sort_key(&self) -> (u8, u16) {
         match self {
-            ExtMetadataBlock::Level1(b) => b.sort_key(),
-            ExtMetadataBlock::Level2(b) => b.sort_key(),
-            ExtMetadataBlock::Level3(b) => b.sort_key(),
-            ExtMetadataBlock::Level4(b) => b.sort_key(),
-            ExtMetadataBlock::Level5(b) => b.sort_key(),
-            ExtMetadataBlock::Level6(b) => b.sort_key(),
-            ExtMetadataBlock::Level8(b) => b.sort_key(),
-            ExtMetadataBlock::Level9(b) => b.sort_key(),
-            ExtMetadataBlock::Level10(b) => b.sort_key(),
-            ExtMetadataBlock::Level11(b) => b.sort_key(),
-            ExtMetadataBlock::Level253(b) => b.sort_key(),
-            ExtMetadataBlock::Level254(b) => b.sort_key(),
-            ExtMetadataBlock::Level255(b) => b.sort_key(),
-            ExtMetadataBlock::Reserved(b) => b.sort_key(),
+            Self::Level1(b) => b.sort_key(),
+            Self::Level2(b) => b.sort_key(),
+            Self::Level3(b) => b.sort_key(),
+            Self::Level4(b) => b.sort_key(),
+            Self::Level5(b) => b.sort_key(),
+            Self::Level6(b) => b.sort_key(),
+            Self::Level8(b) => b.sort_key(),
+            Self::Level9(b) => b.sort_key(),
+            Self::Level10(b) => b.sort_key(),
+            Self::Level11(b) => b.sort_key(),
+            Self::Level15(b) => b.sort_key(),
+            Self::Level16(b) => b.sort_key(),
+            Self::Level17(b) => b.sort_key(),
+            Self::Level18(b) => b.sort_key(),
+            Self::Level253(b) => b.sort_key(),
+            Self::Level254(b) => b.sort_key(),
+            Self::Level255(b) => b.sort_key(),
+            Self::Reserved(b) => b.sort_key(),
         }
     }
 
     pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         match self {
-            ExtMetadataBlock::Level1(b) => b.write(writer),
-            ExtMetadataBlock::Level2(b) => b.write(writer),
-            ExtMetadataBlock::Level3(b) => b.write(writer),
-            ExtMetadataBlock::Level4(b) => b.write(writer),
-            ExtMetadataBlock::Level5(b) => b.write(writer),
-            ExtMetadataBlock::Level6(b) => b.write(writer),
-            ExtMetadataBlock::Level8(b) => b.write(writer),
-            ExtMetadataBlock::Level9(b) => b.write(writer),
-            ExtMetadataBlock::Level10(b) => b.write(writer),
-            ExtMetadataBlock::Level11(b) => b.write(writer),
-            ExtMetadataBlock::Level253(b) => b.write(writer),
-            ExtMetadataBlock::Level254(b) => b.write(writer),
-            ExtMetadataBlock::Level255(b) => b.write(writer),
-            ExtMetadataBlock::Reserved(b) => b.write(writer),
+            Self::Level1(b) => b.write(writer),
+            Self::Level2(b) => b.write(writer),
+            Self::Level3(b) => b.write(writer),
+            Self::Level4(b) => b.write(writer),
+            Self::Level5(b) => b.write(writer),
+            Self::Level6(b) => b.write(writer),
+            Self::Level8(b) => b.write(writer),
+            Self::Level9(b) => b.write(writer),
+            Self::Level10(b) => b.write(writer),
+            Self::Level11(b) => b.write(writer),
+            Self::Level15(b) => b.write(writer),
+            Self::Level16(b) => b.write(writer),
+            Self::Level17(b) => b.write(writer),
+            Self::Level18(b) => b.write(writer),
+            Self::Level253(b) => b.write(writer),
+            Self::Level254(b) => b.write(writer),
+            Self::Level255(b) => b.write(writer),
+            Self::Reserved(b) => b.write(writer),
         }
     }
 
@@ -231,20 +267,24 @@ impl ExtMetadataBlock {
     #[cfg(feature = "serde")]
     pub fn serialize_inner<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            ExtMetadataBlock::Level1(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level2(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level3(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level4(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level5(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level6(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level8(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level9(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level10(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level11(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level253(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level254(b) => b.serialize(serializer),
-            ExtMetadataBlock::Level255(b) => b.serialize(serializer),
-            ExtMetadataBlock::Reserved(b) => b.serialize(serializer),
+            Self::Level1(b) => b.serialize(serializer),
+            Self::Level2(b) => b.serialize(serializer),
+            Self::Level3(b) => b.serialize(serializer),
+            Self::Level4(b) => b.serialize(serializer),
+            Self::Level5(b) => b.serialize(serializer),
+            Self::Level6(b) => b.serialize(serializer),
+            Self::Level8(b) => b.serialize(serializer),
+            Self::Level9(b) => b.serialize(serializer),
+            Self::Level10(b) => b.serialize(serializer),
+            Self::Level11(b) => b.serialize(serializer),
+            Self::Level15(b) => b.serialize(serializer),
+            Self::Level16(b) => b.serialize(serializer),
+            Self::Level17(b) => b.serialize(serializer),
+            Self::Level18(b) => b.serialize(serializer),
+            Self::Level253(b) => b.serialize(serializer),
+            Self::Level254(b) => b.serialize(serializer),
+            Self::Level255(b) => b.serialize(serializer),
+            Self::Reserved(b) => b.serialize(serializer),
         }
     }
 }
