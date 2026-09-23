@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Write, stdout};
+use std::io::{BufRead, BufWriter, Write, stdout};
 use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
@@ -37,6 +37,9 @@ pub struct DoviProcessor {
 
     processor_opts: DoviProcessorOptions,
     state: DoviProcessorState,
+
+    /// stdin, when its leading bytes were read to tell AV1 from HEVC
+    stdin: Option<Box<dyn BufRead>>,
 }
 
 pub struct DoviWriter {
@@ -129,7 +132,14 @@ impl DoviProcessor {
             dovi_writer,
             processor_opts,
             state: Default::default(),
+            stdin: None,
         }
+    }
+
+    /// Read stdin through a reader that already holds its leading bytes
+    pub fn with_stdin(mut self, stdin: Option<Box<dyn BufRead>>) -> Self {
+        self.stdin = stdin;
+        self
     }
 
     pub fn read_write_from_io(&mut self, format: &IoFormat) -> Result<()> {
@@ -151,6 +161,12 @@ impl DoviProcessor {
         } else {
             Some(self.input.clone())
         };
+
+        // stdin whose leading bytes were already read: hand over that reader,
+        // the bytes cannot be read from stdin a second time
+        if let Some(mut stdin) = self.stdin.take() {
+            return processor.process_io(&mut stdin, self);
+        }
 
         processor.process_file(self, file_path)
     }

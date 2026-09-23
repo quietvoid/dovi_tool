@@ -39,6 +39,7 @@ dovi_tool <SUBCOMMAND> --help
 ## All subcommands
 - Metadata utilities: **`info`**, **`generate`**, **`editor`**, **`export`**, **`plot`**
 - HEVC parsing & handling: **`convert`**, **`demux`**, **`mux`**, **`extract-rpu`**, **`inject-rpu`**
+- AV1 parsing & handling: **`convert`**, **`extract-rpu`**, **`inject-rpu`**, **`remove`**
 
 **More information and detailed examples for the subcommands below.**
 
@@ -319,6 +320,30 @@ For working with an HEVC source file, there are multiple options that apply to m
     ```console
     ffmpeg -i input.mkv -c:v copy -bsf:v hevc_mp4toannexb -f hevc - | dovi_tool remove -
     ```
+
+&nbsp;
+
+# **AV1 parsing & handling**
+`extract-rpu`, `inject-rpu`, `remove` and `convert` also work with AV1, where the RPU is carried in ITU-T T.35 metadata OBUs.
+Input file:
+- AV1 bitstream: low overhead OBU stream or IVF file, recognised by its content rather than its extension.
+- Matroska: MKV file containing an AV1 video track, for `extract-rpu`, `remove` and `convert`.
+- Piped input, for `extract-rpu`, `remove` and `convert`.
+
+The output keeps the container of the input, IVF or OBU stream. Matroska input is written out as an OBU stream.
+`--mode`, `--crop`, `--edit-config` and `--drop-hdr10plus` apply as they do for HEVC. `--start-code` has no meaning for AV1, and neither has `--discard`: there is no enhancement layer.
+
+**Examples**:
+```console
+dovi_tool extract-rpu video.av1
+
+dovi_tool remove video.mkv -o BL.av1
+
+dovi_tool inject-rpu -i BL.ivf --rpu-in RPU.bin -o injected_output.ivf
+```
+```console
+ffmpeg -i input.mkv -map 0:v:0 -c:v copy -f obu - | dovi_tool -m 2 convert - -o converted.av1
+```
 
 &nbsp;
 

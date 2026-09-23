@@ -16,6 +16,7 @@ path = "src/main.rs"
 dolby_vision = { path = "dolby_vision", "features" = ["xml", "serde"] }
 bitvec_helpers = { version = "4.0.2", default-features = false, features = ["bitstream-io"] }
 hevc_parser = { version = "0.6.12", features = ["hevc_io"] }
+av1_parser = { git = "https://github.com/sven-pke/av1_parser", tag = "v0.1.0", features = ["av1_io"] }
 madvr_parse = "1.0.3"
 hdr10plus = { version = "2.1.5", features = ["json"] }
 

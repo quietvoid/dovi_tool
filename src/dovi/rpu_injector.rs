@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write, stdout};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 use indicatif::ProgressBar;
@@ -15,7 +15,7 @@ use dolby_vision::rpu::utils::parse_rpu_file;
 use crate::commands::InjectRpuArgs;
 
 use super::hdr10plus_utils::prefix_sei_removed_hdr10plus_nalu;
-use super::{CliOptions, DoviRpu, IoFormat, input_from_either};
+use super::{CliOptions, DoviRpu, IoFormat, av1, input_from_either};
 
 pub struct RpuInjector {
     input: PathBuf,
@@ -91,6 +91,23 @@ impl RpuInjector {
 
     pub fn inject_rpu(args: InjectRpuArgs, cli_options: CliOptions) -> Result<()> {
         let input = input_from_either("inject-rpu", args.input.clone(), args.input_pos.clone())?;
+
+        // Injection rewrites a raw stream, for AV1 as for HEVC: an AV1 file on
+        // disk, raw or IVF. Nothing from Matroska or a pipe.
+        if let av1::Input::Av1(mut av1) = av1::Input::open(&input, None)? {
+            if av1.format() == av1_parser::io::IoFormat::Matroska || input == Path::new("-") {
+                bail!(
+                    "RpuInjector: Must be a raw HEVC or AV1 bitstream file; \
+                     Matroska and piped input are not supported for injection"
+                );
+            }
+
+            let output = args
+                .output
+                .unwrap_or_else(|| av1.default_output("injected_output"));
+            return av1.inject_rpu(&args.rpu_in, &output, cli_options);
+        }
+
         let format = hevc_parser::io::format_from_path(&input)?;
 
         if let IoFormat::Raw = format {

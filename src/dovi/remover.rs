@@ -1,9 +1,11 @@
 use anyhow::Result;
 use indicatif::ProgressBar;
+use std::io::BufRead;
 use std::path::PathBuf;
 
 use crate::commands::RemoveArgs;
 
+use super::av1::{self, RpuAction};
 use super::{CliOptions, IoFormat, general_read_write, input_from_either};
 
 use general_read_write::{DoviProcessor, DoviWriter};
@@ -35,21 +37,36 @@ impl Remover {
     }
 
     pub fn remove(args: RemoveArgs, options: CliOptions) -> Result<()> {
-        let remover = Remover::from_args(args)?;
-        remover.process_input(options)
+        let input = input_from_either("remove", args.input.clone(), args.input_pos.clone())?;
+
+        match av1::Input::open(&input, None)? {
+            av1::Input::Av1(mut av1) => {
+                let output = args.output.unwrap_or_else(|| av1.default_output("BL"));
+                av1.rewrite(&output, RpuAction::Remove, options)
+            }
+            av1::Input::Other(stdin) => {
+                let remover = Remover::from_args(args)?;
+                remover.process_input(options, stdin)
+            }
+        }
     }
 
-    fn process_input(&self, options: CliOptions) -> Result<()> {
+    fn process_input(&self, options: CliOptions, stdin: Option<Box<dyn BufRead>>) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
 
         if self.format == IoFormat::Matroska {
             println!("Remover: Matroska input is experimental!");
         }
 
-        self.remove_from_hevc(pb, options)
+        self.remove_from_hevc(pb, options, stdin)
     }
 
-    fn remove_from_hevc(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
+    fn remove_from_hevc(
+        &self,
+        pb: ProgressBar,
+        options: CliOptions,
+        stdin: Option<Box<dyn BufRead>>,
+    ) -> Result<()> {
         let bl_out = Some(self.output.as_path());
 
         let dovi_writer = DoviWriter::new(bl_out, None, None, None);
@@ -59,7 +76,8 @@ impl Remover {
             dovi_writer,
             pb,
             Default::default(),
-        );
+        )
+        .with_stdin(stdin);
 
         dovi_processor.read_write_from_io(&self.format)
     }

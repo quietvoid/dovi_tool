@@ -2,6 +2,7 @@ use anyhow::Result;
 use assert_cmd::cargo;
 use predicates::prelude::*;
 
+mod av1;
 mod hevc;
 mod rpu;
 

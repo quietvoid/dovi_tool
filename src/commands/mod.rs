@@ -28,7 +28,7 @@ pub use remove::RemoveArgs;
 
 #[derive(Parser, Debug)]
 pub enum Commands {
-    #[command(about = "Converts RPU within a single layer HEVC file")]
+    #[command(about = "Converts RPU within a single layer HEVC or AV1 file")]
     Convert(ConvertArgs),
 
     #[command(
@@ -42,10 +42,12 @@ pub enum Commands {
     #[command(about = "Exports a binary RPU file to JSON for simpler analysis")]
     Export(ExportArgs),
 
-    #[command(about = "Extracts Dolby Vision RPU from an HEVC file")]
+    #[command(about = "Extracts Dolby Vision RPU from an HEVC or AV1 file")]
     ExtractRpu(ExtractRpuArgs),
 
-    #[command(about = "Interleaves RPU NAL units between slices in an HEVC encoded bitstream")]
+    #[command(
+        about = "Interleaves RPU NAL units between slices in an HEVC encoded bitstream, or RPU metadata OBUs in an AV1 one"
+    )]
     InjectRpu(InjectRpuArgs),
 
     #[command(about = "Generates a binary RPU from different sources")]
