@@ -176,6 +176,31 @@ fn num_pivots_above_nine_is_an_error() -> Result<()> {
 }
 
 #[test]
+fn ext_block_count_beyond_the_data_is_an_error() -> Result<()> {
+    // 1 << 60 blocks overflow the allocation size, which panics on any platform
+    for num_ext_blocks in [1 << 60, 1 << 32] {
+        let cmv29 = craft(true, |w| {
+            write_mapping(w, 0, false)?;
+            VdrDmData::default_pq().write(w)?;
+            Ok(w.write_ue(num_ext_blocks)?)
+        })?;
+        assert!(error_message(&cmv29).contains("num_ext_blocks"));
+
+        let cmv40 = craft(true, |w| {
+            write_mapping(w, 0, false)?;
+            VdrDmData::default_pq().write(w)?;
+            w.write_ue(0)?;
+            w.byte_align()?;
+            w.write_ue(num_ext_blocks)?;
+            Ok(w.write_bytes(&[0; 8])?)
+        })?;
+        assert!(error_message(&cmv40).contains("num_ext_blocks"));
+    }
+
+    Ok(())
+}
+
+#[test]
 fn undefined_block_lengths_are_errors() -> Result<()> {
     // Enough payload for the longest variant, so only the length is wrong
     let payload = [0; 25];

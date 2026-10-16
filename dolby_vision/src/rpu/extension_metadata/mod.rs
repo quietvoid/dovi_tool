@@ -18,6 +18,9 @@ pub use cmv40::CmV40DmData;
 
 use blocks::ExtMetadataBlock;
 
+// ext_block_length (at least 1 bit) + ext_block_level
+const EXT_METADATA_BLOCK_MIN_BITS: u64 = 9;
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
@@ -112,6 +115,13 @@ impl DmData {
         reader: &mut BsIoSliceReader,
     ) -> Result<Option<T>> {
         let num_ext_blocks = reader.read_ue()?;
+
+        // Don't allocate for more blocks than the remaining data can hold
+        ensure!(
+            num_ext_blocks <= reader.available()? / EXT_METADATA_BLOCK_MIN_BITS,
+            "num_ext_blocks {num_ext_blocks} exceeds the remaining data"
+        );
+
         let mut meta = T::with_blocks_allocation(num_ext_blocks);
 
         meta.set_num_ext_blocks(num_ext_blocks);
