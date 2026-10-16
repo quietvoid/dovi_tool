@@ -227,7 +227,7 @@ impl RpuDataMapping {
                     }
 
                     if poly_order_minus1 == 0 && poly_curve.linear_interp_flag[i] {
-                        unimplemented!("write: Polynomial interpolation: please open an issue");
+                        bail!("write: Polynomial interpolation: please open an issue");
 
                         /*
                         if header.coefficient_data_type == 0 {
@@ -412,7 +412,7 @@ impl DoviPolynomialCurve {
 
         if poly_order_minus1 == 0 && linear_interp_flag {
             // Linear interpolation
-            unimplemented!("parse: Polynomial interpolation: please open an issue");
+            bail!("parse: Polynomial interpolation: please open an issue");
 
             /*if header.coefficient_data_type == 0 {
                 self.pred_linear_interp_value_int[i] = reader.read_ue()?;

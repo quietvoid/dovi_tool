@@ -110,3 +110,11 @@ fn bad_crc32_is_rejected_before_parsing() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn linear_interpolation_is_an_error() -> Result<()> {
+    let data = craft(false, |w| write_mapping(w, 0, true))?;
+    assert!(error_message(&data).contains("interpolation"));
+
+    Ok(())
+}
