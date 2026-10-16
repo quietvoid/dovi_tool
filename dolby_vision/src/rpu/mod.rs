@@ -11,6 +11,9 @@ pub mod vdr_dm_data;
 
 pub mod utils;
 
+#[cfg(test)]
+mod tests;
+
 static CRC32_INSTANCE: Crc<u32, Table<16>> = Crc::<u32, Table<16>>::new(&CRC_32_MPEG_2);
 
 pub const NUM_COMPONENTS: usize = 3;
