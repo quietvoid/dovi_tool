@@ -59,6 +59,11 @@ pub(crate) fn convert_av1_rpu_payload_to_regular(data: &[u8]) -> Result<Vec<u8>>
     ensure!(itu_t_t35_terminal_provider_oriented_code == 0x800);
 
     let emdf_payload_size = parse_emdf_container(&mut reader)?;
+    ensure!(
+        emdf_payload_size as u64 <= reader.available()? / 8,
+        "emdf_payload_size {emdf_payload_size} exceeds the remaining data"
+    );
+
     let mut converted_buf = vec![0; emdf_payload_size + 1];
     converted_buf[0] = 0x19;
 
