@@ -8,6 +8,7 @@ use bitvec_helpers::bitstream_io_writer::BitstreamIoWriter;
 use super::compute_crc32;
 use super::dovi_rpu::{DoviRpu, FINAL_BYTE};
 use super::rpu_data_header::RpuDataHeader;
+use super::vdr_dm_data::VdrDmData;
 
 /// Profile 8.1 RPU: the header is written by the crate, everything after it by `body`.
 /// The RPU is closed with alignment, the correct CRC32 and the final byte.
@@ -81,6 +82,33 @@ fn write_mapping(
     Ok(())
 }
 
+/// `vdr_dm_data_payload` with no CM v2.9 blocks and the given CM v4.0 blocks.
+/// Each block is (level, ext_block_length, payload), the payload zero padded up to the length.
+fn write_dm_data(writer: &mut BitstreamIoWriter, cmv40_blocks: &[(u8, u64, &[u8])]) -> Result<()> {
+    VdrDmData::default_pq().write(writer)?;
+
+    writer.write_ue(0)?; // CM v2.9 num_ext_blocks
+    writer.byte_align()?;
+
+    writer.write_ue(cmv40_blocks.len() as u64)?;
+    writer.byte_align()?;
+
+    for &(level, length, payload) in cmv40_blocks {
+        writer.write_ue(length)?;
+        writer.write::<8, u8>(level)?;
+        writer.write_bytes(payload)?;
+
+        for _ in payload.len() as u64..length {
+            writer.write::<8, u8>(0)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// L254 is mandatory in CM v4.0 metadata.
+const LEVEL254: (u8, u64, &[u8]) = (254, 2, &[0, 2]);
+
 /// `DoviRpu::parse` is what every entry point ends up in.
 /// Unlike them, it accepts RPUs shorter than 25 bytes.
 fn error_message(data: &[u8]) -> String {
@@ -99,6 +127,16 @@ fn crafted_rpus_parse() -> Result<()> {
     let nine_pivots = craft(false, |w| write_mapping(w, 7, false))?;
     let rpu = DoviRpu::parse(&nine_pivots)?;
     assert_eq!(rpu.rpu_data_mapping.unwrap().curves[0].pivots.len(), 9);
+
+    let with_dm = craft(true, |w| {
+        write_mapping(w, 0, false)?;
+        write_dm_data(w, &[(8, 10, &[1]), LEVEL254])
+    })?;
+    let rpu = DoviRpu::parse(&with_dm)?;
+    assert!(rpu.vdr_dm_data.as_ref().unwrap().get_block(8).is_some());
+
+    // The crafter writes what the crate's own writer writes
+    assert_eq!(rpu.write_rpu()?, with_dm);
 
     Ok(())
 }
@@ -131,6 +169,26 @@ fn num_pivots_above_nine_is_an_error() -> Result<()> {
             Ok(w.write_ue(num_pivots_minus2)?)
         })?;
         assert!(error_message(&data).contains("num_pivots_minus2"));
+    }
+
+    Ok(())
+}
+
+#[test]
+fn undefined_block_lengths_are_errors() -> Result<()> {
+    // Enough payload for the longest variant, so only the length is wrong
+    let payload = [0; 25];
+
+    for (level, length) in [(8, 11), (8, 26), (9, 2), (10, 6)] {
+        let data = craft(true, |w| {
+            write_mapping(w, 0, false)?;
+            write_dm_data(w, &[(level, length, &payload), LEVEL254])
+        })?;
+        let message = error_message(&data);
+        assert!(
+            message.contains(&format!("Level {level} block length")),
+            "L{level} length {length}: {message}"
+        );
     }
 
     Ok(())

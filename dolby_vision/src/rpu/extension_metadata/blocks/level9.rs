@@ -58,6 +58,8 @@ pub struct ExtMetadataBlockLevel9 {
 
 impl ExtMetadataBlockLevel9 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+        Self::ensure_valid_length(length)?;
+
         let mut block = Self {
             length,
             source_primary_index: reader.read::<8, u8>()?,
@@ -98,6 +100,8 @@ impl ExtMetadataBlockLevel9 {
     }
 
     pub fn validate(&self) -> Result<()> {
+        Self::ensure_valid_length(self.length)?;
+
         if self.length > 1 {
             // Custom primaries required
             ensure!(self.source_primary_index == 255);
@@ -114,6 +118,15 @@ impl ExtMetadataBlockLevel9 {
             // But not custom primaries
             ensure!(self.source_primary_index != 255);
         }
+
+        Ok(())
+    }
+
+    fn ensure_valid_length(length: u64) -> Result<()> {
+        ensure!(
+            matches!(length, 1 | 17),
+            "Level 9 block length should be 1 or 17 bytes, got {length}"
+        );
 
         Ok(())
     }

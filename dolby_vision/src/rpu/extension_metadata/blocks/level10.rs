@@ -40,6 +40,8 @@ pub struct ExtMetadataBlockLevel10 {
 
 impl ExtMetadataBlockLevel10 {
     pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+        Self::ensure_valid_length(length)?;
+
         let mut block = Self {
             length,
             target_display_index: reader.read::<8, u8>()?,
@@ -86,6 +88,8 @@ impl ExtMetadataBlockLevel10 {
     }
 
     pub fn validate(&self) -> Result<()> {
+        Self::ensure_valid_length(self.length)?;
+
         ensure!(!PRESET_TARGET_DISPLAYS.contains(&self.target_display_index));
         ensure!(self.target_max_pq <= MAX_PQ_LUMINANCE);
         ensure!(self.target_min_pq <= MAX_PQ_LUMINANCE);
@@ -103,6 +107,15 @@ impl ExtMetadataBlockLevel10 {
         } else {
             ensure!(self.target_primary_index != 255);
         }
+
+        Ok(())
+    }
+
+    fn ensure_valid_length(length: u64) -> Result<()> {
+        ensure!(
+            matches!(length, 5 | 21),
+            "Level 10 block length should be 5 or 21 bytes, got {length}"
+        );
 
         Ok(())
     }
