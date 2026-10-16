@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -66,15 +66,17 @@ fn parse_variable_bits<const BITS: u32>(reader: &mut BsIoSliceReader) -> Result<
 
     loop {
         let tmp = reader.read::<BITS, u32>()?;
-        value += tmp;
+        value = value.checked_add(tmp).context("variable_bits overflow")?;
 
         // read_more flag
         if !reader.read_bit()? {
             break;
         }
 
-        value <<= BITS;
-        value += 1 << BITS;
+        value = value
+            .checked_mul(1 << BITS)
+            .and_then(|v| v.checked_add(1 << BITS))
+            .context("variable_bits overflow")?;
     }
 
     Ok(value)
@@ -151,6 +153,15 @@ mod tests {
             err.to_string().contains("exceeds the remaining data"),
             "{err}"
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn payload_size_overflowing_u32_is_an_error() -> Result<()> {
+        let data = payload_with_size_groups(&[254, 254, 255, 0], 32)?;
+        let err = convert_av1_rpu_payload_to_regular(&data).unwrap_err();
+        assert!(err.to_string().contains("variable_bits overflow"), "{err}");
 
         Ok(())
     }
