@@ -89,15 +89,15 @@ pub trait WithExtMetadataBlocks {
 
         for ext_metadata_block in ext_metadata_blocks {
             let level = ext_metadata_block.level();
-            let remaining_bits =
-                (ext_metadata_block.length_bits() - ext_metadata_block.required_bits()) as u32;
-
             writer.write_ue(ext_metadata_block.length_bytes())?;
             writer.write::<8, u8>(level)?;
 
             ext_metadata_block
                 .write(writer)
                 .with_context(|| format!("Level {level}"))?;
+
+            let remaining_bits =
+                (ext_metadata_block.length_bits() - ext_metadata_block.required_bits()) as u32;
 
             // ext_dm_alignment_zero_bit
             writer.pad(remaining_bits)?;

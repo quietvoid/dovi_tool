@@ -7,6 +7,7 @@ use bitvec_helpers::bitstream_io_writer::BitstreamIoWriter;
 
 use super::compute_crc32;
 use super::dovi_rpu::{DoviRpu, FINAL_BYTE};
+use super::extension_metadata::blocks::ExtMetadataBlock;
 use super::rpu_data_header::RpuDataHeader;
 use super::vdr_dm_data::VdrDmData;
 
@@ -185,6 +186,43 @@ fn undefined_block_lengths_are_errors() -> Result<()> {
             write_dm_data(w, &[(level, length, &payload), LEVEL254])
         })?;
         let message = error_message(&data);
+        assert!(
+            message.contains(&format!("Level {level} block length")),
+            "L{level} length {length}: {message}"
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn writing_undefined_block_lengths_is_an_error() -> Result<()> {
+    // Reachable from the C API, e.g. through the JSON generation path
+    let data = craft(true, |w| {
+        write_mapping(w, 0, false)?;
+        write_dm_data(
+            w,
+            &[(8, 10, &[1]), (9, 1, &[0]), (10, 5, &[0; 5]), LEVEL254],
+        )
+    })?;
+
+    for (level, length) in [(8, 11), (9, 2), (10, 6)] {
+        let mut rpu = DoviRpu::parse(&data)?;
+        let block = rpu
+            .vdr_dm_data
+            .as_mut()
+            .unwrap()
+            .get_block_mut(level)
+            .unwrap();
+
+        match block {
+            ExtMetadataBlock::Level8(b) => b.length = length,
+            ExtMetadataBlock::Level9(b) => b.length = length,
+            ExtMetadataBlock::Level10(b) => b.length = length,
+            _ => unreachable!(),
+        }
+
+        let message = format!("{:#}", rpu.write_rpu().unwrap_err());
         assert!(
             message.contains(&format!("Level {level} block length")),
             "L{level} length {length}: {message}"
