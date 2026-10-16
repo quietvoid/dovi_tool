@@ -115,6 +115,11 @@ impl RpuDataMapping {
             let curve = &mut mapping.curves[cmp];
 
             curve.num_pivots_minus2 = reader.read_ue()?;
+            ensure!(
+                curve.num_pivots_minus2 <= 7,
+                "num_pivots_minus2 should be <= 7"
+            );
+
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
 
             curve.pivots = vec![0; num_pivots];

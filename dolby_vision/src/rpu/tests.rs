@@ -96,6 +96,10 @@ fn crafted_rpus_parse() -> Result<()> {
     let rpu = DoviRpu::parse(&no_dm)?;
     assert_eq!(rpu.dovi_profile, 8);
 
+    let nine_pivots = craft(false, |w| write_mapping(w, 7, false))?;
+    let rpu = DoviRpu::parse(&nine_pivots)?;
+    assert_eq!(rpu.rpu_data_mapping.unwrap().curves[0].pivots.len(), 9);
+
     Ok(())
 }
 
@@ -115,6 +119,19 @@ fn bad_crc32_is_rejected_before_parsing() -> Result<()> {
 fn linear_interpolation_is_an_error() -> Result<()> {
     let data = craft(false, |w| write_mapping(w, 0, true))?;
     assert!(error_message(&data).contains("interpolation"));
+
+    Ok(())
+}
+
+#[test]
+fn num_pivots_above_nine_is_an_error() -> Result<()> {
+    for num_pivots_minus2 in [u64::MAX - 1, 1 << 40, 8] {
+        let data = craft(false, |w| {
+            write_mapping_prefix(w)?;
+            Ok(w.write_ue(num_pivots_minus2)?)
+        })?;
+        assert!(error_message(&data).contains("num_pivots_minus2"));
+    }
 
     Ok(())
 }
