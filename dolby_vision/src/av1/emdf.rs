@@ -83,7 +83,7 @@ fn parse_variable_bits<const BITS: u32>(reader: &mut BsIoSliceReader) -> Result<
 fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u32) -> Result<()> {
     let max = 1 << BITS;
 
-    if value > max {
+    if value >= max {
         let mut remaining = value;
 
         loop {
