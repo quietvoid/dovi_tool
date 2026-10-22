@@ -34,6 +34,7 @@ pub trait ExtMetadata {
 pub trait WithExtMetadataBlocks {
     const VERSION: &'static str;
     const ALLOWED_BLOCK_LEVELS: &'static [u8];
+    const MAX_ALLOWED_BLOCKS: usize;
 
     fn with_blocks_allocation(num_ext_blocks: u64) -> Self;
 
@@ -108,10 +109,17 @@ pub trait WithExtMetadataBlocks {
 }
 
 impl DmData {
-    pub(crate) fn parse<T: WithExtMetadataBlocks + Default>(
+    pub(crate) fn parse<T: WithExtMetadataBlocks>(
         reader: &mut BsIoSliceReader,
     ) -> Result<Option<T>> {
         let num_ext_blocks = reader.read_ue()?;
+
+        ensure!(
+            num_ext_blocks as usize <= T::MAX_ALLOWED_BLOCKS,
+            "cannot have more than {} extension metadata blocks, data requested {num_ext_blocks}",
+            T::MAX_ALLOWED_BLOCKS
+        );
+
         let mut meta = T::with_blocks_allocation(num_ext_blocks);
 
         meta.set_num_ext_blocks(num_ext_blocks);

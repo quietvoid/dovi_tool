@@ -6,6 +6,7 @@ use bitvec_helpers::{
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use super::extension_metadata::WithExtMetadataBlocks;
 use super::extension_metadata::blocks::ExtMetadataBlock;
 use super::extension_metadata::*;
 use super::generate::{GenerateConfig, GenerateProfile};
@@ -13,8 +14,6 @@ use super::profiles::DoviProfile;
 use super::profiles::profile5::Profile5;
 use super::profiles::profile81::Profile81;
 use super::profiles::profile84::Profile84;
-
-use super::extension_metadata::WithExtMetadataBlocks;
 use super::rpu_data_header::RpuDataHeader;
 
 // 16 bits min for required level 254 + CRC32 + 0x80

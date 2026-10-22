@@ -4,8 +4,21 @@ use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use super::WithExtMetadataBlocks;
-use crate::rpu::extension_metadata::blocks::*;
+use super::{WithExtMetadataBlocks, blocks::*};
+
+pub(crate) const CM_V29_SUPPORTED_LEVELS: [u8; 6] = [1, 2, 4, 5, 6, 255];
+pub(crate) const CM_V29_MAX_ALLOWED_BLOCKS: usize = {
+    let mut i = 0;
+    let mut sum = 0;
+
+    while i < CM_V29_SUPPORTED_LEVELS.len() {
+        let level = CM_V29_SUPPORTED_LEVELS[i];
+        sum += cm_v29_max_num_blocks_for_level(level).unwrap();
+        i += 1;
+    }
+
+    sum
+};
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -16,7 +29,8 @@ pub struct CmV29DmData {
 
 impl WithExtMetadataBlocks for CmV29DmData {
     const VERSION: &'static str = "CM v2.9";
-    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[1, 2, 4, 5, 6, 255];
+    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &CM_V29_SUPPORTED_LEVELS;
+    const MAX_ALLOWED_BLOCKS: usize = CM_V29_MAX_ALLOWED_BLOCKS;
 
     fn with_blocks_allocation(num_ext_blocks: u64) -> Self {
         Self {
@@ -104,53 +118,73 @@ impl CmV29DmData {
     pub fn validate(&self) -> Result<()> {
         let blocks = self.blocks_ref();
 
+        ensure!(
+            blocks.len() <= CM_V29_MAX_ALLOWED_BLOCKS,
+            "cannot have more than {CM_V29_MAX_ALLOWED_BLOCKS} extension metadata blocks"
+        );
+
         let invalid_blocks_count = blocks
             .iter()
-            .filter(|b| !Self::ALLOWED_BLOCK_LEVELS.contains(&b.level()))
+            .filter(|b| !CM_V29_SUPPORTED_LEVELS.contains(&b.level()))
             .count();
-
-        let level1_count = blocks.iter().filter(|b| b.level() == 1).count();
-
-        let level2_count = blocks.iter().filter(|b| b.level() == 2).count();
-
-        let level255_count = blocks.iter().filter(|b| b.level() == 255).count();
-
-        let level4_count = blocks.iter().filter(|b| b.level() == 4).count();
-
-        let level5_count = blocks.iter().filter(|b| b.level() == 5).count();
-
-        let level6_count = blocks.iter().filter(|b| b.level() == 6).count();
 
         ensure!(
             invalid_blocks_count == 0,
-            "Only allowed blocks level 1, 2, 4, 5, 6, and 255"
+            "Only allowed blocks level {:?}",
+            CM_V29_SUPPORTED_LEVELS
         );
 
-        ensure!(
-            level1_count <= 1,
-            "There must be at most one L1 metadata block"
-        );
-        ensure!(
-            level2_count <= 8,
-            "There must be at most 8 L2 metadata blocks"
-        );
-        ensure!(
-            level255_count <= 1,
-            "There must be at most one L255 metadata block"
-        );
-        ensure!(
-            level4_count <= 1,
-            "There must be at most one L4 metadata block"
-        );
-        ensure!(
-            level5_count <= 1,
-            "There must be at most one L5 metadata block"
-        );
-        ensure!(
-            level6_count <= 1,
-            "There must be at most one L6 metadata block"
-        );
+        let counts = CM_V29_SUPPORTED_LEVELS.iter().filter_map(|&level| {
+            let count = blocks.iter().filter(|b| b.level() == level).count();
+            (count > 0).then_some((level, count))
+        });
+
+        for (level, count) in counts {
+            let Some(max) = cm_v29_max_num_blocks_for_level(level) else {
+                bail!("invalid level {level}");
+            };
+
+            ensure!(
+                count <= max,
+                "there must be at most {max} level {level} blocks, found {count}"
+            );
+        }
 
         Ok(())
+    }
+}
+
+const fn cm_v29_max_num_blocks_for_level(level: u8) -> Option<usize> {
+    let count = match level {
+        1 => 1,
+        2 => 8,
+        4 => 1,
+        5 => 1,
+        6 => 1,
+        255 => 1,
+        _ => return None,
+    };
+
+    Some(count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        CM_V29_MAX_ALLOWED_BLOCKS, CM_V29_SUPPORTED_LEVELS, cm_v29_max_num_blocks_for_level,
+    };
+
+    #[test]
+    fn validate_cm_v29_constants() {
+        assert_eq!(CM_V29_SUPPORTED_LEVELS, [1, 2, 4, 5, 6, 255]);
+        assert_eq!(CM_V29_MAX_ALLOWED_BLOCKS, 13);
+
+        assert_eq!(cm_v29_max_num_blocks_for_level(1).unwrap(), 1);
+        assert_eq!(cm_v29_max_num_blocks_for_level(2).unwrap(), 8);
+        assert_eq!(cm_v29_max_num_blocks_for_level(4).unwrap(), 1);
+        assert_eq!(cm_v29_max_num_blocks_for_level(5).unwrap(), 1);
+        assert_eq!(cm_v29_max_num_blocks_for_level(6).unwrap(), 1);
+        assert_eq!(cm_v29_max_num_blocks_for_level(255).unwrap(), 1);
+        assert_eq!(cm_v29_max_num_blocks_for_level(0), None);
     }
 }
