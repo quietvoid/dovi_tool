@@ -85,32 +85,27 @@ fn parse_variable_bits<const BITS: u32>(reader: &mut BsIoSliceReader) -> Result<
 }
 
 fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u16) -> Result<()> {
-    let max = 1 << BITS;
+    let mut bit_width = value.bit_width();
+    let mut remaining = value;
 
-    if value >= max {
-        let mut remaining = value;
-
-        loop {
+    loop {
+        if bit_width > BITS {
             let tmp = remaining >> BITS;
             let clipped = tmp << BITS;
-            remaining -= clipped;
+            let byte = (clipped >> BITS) - 1;
 
-            let byte = (clipped - max) >> BITS;
             writer.write::<BITS, u16>(byte)?;
             writer.write_bit(true)?; // read_more
 
-            // Stop once the remaining can be written in N bits
-            if remaining <= max {
-                break;
-            }
+            bit_width -= BITS;
+            remaining -= clipped;
+        } else {
+            writer.write::<BITS, u16>(remaining)?;
+            writer.write_bit(false)?;
+
+            break;
         }
-
-        writer.write::<BITS, u16>(remaining)?;
-    } else {
-        writer.write::<BITS, u16>(value)?;
     }
-
-    writer.write_bit(false)?;
 
     Ok(())
 }
