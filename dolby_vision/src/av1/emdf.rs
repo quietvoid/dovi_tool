@@ -1,11 +1,11 @@
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
 
 /// Parse the expected EMDF container with fixed values according to spec
 /// Returns `emdf_payload_size`
-pub(crate) fn parse_emdf_container(reader: &mut BsIoSliceReader) -> Result<usize> {
+pub(crate) fn parse_emdf_container(reader: &mut BsIoSliceReader) -> Result<u16> {
     let emdf_version = reader.read::<2, u8>()?;
     ensure!(emdf_version == 0);
 
@@ -24,7 +24,7 @@ pub(crate) fn parse_emdf_container(reader: &mut BsIoSliceReader) -> Result<usize
     ensure!(!reader.read_bit()?); // codecdatae = 0
     ensure!(reader.read_bit()?); // discard_unknown_payload = 1
 
-    let emdf_payload_size = parse_variable_bits::<8>(reader)? as usize;
+    let emdf_payload_size = parse_variable_bits::<8>(reader)?;
     Ok(emdf_payload_size)
 }
 
@@ -33,7 +33,7 @@ pub(crate) fn write_emdf_container_with_dovi_rpu_payload(
     writer: &mut BitstreamIoWriter,
     payload: &[u8],
 ) -> Result<()> {
-    let emdf_payload_size = payload.len() as u32;
+    let emdf_payload_size = u16::try_from(payload.len())?;
 
     write_dovi_rpu_emdf_header(writer)?;
     write_variable_bits::<8>(writer, emdf_payload_size)?;
@@ -61,29 +61,33 @@ fn write_dovi_rpu_emdf_header(writer: &mut BitstreamIoWriter) -> Result<()> {
     Ok(())
 }
 
-fn parse_variable_bits<const BITS: u32>(reader: &mut BsIoSliceReader) -> Result<u32> {
-    let mut value: u32 = 0;
+fn parse_variable_bits<const BITS: u32>(reader: &mut BsIoSliceReader) -> Result<u16> {
+    let mut value: u16 = 0;
 
     loop {
-        let tmp = reader.read::<BITS, u32>()?;
-        value += tmp;
+        let tmp = reader.read::<BITS, u16>()?;
+        value = value
+            .checked_add(tmp)
+            .context("parse_variable_bits add overflow")?;
 
         // read_more flag
         if !reader.read_bit()? {
             break;
         }
 
-        value <<= BITS;
-        value += 1 << BITS;
+        value = value
+            .checked_shl(BITS)
+            .and_then(|v| v.checked_add(1 << BITS))
+            .context("variable_bits shift overflow")?;
     }
 
     Ok(value)
 }
 
-fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u32) -> Result<()> {
+fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u16) -> Result<()> {
     let max = 1 << BITS;
 
-    if value > max {
+    if value >= max {
         let mut remaining = value;
 
         loop {
@@ -92,7 +96,7 @@ fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u
             remaining -= clipped;
 
             let byte = (clipped - max) >> BITS;
-            writer.write::<BITS, u32>(byte)?;
+            writer.write::<BITS, u16>(byte)?;
             writer.write_bit(true)?; // read_more
 
             // Stop once the remaining can be written in N bits
@@ -101,12 +105,98 @@ fn write_variable_bits<const BITS: u32>(writer: &mut BitstreamIoWriter, value: u
             }
         }
 
-        writer.write::<BITS, u32>(remaining)?;
+        writer.write::<BITS, u16>(remaining)?;
     } else {
-        writer.write::<BITS, u32>(value)?;
+        writer.write::<BITS, u16>(value)?;
     }
 
     writer.write_bit(false)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use bitvec_helpers::{
+        bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
+    };
+
+    use super::{parse_variable_bits, write_variable_bits};
+
+    #[test]
+    fn variable_bits_one_group_roundtrip() -> Result<()> {
+        let value = 148;
+
+        let mut writer = BitstreamIoWriter::with_capacity(2);
+        write_variable_bits::<8>(&mut writer, value)?;
+
+        writer.byte_align()?;
+        let out = writer.as_slice().unwrap();
+        assert_eq!(out, &[148, 0]);
+
+        let mut reader = BsIoSliceReader::from_slice(out);
+        assert_eq!(parse_variable_bits::<8>(&mut reader)?, value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn write_variable_bits_u8_max() -> Result<()> {
+        let value = 256;
+
+        let mut writer = BitstreamIoWriter::with_capacity(2);
+        write_variable_bits::<8>(&mut writer, value)?;
+
+        writer.byte_align()?;
+        let out = writer.as_slice().unwrap();
+        assert_eq!(out, &[0, 128, 0]);
+
+        let mut reader = BsIoSliceReader::from_slice(out);
+        assert_eq!(parse_variable_bits::<8>(&mut reader)?, value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn write_variable_bits_two_groups_roundtrip() -> Result<()> {
+        let value = 58472;
+
+        let mut writer = BitstreamIoWriter::with_capacity(2);
+        write_variable_bits::<8>(&mut writer, value)?;
+
+        writer.byte_align()?;
+        let out = writer.as_slice().unwrap();
+        assert_eq!(out, &[227, 180, 0]);
+
+        let mut reader = BsIoSliceReader::from_slice(out);
+        assert_eq!(parse_variable_bits::<8>(&mut reader)?, value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn write_variable_bits_max_supported_roundtrip() -> Result<()> {
+        let value = 65535;
+
+        let mut writer = BitstreamIoWriter::with_capacity(2);
+        write_variable_bits::<8>(&mut writer, value)?;
+
+        writer.byte_align()?;
+        let out = writer.as_slice().unwrap();
+        assert_eq!(out, &[254, 255, 128]);
+
+        let mut reader = BsIoSliceReader::from_slice(out);
+        assert_eq!(parse_variable_bits::<8>(&mut reader)?, value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_variable_bits_checked_acc() -> Result<()> {
+        let mut reader = BsIoSliceReader::from_slice(&[255, 255, 0]);
+        assert!(parse_variable_bits::<8>(&mut reader).is_err());
+
+        Ok(())
+    }
 }
