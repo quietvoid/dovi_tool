@@ -125,29 +125,34 @@ impl DoviRpu {
 
         let last_byte = data[rpu_end - 1];
 
-        // Minus 4 bytes for the CRC32, 1 for the 0x80 ending byte
-        let crc32_start = rpu_end - 5;
-
-        // Ignoring the prefix byte
-        let received_crc32 = compute_crc32(&data[1..crc32_start]);
-
         if last_byte != FINAL_BYTE {
             bail!("Invalid RPU last byte: {}", last_byte);
         }
 
-        let mut dovi_rpu = DoviRpu::read_rpu_data(&data[..rpu_end])?;
+        // 4 bytes for the CRC32, 1 for the 0x80 ending byte
+        let crc32_start = rpu_end - 5;
 
-        if received_crc32 != dovi_rpu.rpu_data_crc32 {
+        // checksum ignores the prefix byte
+        let computed_crc32 = compute_crc32(&data[1..crc32_start]);
+
+        // validate crc32 before trying to read the data, it would fail afterwards either way
+        let received_crc32 = u32::from_be_bytes(data[crc32_start..crc32_start + 4].try_into()?);
+        if received_crc32 != computed_crc32 {
             bail!(
                 "RPU CRC32 does not match the data. Received: {}, expected {}",
                 received_crc32,
-                dovi_rpu.rpu_data_crc32
+                computed_crc32
             );
+        }
+
+        let mut dovi_rpu = DoviRpu::read_rpu_data(&data[..rpu_end])?;
+
+        if dovi_rpu.rpu_data_crc32 != computed_crc32 {
+            bail!("Parsed RPU CRC32 does not match expected value");
         }
 
         dovi_rpu.trailing_zeroes = trailing_zeroes;
 
-        // Validate
         dovi_rpu.validate()?;
 
         Ok(dovi_rpu)
