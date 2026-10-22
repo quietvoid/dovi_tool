@@ -7,7 +7,7 @@ use bitvec_helpers::{
 use serde::Serialize;
 use tinyvec::{ArrayVec, array_vec};
 
-use crate::rpu::MMR_MAX_COEFFS;
+use crate::rpu::{MMR_MAX_COEFFS, RESHAPING_MAX_PIECES};
 
 use super::rpu_data_header::RpuDataHeader;
 use super::rpu_data_nlq::{DoviELType, RpuDataNlq};
@@ -115,6 +115,8 @@ impl RpuDataMapping {
             let curve = &mut mapping.curves[cmp];
 
             curve.num_pivots_minus2 = reader.read_ue()?;
+            ensure!(curve.num_pivots_minus2 < RESHAPING_MAX_PIECES);
+
             let num_pivots = (curve.num_pivots_minus2 + 2) as usize;
 
             curve.pivots = vec![0; num_pivots];
@@ -305,6 +307,10 @@ impl RpuDataMapping {
     }
 
     pub fn validate(&self, profile: u8) -> Result<()> {
+        for curve in &self.curves {
+            curve.validate()?;
+        }
+
         match profile {
             5 => {
                 ensure!(
@@ -382,6 +388,15 @@ impl RpuDataMapping {
 
     pub fn get_enhancement_layer_type(&self) -> Option<DoviELType> {
         self.nlq.as_ref().map(|nlq| nlq.el_type())
+    }
+}
+
+impl DoviReshapingCurve {
+    fn validate(&self) -> Result<()> {
+        ensure!(self.num_pivots_minus2 < RESHAPING_MAX_PIECES);
+        ensure!(self.pivots.len() == self.num_pivots_minus2 as usize + 2);
+
+        Ok(())
     }
 }
 

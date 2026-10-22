@@ -15,6 +15,7 @@ static CRC32_INSTANCE: Crc<u32, Table<16>> = Crc::<u32, Table<16>>::new(&CRC_32_
 
 pub const NUM_COMPONENTS: usize = 3;
 
+pub(crate) const RESHAPING_MAX_PIECES: u64 = 8;
 pub(crate) const MMR_MAX_COEFFS: usize = 7;
 pub(crate) const NLQ_NUM_PIVOTS: usize = 2;
 
