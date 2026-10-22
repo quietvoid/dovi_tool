@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Added support for extension metadata level `253` blocks.
+- `From<u8> for DoviNlqMethod` was replaced with `TryFrom`.
 
 C-API:
 - Added `level253` pointer to `DmData` struct.

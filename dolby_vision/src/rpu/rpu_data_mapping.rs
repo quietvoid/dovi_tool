@@ -129,7 +129,7 @@ impl RpuDataMapping {
             let nlq_method_idc = reader.read::<3, u8>()?;
             ensure!(nlq_method_idc == 0);
 
-            mapping.nlq_method_idc = Some(DoviNlqMethod::from(nlq_method_idc));
+            mapping.nlq_method_idc = Some(DoviNlqMethod::try_from(nlq_method_idc)?);
             mapping.nlq_num_pivots_minus2 = Some(0);
 
             let mut nlq_pred_pivot_value = [0; NLQ_NUM_PIVOTS];
@@ -227,7 +227,7 @@ impl RpuDataMapping {
                     }
 
                     if poly_order_minus1 == 0 && poly_curve.linear_interp_flag[i] {
-                        unimplemented!("write: Polynomial interpolation: please open an issue");
+                        bail!("write: Polynomial interpolation: please open an issue");
 
                         /*
                         if header.coefficient_data_type == 0 {
@@ -412,7 +412,7 @@ impl DoviPolynomialCurve {
 
         if poly_order_minus1 == 0 && linear_interp_flag {
             // Linear interpolation
-            unimplemented!("parse: Polynomial interpolation: please open an issue");
+            bail!("parse: Polynomial interpolation: please open an issue");
 
             /*if header.coefficient_data_type == 0 {
                 self.pred_linear_interp_value_int[i] = reader.read_ue()?;
@@ -537,11 +537,13 @@ impl TryFrom<u64> for DoviMappingMethod {
     }
 }
 
-impl From<u8> for DoviNlqMethod {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for DoviNlqMethod {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self> {
         match value {
-            0 => Self::LinearDeadzone,
-            _ => unreachable!(),
+            0 => Ok(Self::LinearDeadzone),
+            _ => bail!("Unsupported NLQ method: {value}"),
         }
     }
 }

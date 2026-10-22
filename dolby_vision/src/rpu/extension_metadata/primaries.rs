@@ -111,7 +111,7 @@ impl ColorPrimaries {
 }
 
 /// Assumes a list of size 8, otherwise panics
-pub fn f64_to_integer_primaries(primaries: &[f64]) -> [u16; 8] {
+fn f64_to_integer_primaries(primaries: &[f64; 8]) -> [u16; 8] {
     const SCALE: f64 = 1.0 / 32767.0;
 
     primaries

@@ -54,14 +54,20 @@ pub fn parse_rpu_file<P: AsRef<Path>>(input: P) -> Result<Vec<DoviRpu>> {
         }
 
         let last = if read_bytes < chunk_size {
-            *offsets.last().unwrap()
+            let Some(offset) = offsets.last() else {
+                bail!("No offset found")
+            };
+
+            *offset
         } else {
-            let last = offsets.pop().unwrap();
+            let Some(offset) = offsets.pop() else {
+                bail!("No offset found")
+            };
 
             end.clear();
-            end.extend_from_slice(&chunk[last..]);
+            end.extend_from_slice(&chunk[offset..]);
 
-            last
+            offset
         };
 
         let count = offsets.len();

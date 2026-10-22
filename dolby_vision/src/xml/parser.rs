@@ -54,7 +54,7 @@ impl CmXmlParser {
             ..Default::default()
         };
 
-        let doc = roxmltree::Document::parse(&s).unwrap();
+        let doc = roxmltree::Document::parse(&s)?;
 
         parser.xml_version = parser.parse_xml_version(&doc)?;
 
