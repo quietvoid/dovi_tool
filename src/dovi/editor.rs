@@ -3,7 +3,7 @@ use std::io::{Write, stdout};
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 
 use dolby_vision::rpu::extension_metadata::blocks::{
@@ -507,7 +507,7 @@ impl EditConfig {
         let levels = self
             .rpu_levels
             .as_ref()
-            .expect("Levels to replace must be present");
+            .context("Levels to replace must be present")?;
 
         let allow_cmv4_transfer = self.allow_cmv4_transfer.unwrap_or(false)
             && levels

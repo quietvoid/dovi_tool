@@ -52,10 +52,14 @@ doctest = false
 name = "bench_main"
 harness = false
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(cargo_c)'] }
-
 [profile.release-deploy]
 inherits = "release"
 lto = "thin"
 strip = "symbols"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(cargo_c)'] }
+
+[lints.clippy]
+panic = "deny"
+expect_used = "deny"

@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -204,7 +204,7 @@ impl GenerateConfig {
 
     pub fn write_rpus<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let mut writer =
-            BufWriter::with_capacity(100_000, File::create(path).expect("Can't create file"));
+            BufWriter::with_capacity(100_000, File::create(path).context("Can't create file")?);
 
         let rpus = self.generate_rpu_list()?;
 

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use roxmltree::{Document, Node};
 use std::cmp::min;
 use std::collections::HashMap;
@@ -608,7 +608,7 @@ impl CmXmlParser {
         let target_display = self
             .target_displays
             .get(&target_id)
-            .expect("No target display found for L2 trim");
+            .context("No target display found for L2 trim")?;
 
         ensure!(trim.len() == 9, "invalid L2 trim: should be 9 values");
 
@@ -719,7 +719,7 @@ impl CmXmlParser {
         let target_display = self
             .target_displays
             .get(&target_id)
-            .expect("No target display found for L8 trim");
+            .context("No target display found for L8 trim")?;
 
         ensure!(trim.len() == 6, "Invalid L8 trim: should be 6 values");
 
