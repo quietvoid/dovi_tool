@@ -188,7 +188,7 @@ impl VdrDmData {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write_ue(self.affected_dm_metadata_id)?;
         writer.write_ue(self.current_dm_metadata_id)?;
         writer.write_ue(self.scene_refresh_flag)?;

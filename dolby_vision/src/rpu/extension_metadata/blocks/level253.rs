@@ -41,9 +41,7 @@ impl ExtMetadataBlockLevel253 {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
-
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write_bytes(&self.bytes)?;
 
         Ok(())

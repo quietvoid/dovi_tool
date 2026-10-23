@@ -99,7 +99,7 @@ impl RpuDataNlq {
         self.linear_deadzone_threshold.fill(0);
     }
 
-    pub fn write(
+    pub(crate) fn write(
         &self,
         writer: &mut BitstreamIoWriter,
         header: &RpuDataHeader,

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 #[cfg(feature = "serde")]
@@ -148,6 +148,12 @@ impl CmV29DmData {
                 count <= max,
                 "there must be at most {max} level {level} blocks, found {count}"
             );
+        }
+
+        for block in blocks {
+            block
+                .validate()
+                .with_context(|| format!("Level {}", block.level()))?;
         }
 
         Ok(())

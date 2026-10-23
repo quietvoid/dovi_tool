@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, ensure};
+use anyhow::{Result, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -96,9 +96,7 @@ pub trait WithExtMetadataBlocks {
             writer.write_ue(ext_metadata_block.length_bytes())?;
             writer.write::<8, u8>(level)?;
 
-            ext_metadata_block
-                .write(writer)
-                .with_context(|| format!("Level {level}"))?;
+            ext_metadata_block.write(writer)?;
 
             // ext_dm_alignment_zero_bit
             writer.pad(remaining_bits)?;
@@ -135,7 +133,7 @@ impl DmData {
         Ok(Some(meta))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         match self {
             DmData::V29(m) => m.write(writer),
             DmData::V40(m) => m.write(writer),

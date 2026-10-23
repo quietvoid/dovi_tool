@@ -40,9 +40,7 @@ impl ExtMetadataBlockLevel1 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
-
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write::<12, u16>(self.min_pq)?;
         writer.write::<12, u16>(self.max_pq)?;
         writer.write::<12, u16>(self.avg_pq)?;

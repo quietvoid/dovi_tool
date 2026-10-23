@@ -179,7 +179,11 @@ impl RpuDataMapping {
         Ok(mapping)
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter, header: &RpuDataHeader) -> Result<()> {
+    pub(crate) fn write(
+        &self,
+        writer: &mut BitstreamIoWriter,
+        header: &RpuDataHeader,
+    ) -> Result<()> {
         let coefficient_log2_denom_length = header.coefficient_log2_denom_length;
 
         let bl_bit_depth = (header.bl_bit_depth_minus8 + 8) as u32;

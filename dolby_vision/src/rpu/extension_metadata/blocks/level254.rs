@@ -26,10 +26,14 @@ impl ExtMetadataBlockLevel254 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write::<8, u8>(self.dm_mode)?;
         writer.write::<8, u8>(self.dm_version_index)?;
 
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<()> {
         Ok(())
     }
 
