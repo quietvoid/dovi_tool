@@ -1,11 +1,12 @@
 use anyhow::Result;
 use indicatif::ProgressBar;
+use std::io::BufRead;
 use std::path::PathBuf;
 
 use crate::{commands::ExtractRpuArgs, dovi::general_read_write::DoviProcessorError};
 
 use super::{
-    CliOptions, IoFormat,
+    CliOptions, IoFormat, av1,
     general_read_write::{self, DoviProcessorOptions},
     input_from_either,
 };
@@ -47,16 +48,31 @@ impl RpuExtractor {
     }
 
     pub fn extract_rpu(args: ExtractRpuArgs, options: CliOptions) -> Result<()> {
-        let rpu_extractor = RpuExtractor::from_args(args)?;
-        rpu_extractor.process_input(options)
+        let input = input_from_either("extract-rpu", args.input.clone(), args.input_pos.clone())?;
+
+        match av1::Input::open(&input, args.track_number)? {
+            av1::Input::Av1(mut av1) => {
+                let rpu_out = args.rpu_out.unwrap_or(PathBuf::from("RPU.bin"));
+                av1.extract_rpu(&rpu_out, options, args.limit, args.track_number)
+            }
+            av1::Input::Other(stdin) => {
+                let rpu_extractor = RpuExtractor::from_args(args)?;
+                rpu_extractor.process_input(options, stdin)
+            }
+        }
     }
 
-    fn process_input(&self, options: CliOptions) -> Result<()> {
+    fn process_input(&self, options: CliOptions, stdin: Option<Box<dyn BufRead>>) -> Result<()> {
         let pb = super::initialize_progress_bar(&self.format, &self.input)?;
-        self.extract_rpu_from_el(pb, options)
+        self.extract_rpu_from_el(pb, options, stdin)
     }
 
-    fn extract_rpu_from_el(&self, pb: ProgressBar, options: CliOptions) -> Result<()> {
+    fn extract_rpu_from_el(
+        &self,
+        pb: ProgressBar,
+        options: CliOptions,
+        stdin: Option<Box<dyn BufRead>>,
+    ) -> Result<()> {
         let rpu_out = self.rpu_out.as_path();
 
         let dovi_writer = DoviWriter::new(None, None, Some(rpu_out), None);
@@ -69,7 +85,8 @@ impl RpuExtractor {
                 limit: self.limit,
                 track_number: self.track_number,
             },
-        );
+        )
+        .with_stdin(stdin);
 
         let res = dovi_processor.read_write_from_io(&self.format);
 

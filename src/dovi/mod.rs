@@ -13,6 +13,7 @@ use hevc_parser::io::{IoFormat, StartCodePreset};
 use self::editor::EditConfig;
 use super::commands::ConversionModeCli;
 
+pub mod av1;
 pub mod converter;
 pub mod demuxer;
 pub mod editor;
@@ -92,10 +93,16 @@ pub fn write_rpu_file<P: AsRef<Path>>(output_path: P, data: Vec<Vec<u8>>) -> Res
 
 pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u8>> {
     let mut dovi_rpu = DoviRpu::parse_unspec62_nalu(data)?;
+    apply_options(opts, &mut dovi_rpu)?;
 
+    dovi_rpu.write_hevc_unspec62_nalu()
+}
+
+/// Apply the edit config, or the conversion mode and crop, to an RPU
+pub fn apply_options(opts: &CliOptions, dovi_rpu: &mut DoviRpu) -> Result<()> {
     // Config overrides manual arguments
     if let Some(edit_config) = &opts.edit_config {
-        edit_config.execute_single_rpu(&mut dovi_rpu)?;
+        edit_config.execute_single_rpu(dovi_rpu)?;
     } else {
         if let Some(mode) = opts.mode {
             dovi_rpu.convert_with_mode(mode)?;
@@ -106,7 +113,7 @@ pub fn convert_encoded_from_opts(opts: &CliOptions, data: &[u8]) -> Result<Vec<u
         }
     }
 
-    dovi_rpu.write_hevc_unspec62_nalu()
+    Ok(())
 }
 
 pub fn input_from_either(cmd: &str, in1: Option<PathBuf>, in2: Option<PathBuf>) -> Result<PathBuf> {
