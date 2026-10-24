@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -52,10 +52,24 @@ pub struct ExtMetadataBlockLevel8 {
     pub hue_vector_field5: u8,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum Level8Length {
+    MsWeight = 10,
+    TargetMidContrast = 12,
+    ClipTrim = 13,
+    SaturationVectors = 19,
+    HueVectors = 25,
+}
+
 impl ExtMetadataBlockLevel8 {
-    pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(
+        reader: &mut BsIoSliceReader,
+        block_length: u64,
+    ) -> Result<ExtMetadataBlock> {
+        let length = Level8Length::try_from(block_length)?;
+
         let mut block = Self {
-            length,
+            length: block_length,
             target_display_index: reader.read::<8, u8>()?,
             trim_slope: reader.read::<12, u16>()?,
             trim_offset: reader.read::<12, u16>()?,
@@ -66,15 +80,15 @@ impl ExtMetadataBlockLevel8 {
             ..Default::default()
         };
 
-        if length > 10 {
+        if length > Level8Length::MsWeight {
             block.target_mid_contrast = reader.read::<12, u16>()?;
         }
 
-        if length > 12 {
+        if length > Level8Length::TargetMidContrast {
             block.clip_trim = reader.read::<12, u16>()?;
         }
 
-        if length > 13 {
+        if length > Level8Length::ClipTrim {
             block.saturation_vector_field0 = reader.read::<8, u8>()?;
             block.saturation_vector_field1 = reader.read::<8, u8>()?;
             block.saturation_vector_field2 = reader.read::<8, u8>()?;
@@ -83,7 +97,7 @@ impl ExtMetadataBlockLevel8 {
             block.saturation_vector_field5 = reader.read::<8, u8>()?;
         }
 
-        if length > 19 {
+        if length > Level8Length::SaturationVectors {
             block.hue_vector_field0 = reader.read::<8, u8>()?;
             block.hue_vector_field1 = reader.read::<8, u8>()?;
             block.hue_vector_field2 = reader.read::<8, u8>()?;
@@ -95,8 +109,8 @@ impl ExtMetadataBlockLevel8 {
         Ok(ExtMetadataBlock::Level8(block))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        let length = Level8Length::try_from(self.length)?;
 
         writer.write::<8, u8>(self.target_display_index)?;
         writer.write::<12, u16>(self.trim_slope)?;
@@ -107,15 +121,15 @@ impl ExtMetadataBlockLevel8 {
         writer.write::<12, u16>(self.ms_weight)?;
 
         // Write default values when the fields can not be omitted
-        if self.length > 10 {
+        if length > Level8Length::MsWeight {
             writer.write::<12, u16>(self.target_mid_contrast)?;
         }
 
-        if self.length > 12 {
+        if length > Level8Length::TargetMidContrast {
             writer.write::<12, u16>(self.clip_trim)?;
         }
 
-        if self.length > 13 {
+        if length > Level8Length::ClipTrim {
             writer.write::<8, u8>(self.saturation_vector_field0)?;
             writer.write::<8, u8>(self.saturation_vector_field1)?;
             writer.write::<8, u8>(self.saturation_vector_field2)?;
@@ -124,7 +138,7 @@ impl ExtMetadataBlockLevel8 {
             writer.write::<8, u8>(self.saturation_vector_field5)?;
         }
 
-        if self.length > 19 {
+        if length > Level8Length::SaturationVectors {
             writer.write::<8, u8>(self.hue_vector_field0)?;
             writer.write::<8, u8>(self.hue_vector_field1)?;
             writer.write::<8, u8>(self.hue_vector_field2)?;
@@ -137,6 +151,8 @@ impl ExtMetadataBlockLevel8 {
     }
 
     pub fn validate(&self) -> Result<()> {
+        Level8Length::try_from(self.length)?;
+
         ensure!(self.trim_slope <= MAX_12_BIT_VALUE);
         ensure!(self.trim_offset <= MAX_12_BIT_VALUE);
         ensure!(self.trim_power <= MAX_12_BIT_VALUE);
@@ -172,14 +188,12 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel8 {
     }
 
     fn required_bits(&self) -> u64 {
-        match self.length {
-            25 => 200,
-            19 => 152,
-            13 => 104,
-            12 => 92,
-            10 => 80,
-            _ => unreachable!(),
-        }
+        let Ok(length) = Level8Length::try_from(self.length) else {
+            // validation is performed before this is called
+            unreachable!();
+        };
+
+        length.required_bits()
     }
 
     fn sort_key(&self) -> (u8, u16) {
@@ -224,14 +238,8 @@ impl Serialize for ExtMetadataBlockLevel8 {
         S: Serializer,
     {
         let name = "ExtMetadataBlockLevel8";
-        let fields_count = match self.length {
-            25 => 22,
-            19 => 16,
-            13 => 10,
-            12 => 9,
-            10 => 8,
-            _ => unreachable!(),
-        };
+        let length = Level8Length::try_from(self.length).map_err(serde::ser::Error::custom)?;
+        let fields_count = length.serialize_fields_count();
 
         let mut state = serializer.serialize_struct(name, fields_count)?;
 
@@ -244,15 +252,15 @@ impl Serialize for ExtMetadataBlockLevel8 {
         state.serialize_field("trim_saturation_gain", &self.trim_saturation_gain)?;
         state.serialize_field("ms_weight", &self.ms_weight)?;
 
-        if self.length > 10 {
+        if length > Level8Length::MsWeight {
             state.serialize_field("target_mid_contrast", &self.target_mid_contrast)?;
         }
 
-        if self.length > 12 {
+        if length > Level8Length::TargetMidContrast {
             state.serialize_field("clip_trim", &self.clip_trim)?;
         }
 
-        if self.length > 13 {
+        if length > Level8Length::ClipTrim {
             state.serialize_field("saturation_vector_field0", &self.saturation_vector_field0)?;
             state.serialize_field("saturation_vector_field1", &self.saturation_vector_field1)?;
             state.serialize_field("saturation_vector_field2", &self.saturation_vector_field2)?;
@@ -261,7 +269,7 @@ impl Serialize for ExtMetadataBlockLevel8 {
             state.serialize_field("saturation_vector_field5", &self.saturation_vector_field5)?;
         }
 
-        if self.length > 19 {
+        if length > Level8Length::SaturationVectors {
             state.serialize_field("hue_vector_field0", &self.hue_vector_field0)?;
             state.serialize_field("hue_vector_field1", &self.hue_vector_field1)?;
             state.serialize_field("hue_vector_field2", &self.hue_vector_field2)?;
@@ -271,5 +279,45 @@ impl Serialize for ExtMetadataBlockLevel8 {
         }
 
         state.end()
+    }
+}
+
+impl Level8Length {
+    const fn required_bits(&self) -> u64 {
+        match self {
+            Self::MsWeight => 80,
+            Self::TargetMidContrast => 92,
+            Self::ClipTrim => 104,
+            Self::SaturationVectors => 152,
+            Self::HueVectors => 200,
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    const fn serialize_fields_count(&self) -> usize {
+        match self {
+            Self::MsWeight => 8,
+            Self::TargetMidContrast => 9,
+            Self::ClipTrim => 10,
+            Self::SaturationVectors => 16,
+            Self::HueVectors => 22,
+        }
+    }
+}
+
+impl TryFrom<u64> for Level8Length {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u64) -> Result<Self> {
+        let gate = match value {
+            10 => Self::MsWeight,
+            12 => Self::TargetMidContrast,
+            13 => Self::ClipTrim,
+            19 => Self::SaturationVectors,
+            25 => Self::HueVectors,
+            _ => bail!("invalid level 8 length"),
+        };
+
+        Ok(gate)
     }
 }

@@ -826,19 +826,19 @@ impl CmXmlParser {
         // Set variable length according to the metadata
         // Only write trims which were modified
         let length = if huevec.iter().any(|v| *v != 128) {
-            25
+            level8::Level8Length::HueVectors
         } else if satvec.iter().any(|v| *v != 128) {
-            19
+            level8::Level8Length::SaturationVectors
         } else if clip_trim != 2048 {
-            13
+            level8::Level8Length::ClipTrim
         } else if target_mid_contrast != 2048 {
-            12
+            level8::Level8Length::TargetMidContrast
         } else {
-            10
+            level8::Level8Length::MsWeight
         };
 
         Ok(ExtMetadataBlockLevel8 {
-            length,
+            length: length as u64,
             target_display_index: target_display.id.parse::<u8>()?,
             trim_slope,
             trim_offset,

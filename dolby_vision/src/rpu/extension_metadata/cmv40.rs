@@ -1,11 +1,24 @@
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use bitvec_helpers::bitstream_io_reader::BsIoSliceReader;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use super::WithExtMetadataBlocks;
-use crate::rpu::extension_metadata::blocks::*;
+use super::{WithExtMetadataBlocks, blocks::*};
+
+pub(crate) const CM_V40_SUPPORTED_LEVELS: [u8; 7] = [3, 8, 9, 10, 11, 253, 254];
+pub(crate) const CM_V40_MAX_ALLOWED_BLOCKS: usize = {
+    let mut i = 0;
+    let mut sum = 0;
+
+    while i < CM_V40_SUPPORTED_LEVELS.len() {
+        let level = CM_V40_SUPPORTED_LEVELS[i];
+        sum += cm_v40_max_num_blocks_for_level(level).unwrap();
+        i += 1;
+    }
+
+    sum
+};
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -16,7 +29,8 @@ pub struct CmV40DmData {
 
 impl WithExtMetadataBlocks for CmV40DmData {
     const VERSION: &'static str = "CM v4.0";
-    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &[3, 8, 9, 10, 11, 253, 254];
+    const ALLOWED_BLOCK_LEVELS: &'static [u8] = &CM_V40_SUPPORTED_LEVELS;
+    const MAX_ALLOWED_BLOCKS: usize = CM_V40_MAX_ALLOWED_BLOCKS;
 
     fn with_blocks_allocation(num_ext_blocks: u64) -> Self {
         Self {
@@ -122,50 +136,43 @@ impl CmV40DmData {
     pub fn validate(&self) -> Result<()> {
         let blocks = self.blocks_ref();
 
+        ensure!(
+            blocks.len() <= CM_V40_MAX_ALLOWED_BLOCKS,
+            "cannot have more than {CM_V40_MAX_ALLOWED_BLOCKS} extension metadata blocks"
+        );
+
         let invalid_blocks_count = blocks
             .iter()
-            .filter(|b| !Self::ALLOWED_BLOCK_LEVELS.contains(&b.level()))
+            .filter(|b| !CM_V40_SUPPORTED_LEVELS.contains(&b.level()))
             .count();
-
-        let level254_count = blocks.iter().filter(|b| b.level() == 254).count();
-
-        let level3_count = blocks.iter().filter(|b| b.level() == 3).count();
-
-        let level8_count = blocks.iter().filter(|b| b.level() == 8).count();
-
-        let level9_count = blocks.iter().filter(|b| b.level() == 9).count();
-
-        let level10_count = blocks.iter().filter(|b| b.level() == 10).count();
-
-        let level11_count = blocks.iter().filter(|b| b.level() == 11).count();
 
         ensure!(
             invalid_blocks_count == 0,
-            "Only allowed blocks level 3, 8, 9, 10, 11 and 254"
+            "Only allowed blocks level {:?}",
+            CM_V40_SUPPORTED_LEVELS
         );
 
-        ensure!(level254_count == 1, "There must be one L254 metadata block");
+        let counts = CM_V40_SUPPORTED_LEVELS.into_iter().filter_map(|level| {
+            let count = blocks.iter().filter(|b| b.level() == level).count();
+            (count > 0).then_some((level, count))
+        });
 
-        ensure!(
-            level3_count <= 1,
-            "There must be at most one L3 metadata block"
-        );
-        ensure!(
-            level8_count <= 5,
-            "There must be at most 5 L8 metadata blocks"
-        );
-        ensure!(
-            level9_count <= 1,
-            "There must be at most one L9 metadata block"
-        );
-        ensure!(
-            level10_count <= 4,
-            "There must be at most 4 L10 metadata blocks"
-        );
-        ensure!(
-            level11_count <= 1,
-            "There must be at most one L11 metadata block"
-        );
+        for (level, count) in counts {
+            let Some(max) = cm_v40_max_num_blocks_for_level(level) else {
+                bail!("invalid level {level}");
+            };
+
+            ensure!(
+                count <= max,
+                "there must be at most {max} level {level} blocks, found {count}"
+            );
+        }
+
+        for block in blocks {
+            block
+                .validate()
+                .with_context(|| format!("Level {}", block.level()))?;
+        }
 
         Ok(())
     }
@@ -199,5 +206,42 @@ impl CmV40DmData {
             num_ext_blocks: 1,
             ext_metadata_blocks: vec![ExtMetadataBlock::Level254(level254.clone())],
         }
+    }
+}
+
+const fn cm_v40_max_num_blocks_for_level(level: u8) -> Option<usize> {
+    let count = match level {
+        3 => 1,
+        8 => 5,
+        9 => 1,
+        10 => 4,
+        11 => 1,
+        253 => 1,
+        254 => 1,
+        _ => return None,
+    };
+
+    Some(count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        CM_V40_MAX_ALLOWED_BLOCKS, CM_V40_SUPPORTED_LEVELS, cm_v40_max_num_blocks_for_level,
+    };
+
+    #[test]
+    fn validate_cm_v40_constants() {
+        assert_eq!(CM_V40_SUPPORTED_LEVELS, [3, 8, 9, 10, 11, 253, 254]);
+        assert_eq!(CM_V40_MAX_ALLOWED_BLOCKS, 14);
+
+        assert_eq!(cm_v40_max_num_blocks_for_level(3).unwrap(), 1);
+        assert_eq!(cm_v40_max_num_blocks_for_level(8).unwrap(), 5);
+        assert_eq!(cm_v40_max_num_blocks_for_level(9).unwrap(), 1);
+        assert_eq!(cm_v40_max_num_blocks_for_level(10).unwrap(), 4);
+        assert_eq!(cm_v40_max_num_blocks_for_level(11).unwrap(), 1);
+        assert_eq!(cm_v40_max_num_blocks_for_level(253).unwrap(), 1);
+        assert_eq!(cm_v40_max_num_blocks_for_level(254).unwrap(), 1);
+        assert_eq!(cm_v40_max_num_blocks_for_level(0), None);
     }
 }

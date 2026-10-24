@@ -6,6 +6,7 @@ use bitvec_helpers::{
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use super::extension_metadata::WithExtMetadataBlocks;
 use super::extension_metadata::blocks::ExtMetadataBlock;
 use super::extension_metadata::*;
 use super::generate::{GenerateConfig, GenerateProfile};
@@ -13,8 +14,6 @@ use super::profiles::DoviProfile;
 use super::profiles::profile5::Profile5;
 use super::profiles::profile81::Profile81;
 use super::profiles::profile84::Profile84;
-
-use super::extension_metadata::WithExtMetadataBlocks;
 use super::rpu_data_header::RpuDataHeader;
 
 // 16 bits min for required level 254 + CRC32 + 0x80
@@ -189,7 +188,7 @@ impl VdrDmData {
         Ok(())
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write_ue(self.affected_dm_metadata_id)?;
         writer.write_ue(self.current_dm_metadata_id)?;
         writer.write_ue(self.scene_refresh_flag)?;

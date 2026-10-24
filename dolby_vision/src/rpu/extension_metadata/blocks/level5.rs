@@ -31,9 +31,7 @@ impl ExtMetadataBlockLevel5 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
-
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write::<13, u16>(self.active_area_left_offset)?;
         writer.write::<13, u16>(self.active_area_right_offset)?;
         writer.write::<13, u16>(self.active_area_top_offset)?;

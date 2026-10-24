@@ -32,9 +32,7 @@ impl ExtMetadataBlockLevel6 {
         }))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
-
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         writer.write::<16, u16>(self.max_display_mastering_luminance)?;
         writer.write::<16, u16>(self.min_display_mastering_luminance)?;
         writer.write::<16, u16>(self.max_content_light_level)?;

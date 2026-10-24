@@ -170,7 +170,7 @@ impl ExtMetadataBlock {
         }
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
         match self {
             ExtMetadataBlock::Level1(b) => b.write(writer),
             ExtMetadataBlock::Level2(b) => b.write(writer),
@@ -186,6 +186,25 @@ impl ExtMetadataBlock {
             ExtMetadataBlock::Level254(b) => b.write(writer),
             ExtMetadataBlock::Level255(b) => b.write(writer),
             ExtMetadataBlock::Reserved(b) => b.write(writer),
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        match self {
+            ExtMetadataBlock::Level1(b) => b.validate(),
+            ExtMetadataBlock::Level2(b) => b.validate(),
+            ExtMetadataBlock::Level3(b) => b.validate(),
+            ExtMetadataBlock::Level4(b) => b.validate(),
+            ExtMetadataBlock::Level5(b) => b.validate(),
+            ExtMetadataBlock::Level6(b) => b.validate(),
+            ExtMetadataBlock::Level8(b) => b.validate(),
+            ExtMetadataBlock::Level9(b) => b.validate(),
+            ExtMetadataBlock::Level10(b) => b.validate(),
+            ExtMetadataBlock::Level11(b) => b.validate(),
+            ExtMetadataBlock::Level253(b) => b.validate(),
+            ExtMetadataBlock::Level254(b) => b.validate(),
+            ExtMetadataBlock::Level255(b) => b.validate(),
+            ExtMetadataBlock::Reserved(b) => b.validate(),
         }
     }
 

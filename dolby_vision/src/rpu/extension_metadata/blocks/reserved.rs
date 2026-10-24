@@ -35,8 +35,12 @@ impl ReservedExtMetadataBlock {
         }))
     }
 
-    pub fn write(&self, _writer: &mut BitstreamIoWriter) -> Result<()> {
+    pub(crate) fn write(&self, _writer: &mut BitstreamIoWriter) -> Result<()> {
         bail!("Cannot write reserved block");
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        bail!("Reserved block itself is invalid");
     }
 }
 

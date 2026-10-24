@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -56,15 +56,26 @@ pub struct ExtMetadataBlockLevel9 {
     pub source_primary_white_y: u16,
 }
 
+#[derive(PartialEq, Eq)]
+pub(crate) enum Level9Length {
+    PresetPrimaries = 1,
+    CustomPrimaries = 17,
+}
+
 impl ExtMetadataBlockLevel9 {
-    pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(
+        reader: &mut BsIoSliceReader,
+        block_length: u64,
+    ) -> Result<ExtMetadataBlock> {
+        let length = Level9Length::try_from(block_length)?;
+
         let mut block = Self {
-            length,
+            length: block_length,
             source_primary_index: reader.read::<8, u8>()?,
             ..Default::default()
         };
 
-        if length > 1 {
+        if length == Level9Length::CustomPrimaries {
             block.source_primary_red_x = reader.read::<16, u16>()?;
             block.source_primary_red_y = reader.read::<16, u16>()?;
             block.source_primary_green_x = reader.read::<16, u16>()?;
@@ -78,12 +89,12 @@ impl ExtMetadataBlockLevel9 {
         Ok(ExtMetadataBlock::Level9(block))
     }
 
-    pub fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
-        self.validate()?;
+    pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        let length = Level9Length::try_from(self.length)?;
 
         writer.write::<8, u8>(self.source_primary_index)?;
 
-        if self.length > 1 {
+        if length == Level9Length::CustomPrimaries {
             writer.write::<16, u16>(self.source_primary_red_x)?;
             writer.write::<16, u16>(self.source_primary_red_y)?;
             writer.write::<16, u16>(self.source_primary_green_x)?;
@@ -98,7 +109,9 @@ impl ExtMetadataBlockLevel9 {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.length > 1 {
+        let length = Level9Length::try_from(self.length)?;
+
+        if length == Level9Length::CustomPrimaries {
             // Custom primaries required
             ensure!(self.source_primary_index == 255);
             ensure!(self.source_primary_red_x > 0);
@@ -148,11 +161,12 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel9 {
     }
 
     fn required_bits(&self) -> u64 {
-        match self.length {
-            1 => 8,
-            17 => 136,
-            _ => unreachable!(),
-        }
+        let Ok(length) = Level9Length::try_from(self.length) else {
+            // validation is performed before this is called
+            unreachable!();
+        };
+
+        length.required_bits()
     }
 
     fn sort_key(&self) -> (u8, u16) {
@@ -185,18 +199,15 @@ impl Serialize for ExtMetadataBlockLevel9 {
         S: Serializer,
     {
         let name = "ExtMetadataBlockLevel9";
-        let fields_count = match self.length {
-            1 => 2,
-            17 => 10,
-            _ => unreachable!(),
-        };
+        let length = Level9Length::try_from(self.length).map_err(serde::ser::Error::custom)?;
+        let fields_count = length.serialize_fields_count();
 
         let mut state = serializer.serialize_struct(name, fields_count)?;
 
         state.serialize_field("length", &self.length)?;
         state.serialize_field("source_primary_index", &self.source_primary_index)?;
 
-        if self.length > 1 {
+        if length == Level9Length::CustomPrimaries {
             state.serialize_field("source_primary_red_x", &self.source_primary_red_x)?;
             state.serialize_field("source_primary_red_y", &self.source_primary_red_y)?;
             state.serialize_field("source_primary_green_x", &self.source_primary_green_x)?;
@@ -208,5 +219,36 @@ impl Serialize for ExtMetadataBlockLevel9 {
         }
 
         state.end()
+    }
+}
+
+impl Level9Length {
+    const fn required_bits(&self) -> u64 {
+        match self {
+            Self::PresetPrimaries => 8,
+            Self::CustomPrimaries => 136,
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    const fn serialize_fields_count(&self) -> usize {
+        match self {
+            Self::PresetPrimaries => 1,
+            Self::CustomPrimaries => 10,
+        }
+    }
+}
+
+impl TryFrom<u64> for Level9Length {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u64) -> Result<Self> {
+        let gate = match value {
+            1 => Self::PresetPrimaries,
+            17 => Self::CustomPrimaries,
+            _ => bail!("invalid level 9 length"),
+        };
+
+        Ok(gate)
     }
 }
