@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::{Result, bail, ensure};
 use bitvec_helpers::{
     bitstream_io_reader::BsIoSliceReader, bitstream_io_writer::BitstreamIoWriter,
 };
@@ -38,10 +38,21 @@ pub struct ExtMetadataBlockLevel10 {
     pub target_primary_white_y: u16,
 }
 
+#[derive(PartialEq, Eq)]
+pub(crate) enum Level10Length {
+    PresetPrimaries = 5,
+    CustomPrimaries = 21,
+}
+
 impl ExtMetadataBlockLevel10 {
-    pub(crate) fn parse(reader: &mut BsIoSliceReader, length: u64) -> Result<ExtMetadataBlock> {
+    pub(crate) fn parse(
+        reader: &mut BsIoSliceReader,
+        block_length: u64,
+    ) -> Result<ExtMetadataBlock> {
+        let length = Level10Length::try_from(block_length)?;
+
         let mut block = Self {
-            length,
+            length: block_length,
             target_display_index: reader.read::<8, u8>()?,
             target_max_pq: reader.read::<12, u16>()?,
             target_min_pq: reader.read::<12, u16>()?,
@@ -49,7 +60,7 @@ impl ExtMetadataBlockLevel10 {
             ..Default::default()
         };
 
-        if length > 5 {
+        if length == Level10Length::CustomPrimaries {
             block.target_primary_red_x = reader.read::<16, u16>()?;
             block.target_primary_red_y = reader.read::<16, u16>()?;
             block.target_primary_green_x = reader.read::<16, u16>()?;
@@ -64,12 +75,14 @@ impl ExtMetadataBlockLevel10 {
     }
 
     pub(crate) fn write(&self, writer: &mut BitstreamIoWriter) -> Result<()> {
+        let length = Level10Length::try_from(self.length)?;
+
         writer.write::<8, u8>(self.target_display_index)?;
         writer.write::<12, u16>(self.target_max_pq)?;
         writer.write::<12, u16>(self.target_min_pq)?;
         writer.write::<8, u8>(self.target_primary_index)?;
 
-        if self.length > 5 {
+        if length == Level10Length::CustomPrimaries {
             writer.write::<16, u16>(self.target_primary_red_x)?;
             writer.write::<16, u16>(self.target_primary_red_y)?;
             writer.write::<16, u16>(self.target_primary_green_x)?;
@@ -84,11 +97,13 @@ impl ExtMetadataBlockLevel10 {
     }
 
     pub fn validate(&self) -> Result<()> {
+        let length = Level10Length::try_from(self.length)?;
+
         ensure!(!PRESET_TARGET_DISPLAYS.contains(&self.target_display_index));
         ensure!(self.target_max_pq <= MAX_PQ_LUMINANCE);
         ensure!(self.target_min_pq <= MAX_PQ_LUMINANCE);
 
-        if self.length > 5 {
+        if length == Level10Length::CustomPrimaries {
             ensure!(self.target_primary_index == 255);
             ensure!(self.target_primary_red_x > 0);
             ensure!(self.target_primary_red_y > 0);
@@ -127,11 +142,12 @@ impl ExtMetadataBlockInfo for ExtMetadataBlockLevel10 {
     }
 
     fn required_bits(&self) -> u64 {
-        match self.length {
-            5 => 40,
-            21 => 168,
-            _ => unreachable!(),
-        }
+        let Ok(length) = Level10Length::try_from(self.length) else {
+            // validation is performed before this is called
+            unreachable!();
+        };
+
+        length.required_bits()
     }
 
     fn sort_key(&self) -> (u8, u16) {
@@ -165,12 +181,9 @@ impl Serialize for ExtMetadataBlockLevel10 {
     where
         S: Serializer,
     {
-        let name = "ExtMetadataBlockLevel9";
-        let fields_count = match self.length {
-            5 => 5,
-            21 => 13,
-            _ => unreachable!(),
-        };
+        let name = "ExtMetadataBlockLevel10";
+        let length = Level10Length::try_from(self.length).map_err(serde::ser::Error::custom)?;
+        let fields_count = length.serialize_fields_count();
 
         let mut state = serializer.serialize_struct(name, fields_count)?;
 
@@ -180,7 +193,7 @@ impl Serialize for ExtMetadataBlockLevel10 {
         state.serialize_field("target_min_pq", &self.target_min_pq)?;
         state.serialize_field("target_primary_index", &self.target_primary_index)?;
 
-        if self.length > 5 {
+        if length == Level10Length::CustomPrimaries {
             state.serialize_field("target_primary_red_x", &self.target_primary_red_x)?;
             state.serialize_field("target_primary_red_y", &self.target_primary_red_y)?;
             state.serialize_field("target_primary_green_x", &self.target_primary_green_x)?;
@@ -192,5 +205,36 @@ impl Serialize for ExtMetadataBlockLevel10 {
         }
 
         state.end()
+    }
+}
+
+impl Level10Length {
+    const fn required_bits(&self) -> u64 {
+        match self {
+            Self::PresetPrimaries => 40,
+            Self::CustomPrimaries => 168,
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    const fn serialize_fields_count(&self) -> usize {
+        match self {
+            Self::PresetPrimaries => 5,
+            Self::CustomPrimaries => 13,
+        }
+    }
+}
+
+impl TryFrom<u64> for Level10Length {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u64) -> Result<Self> {
+        let gate = match value {
+            5 => Self::PresetPrimaries,
+            21 => Self::CustomPrimaries,
+            _ => bail!("invalid level 10 length"),
+        };
+
+        Ok(gate)
     }
 }
